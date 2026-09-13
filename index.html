@@ -1015,9 +1015,19 @@ class Component extends DCLogic {
   signOut = () => { this.SB().signOut(); this.forceUpdate(); };
   localBypass = () => this.setState({ localBypass: true });
   showLogin = () => this.setState({ localBypass: false, route: 'dashboard' });
-  syncNow = () => this.run('Sincronizando com o Supabase', async () => { await this.SB().pushAll(); this.toast('Sincronizado.'); this.forceUpdate(); });
+  // Saneia o estado local antes de qualquer sincronização: nenhum data: URL vai para o Postgres (estoura max_stack_depth).
+  async sanitizeForSync() {
+    const db = this.db(); const B = this.M.store.blobs; let moved = 0;
+    for (const a of db.brand_assets) if (a.file_url?.startsWith('data:')) { await B.put(a.id, a.file_url); a.file_url = 'blob:' + a.id; moved++; }
+    for (const i of db.generated_images) if (i.file_url?.startsWith('data:')) { await B.put(i.id, i.file_url); i.file_url = ''; moved++; }
+    for (const p of db.posts) { if (Array.isArray(p.versions) && p.versions.length > 5) p.versions = p.versions.slice(-5); if (p.carousel?.slides) for (const s of p.carousel.slides) for (const k of Object.keys(s)) if (typeof s[k] === 'string' && s[k].startsWith('data:')) s[k] = ''; }
+    const walk = (o) => { if (!o || typeof o !== 'object') return; for (const k of Object.keys(o)) { const v = o[k]; if (typeof v === 'string' && v.startsWith('data:') && v.length > 2000) { o[k] = ''; moved++; } else if (v && typeof v === 'object') walk(v); } };
+    for (const k of ['editions', 'sources', 'analyses', 'newsletter_versions', 'posts', 'renders', 'publications', 'brand_rules', 'prompt_templates']) walk(db[k]);
+    if (moved) this.M.store.save(); return moved;
+  }
+  syncNow = () => this.run('Sincronizando com o Supabase', async () => { const n = await this.sanitizeForSync(); await this.SB().pushAll(); this.toast(n ? `Sincronizado. ${n} imagem(ns) movida(s) para o Storage.` : 'Sincronizado.'); this.forceUpdate(); });
   pullNow = () => this.run('Trazendo dados do Supabase', async () => { await this.SB().pullAll(); this.toast('Dados atualizados a partir do Supabase.'); this.forceUpdate(); });
-  scheduleSync() { if (!this.M.supabase?.signedIn()) return; clearTimeout(this._sync); this._sync = setTimeout(() => this.SB().pushAll().then(() => this.setState({ saveLabel: `Sincronizado ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` })).catch(err => { console.warn('sync', err); this.toast(`Sincronização falhou: ${err.message}`, 'error'); }), 4000); }
+  scheduleSync() { if (!this.M.supabase?.signedIn()) return; clearTimeout(this._sync); this._sync = setTimeout(() => this.sanitizeForSync().then(() => this.SB().pushAll()).then(() => this.setState({ saveLabel: `Sincronizado ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` })).catch(err => { console.warn('sync', err); this.toast(`Sincronização falhou: ${err.message}`, 'error'); }), 4000); }
 
   // ---------- Newsletter ----------
   previewRef = React.createRef(); _lastPreview = ''; undoStack = []; redoStack = [];
