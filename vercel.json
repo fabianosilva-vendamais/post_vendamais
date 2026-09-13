@@ -1,18 +1,14 @@
 {
-  "framework": "nextjs",
-  "regions": [
-    "gru1"
-  ],
-  "functions": {
-    "app/api/**/route.js": {
-      "maxDuration": 120
-    }
-  },
-  "redirects": [
+  "cleanUrls": true,
+  "headers": [
     {
-      "source": "/app",
-      "destination": "/app/",
-      "permanent": false
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
     }
   ]
 }
