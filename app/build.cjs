@@ -11,8 +11,7 @@ const get = (url, dest) => new Promise((res, rej) => https.get(url, r => { if (r
   await get('https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js', o + '/vendor/react-dom.js');
   let h = fs.readFileSync('Content Engine.dc.html', 'utf8');
   const cfg = { url: process.env.NEXT_PUBLIC_SUPABASE_URL || '', anon: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '', login: process.env.NEXT_PUBLIC_REQUIRE_LOGIN === 'true' };
-  const S = '<' + 'script';
-  const E = '<' + '/script>';
+  const S = '<' + 'script'; const E = '<' + '/script>';
   const inject = '<base href="/app/">' + S + '>window.__VM_CFG__=' + JSON.stringify(cfg) + ';window.__VM_API_BASE__=location.origin+"/api";window.__VM_SUPABASE_URL__=window.__VM_CFG__.url;window.__VM_SUPABASE_ANON__=window.__VM_CFG__.anon;window.__VM_REQUIRE_LOGIN__=window.__VM_CFG__.login;' + E + S + ' src="/app/vendor/react.js">' + E + S + ' src="/app/vendor/react-dom.js">' + E;
   h = h.replace('<head>', '<head>' + inject).replace('src="./support.js"', 'src="/app/support.js"');
   fs.writeFileSync(o + '/index.html', h);

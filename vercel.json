@@ -1,6 +1,18 @@
 {
   "framework": "nextjs",
-  "regions": ["gru1"],
-  "functions": { "app/api/**/route.js": { "maxDuration": 120 } },
-  "redirects": [{ "source": "/app", "destination": "/app/", "permanent": false }]
+  "regions": [
+    "gru1"
+  ],
+  "functions": {
+    "app/api/**/route.js": {
+      "maxDuration": 120
+    }
+  },
+  "redirects": [
+    {
+      "source": "/app",
+      "destination": "/app/",
+      "permanent": false
+    }
+  ]
 }
