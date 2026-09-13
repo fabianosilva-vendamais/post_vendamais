@@ -1,0 +1,7 @@
+Arquivos que faltaram no primeiro push (ocultos ou em pasta nova).
+Copie para a raiz da pasta do repositório, RENOMEANDO os que começam com "DOT" para começar com ponto:
+  DOTgitignore            -> .gitignore
+  DOTenv.example          -> .env.example
+  DOTgithub/workflows/*   -> .github/workflows/*
+Os demais (scripts/, next.config.mjs, public/app/.gitkeep) vão na mesma posição.
+Depois: git add . && git commit -m "build config" && git push

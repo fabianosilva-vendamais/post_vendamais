@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.env
+.env.local
+.vercel/
+public/app/
+screenshots/
+uploads/*.docx
+uploads/*.pdf
