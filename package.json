@@ -3,19 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "node scripts/sync-app.mjs && next dev",
-    "build": "node scripts/sync-app.mjs && next build",
+    "build": "node -e \"const fs=require('fs');const o='public/app';fs.rmSync(o,{recursive:true,force:true});fs.mkdirSync(o,{recursive:true});for(const d of ['engine','assets'])if(fs.existsSync(d))fs.cpSync(d,o+'/'+d,{recursive:true});for(const f of ['support.js','simulacao.js','Simulacao - Radar Ed01.html'])if(fs.existsSync(f))fs.cpSync(f,o+'/'+f);let h=fs.readFileSync('Content Engine.dc.html','utf8');const i='<script>window.__VM_API_BASE__=location.origin+\\\"/api\\\";window.__VM_SUPABASE_URL__='+JSON.stringify(process.env.NEXT_PUBLIC_SUPABASE_URL||'')+';window.__VM_SUPABASE_ANON__='+JSON.stringify(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY||'')+';window.__VM_REQUIRE_LOGIN__='+JSON.stringify(process.env.NEXT_PUBLIC_REQUIRE_LOGIN==='true')+';</script>';h=h.replace('<head>','<head>'+i);fs.writeFileSync(o+'/index.html',h);\" && next build",
     "start": "next start",
-    "lint": "next lint",
-    "supabase:push": "supabase db push",
-    "supabase:functions": "supabase functions deploy text-generate image-generate source-fetch trends-fetch publish-schedule"
+    "dev": "next dev"
   },
-  "dependencies": {
-    "next": "^15.0.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
-  },
-  "engines": {
-    "node": ">=20"
-  }
+  "dependencies": { "next": "^15.0.0", "react": "^19.0.0", "react-dom": "^19.0.0" },
+  "engines": { "node": ">=20" }
 }
