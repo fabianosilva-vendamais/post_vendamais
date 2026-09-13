@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;background:#FAF7F2;color:#1E1E1E;font-family:Poppins,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:#16263A}a:hover{color:#E2742B}
+input,select,textarea,button{font-family:Poppins,Arial,sans-serif;font-size:14px;color:#1E1E1E}
+input:focus,select:focus,textarea:focus{outline:2px solid #E2742B;outline-offset:0}
+button{cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}
+::placeholder{color:#9FB3C2}
+@keyframes vmspin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+
+<div style="display:flex;min-height:100vh;background:#FAF7F2">
+
+<!-- ===== Sidebar ===== -->
+<aside style="width:236px;flex:0 0 236px;background:#16263A;color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh">
+  <div style="padding:24px 24px 16px"><img src="assets/brand/logo-negativo.png" alt="VendaMais" style="width:132px;display:block"></div>
+  <div style="padding:0 24px 16px;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#9FB3C2;font-weight:600">Content Engine</div>
+  <nav style="display:flex;flex-direction:column;gap:2px;padding:0 12px">
+    <button data-route="dashboard" onClick="{{ go }}" style="{{ navStyle.dashboard }}">Dashboard</button>
+    <button data-route="new" onClick="{{ goNew }}" style="{{ navStyle.new }}">Nova edição</button>
+    <button data-route="brand" onClick="{{ go }}" style="{{ navStyle.brand }}">Brand Center</button>
+    <button data-route="settings" onClick="{{ go }}" style="{{ navStyle.settings }}">Configurações</button>
+    <button data-route="history" onClick="{{ go }}" style="{{ navStyle.history }}">Histórico</button>
+  </nav>
+  <sc-if value="{{ hasEdition }}" hint-placeholder-val="{{ false }}">
+    <div style="margin:24px 12px 0;padding:16px 12px 8px;border-top:1px solid #324052">
+      <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#9FB3C2;font-weight:600;padding:0 12px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ edition.title }}</div>
+      <nav style="display:flex;flex-direction:column;gap:2px">
+        <button data-route="briefing" onClick="{{ go }}" style="{{ navStyle.briefing }}">Briefing e fontes</button>
+        <button data-route="analysis" onClick="{{ go }}" style="{{ navStyle.analysis }}">Análise de fontes</button>
+        <button data-route="newsletter" onClick="{{ go }}" style="{{ navStyle.newsletter }}">Newsletter</button>
+        <button data-route="posts" onClick="{{ go }}" style="{{ navStyle.posts }}">Post Studio</button>
+        <button data-route="imagelab" onClick="{{ go }}" style="{{ navStyle.imagelab }}">Image Lab</button>
+        <button data-route="versions" onClick="{{ go }}" style="{{ navStyle.versions }}">Versões</button>
+      </nav>
+    </div>
+  </sc-if>
+  <div style="margin-top:auto;padding:16px 24px 20px;border-top:1px solid #324052;font-size:12px;color:#9FB3C2;line-height:1.5">
+    <div style="display:flex;align-items:center;gap:8px"><span style="{{ modeDotStyle }}"></span><span>{{ modeLabel }}</span></div>
+    <div>{{ userLabel }}</div>
+  </div>
+</aside>
+
+<!-- ===== Main ===== -->
+<main style="flex:1;min-width:0;display:flex;flex-direction:column">
+  <header style="display:flex;align-items:center;gap:16px;padding:18px 32px;background:#fff;border-bottom:1px solid #E6E2DA;position:sticky;top:0;z-index:5">
+    <h1 style="margin:0;font-size:20px;font-weight:600;color:#16263A">{{ pageTitle }}</h1>
+    <sc-if value="{{ hasEdition }}" hint-placeholder-val="{{ false }}"><span style="{{ statusChipStyle }}">{{ statusLabel }}</span></sc-if>
+    <span style="margin-left:auto;font-size:12px;color:#5E6770">{{ saveLabel }}</span>
+  </header>
+  <sc-if value="{{ toast.text }}" hint-placeholder-val="{{ false }}">
+    <div style="{{ toastStyle }}">{{ toast.text }}</div>
+  </sc-if>
+
+  <!-- ===== Login (Supabase Auth) ===== -->
+  <sc-if value="{{ needsLogin }}" hint-placeholder-val="{{ false }}">
+    <section style="padding:48px 32px;display:flex;justify-content:center" data-screen-label="Login">
+      <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:32px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px">
+        <h2 style="margin:0;font-size:18px;font-weight:600;color:#16263A">Entrar no workspace VendaMais</h2>
+        <div style="font-size:13px;color:#5E6770;line-height:1.5">Autenticação pelo Supabase. O primeiro usuário cadastrado vira Admin; os demais entram como Editor.</div>
+        <input data-field="email" type="email" value="{{ auth.email }}" onChange="{{ onAuth }}" placeholder="E-mail" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px">
+        <input data-field="password" type="password" value="{{ auth.password }}" onChange="{{ onAuth }}" placeholder="Senha" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px">
+        <input data-field="name" value="{{ auth.name }}" onChange="{{ onAuth }}" placeholder="Nome (só para criar conta)" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button onClick="{{ signIn }}" disabled="{{ busy }}" style="background:#16263A;color:#fff;border:0;border-radius:4px;padding:11px 18px;font-weight:600">Entrar</button>
+          <button onClick="{{ signUp }}" disabled="{{ busy }}" style="background:#fff;border:1px solid #16263A;color:#16263A;border-radius:4px;padding:11px 18px;font-weight:600">Criar conta</button>
+          <sc-if value="{{ allowLocalBypass }}" hint-placeholder-val="{{ true }}"><button onClick="{{ localBypass }}" style="margin-left:auto;background:transparent;border:0;color:#5E6770;font-size:12px;text-decoration:underline">Continuar em modo local</button></sc-if>
+        </div>
+        <div style="font-size:12px;color:#DC2626">{{ auth.error }}</div>
+      </div>
+    </section>
+  </sc-if>
+
+  <!-- ===== Dashboard ===== -->
+  <sc-if value="{{ is.dashboard }}" hint-placeholder-val="{{ true }}">
+    <section style="padding:28px 32px;display:flex;flex-direction:column;gap:24px" data-screen-label="Dashboard">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+        <button onClick="{{ goNew }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:12px 20px;font-weight:600;font-size:14px">Nova edição</button>
+        <input value="{{ filters.q }}" onChange="{{ onFilterQ }}" placeholder="Buscar por título ou tema" style="flex:1;min-width:200px;max-width:360px;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;background:#fff">
+        <select value="{{ filters.status }}" onChange="{{ onFilterStatus }}" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;background:#fff">
+          <option value="">Todos os status</option><option value="draft">Draft</option><option value="newsletter_generated">Newsletter gerada</option><option value="newsletter_approved">Newsletter aprovada</option><option value="posts_generated">Posts gerados</option><option value="approved">Aprovado</option><option value="exported">Exportado</option>
+        </select>
+        <input type="date" value="{{ filters.date }}" onChange="{{ onFilterDate }}" style="padding:10px 12px;border:1px solid #E6E2DA;border-radius:4px;background:#fff">
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+        <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:16px 20px"><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600">Edições</div><div style="font-size:28px;font-weight:600;color:#16263A">{{ stats.total }}</div></div>
+        <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:16px 20px"><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600">Em produção</div><div style="font-size:28px;font-weight:600;color:#16263A">{{ stats.inProgress }}</div></div>
+        <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:16px 20px"><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600">Exportadas</div><div style="font-size:28px;font-weight:600;color:#16263A">{{ stats.exported }}</div></div>
+        <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:16px 20px"><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600">Integrações</div><div style="font-size:13px;line-height:1.5;color:#1E1E1E;margin-top:4px"><span style="{{ textProvDot }}"></span>Texto: {{ textProv.label }}<br><span style="{{ imageProvDot }}"></span>Imagem: {{ imageProv.label }}</div></div>
+      </div>
+      <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;overflow-x:auto">
+        <div style="min-width:880px;display:grid;grid-template-columns:minmax(200px,2fr) minmax(120px,1fr) 120px 170px 120px 140px;gap:12px;padding:12px 20px;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600;border-bottom:1px solid #E6E2DA">
+          <span>Edição</span><span>Público</span><span>Data</span><span>Status</span><span>Atualizada</span><span></span>
+        </div>
+        <sc-if value="{{ noEditions }}" hint-placeholder-val="{{ true }}"><div style="padding:32px 20px;color:#5E6770;font-size:14px">Nenhuma edição ainda. Clique em Nova edição para começar pelo briefing.</div></sc-if>
+        <sc-for list="{{ editionRows }}" as="e" hint-placeholder-count="0">
+          <div style="min-width:880px;display:grid;grid-template-columns:minmax(200px,2fr) minmax(120px,1fr) 120px 170px 120px 140px;gap:12px;padding:14px 20px;align-items:center;border-bottom:1px solid #E6E2DA;font-size:14px">
+            <div><a href="#" data-id="{{ e.id }}" onClick="{{ openEdition }}" style="font-weight:600;color:#16263A;text-decoration:none">{{ e.title }}</a><div style="font-size:12px;color:#5E6770;margin-top:2px">{{ e.theme }}</div></div>
+            <span style="color:#5E6770">{{ e.audience }}</span>
+            <span style="color:#5E6770">{{ e.dateFmt }}</span>
+            <span style="{{ e.chipStyle }}">{{ e.statusLabel }}</span>
+            <span style="color:#5E6770;font-size:12px">{{ e.updatedFmt }}</span>
+            <div style="display:flex;gap:6px;justify-content:flex-end">
+              <button data-id="{{ e.id }}" onClick="{{ duplicateEdition }}" title="Duplicar" style="background:#fff;border:1px solid #E6E2DA;border-radius:4px;padding:6px 10px;font-size:12px">Duplicar</button>
+              <button data-id="{{ e.id }}" onClick="{{ deleteEdition }}" title="Excluir" style="background:#fff;border:1px solid #E6E2DA;border-radius:4px;padding:6px 10px;font-size:12px;color:#DC2626">Excluir</button>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+  </sc-if>
+
+  <!-- ===== Nova edição / Briefing e fontes ===== -->
+  <sc-if value="{{ is.briefing }}" hint-placeholder-val="{{ false }}">
+    <section style="padding:28px 32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:24px;align-items:start" data-screen-label="Briefing e fontes">
+      <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+        <h2 style="margin:0;font-size:16px;font-weight:600;color:#16263A">Briefing</h2>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770"><span>Tema central <span style="color:#E2742B">*</span></span>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input data-field="theme" value="{{ brief.theme }}" onChange="{{ onBrief }}" placeholder="Uma frase simples" style="flex:1 1 200px;min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px">
+            <button onClick="{{ suggestTheme }}" disabled="{{ busy }}" title="Cruza o que está em alta no noticiário com as frentes, cases e provas da VendaMais" style="background:#fff;border:1px solid #E2742B;color:#B85A1C;border-radius:4px;padding:10px 14px;font-size:12px;font-weight:600">Sugerir tema em alta</button>
+          </div></label>
+        <sc-if value="{{ hasThemes }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px solid #F8DFC9;background:#FDF3EB;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#B85A1C;font-weight:700">Temas sugeridos</span><span style="font-size:11px;color:#5E6770">{{ themeMeta }}</span><button onClick="{{ closeThemes }}" style="margin-left:auto;background:transparent;border:0;color:#5E6770;font-size:12px">Fechar</button></div>
+            <sc-for list="{{ themeRows }}" as="t" hint-placeholder-count="0">
+              <div style="background:#fff;border:1px solid #E6E2DA;border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:4px">
+                <div style="display:flex;gap:8px;align-items:flex-start"><strong style="font-size:14px;color:#16263A;flex:1">{{ t.theme }}</strong><span style="{{ t.badge }}">em alta {{ t.heat }}/5 · autoridade {{ t.fit }}/5</span></div>
+                <div style="font-size:12px;color:#1E1E1E;line-height:1.5"><strong>Por que agora:</strong> {{ t.why_now }}</div>
+                <div style="font-size:12px;color:#1E1E1E;line-height:1.5"><strong>Ângulo VendaMais:</strong> {{ t.vendamais_angle }}</div>
+                <div style="font-size:12px;color:#5E6770;line-height:1.5">Tese: {{ t.thesis }} · Público: {{ t.audience }} · Tom: {{ t.tone }}</div>
+                <div style="font-size:11px;color:#5E6770">Fontes a buscar: {{ t.sources }}</div>
+                <button data-idx="{{ t.idx }}" onClick="{{ useTheme }}" style="align-self:flex-start;margin-top:4px;background:#16263A;color:#fff;border:0;border-radius:4px;padding:6px 12px;font-size:12px;font-weight:600">Usar este tema</button>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Título interno da edição
+          <input data-field="title" value="{{ brief.title }}" onChange="{{ onBrief }}" placeholder="Gerado a partir do tema se vazio" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px"></label>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Objetivo
+            <select data-field="objective" value="{{ brief.objective }}" onChange="{{ onBrief }}" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;background:#fff"><option value="Educar">Educar</option><option value="Gerar demanda">Gerar demanda</option><option value="Relacionamento">Relacionamento</option><option value="Posicionamento">Posicionamento</option><option value="Convite">Convite</option></select></label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Público principal
+            <select data-field="audience" value="{{ brief.audience }}" onChange="{{ onBrief }}" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;background:#fff"><option value="CEO/dono">CEO/dono</option><option value="Gestor comercial">Gestor comercial</option><option value="RH/T&amp;D">RH/T&amp;D</option><option value="Vendedor/representante">Vendedor/representante</option><option value="Outro">Outro</option></select></label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Tom da edição
+            <select data-field="tone" value="{{ brief.tone }}" onChange="{{ onBrief }}" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;background:#fff"><option value="analítico">analítico</option><option value="provocativo">provocativo</option><option value="didático">didático</option><option value="executivo">executivo</option><option value="case">case</option><option value="tendência">tendência</option></select></label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Extensão
+            <select data-field="length" value="{{ brief.length }}" onChange="{{ onBrief }}" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;background:#fff"><option value="short">Curta (400 a 700 palavras)</option><option value="standard">Padrão (700 a 1.200)</option><option value="deep">Aprofundada (1.200 a 1.800)</option></select></label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Data da edição
+            <input type="date" data-field="edition_date" value="{{ brief.edition_date }}" onChange="{{ onBrief }}" style="min-width:0;width:100%;padding:10px 12px;border:1px solid #E6E2DA;border-radius:4px"></label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Número da edição
+            <input type="number" min="1" data-field="number" value="{{ brief.number }}" onChange="{{ onBrief }}" style="min-width:0;width:100%;padding:10px 12px;border:1px solid #E6E2DA;border-radius:4px"></label>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">CTA desejado (vazio = IA sugere)
+            <input data-field="cta" value="{{ brief.cta }}" onChange="{{ onBrief }}" placeholder="ex.: Agende um diagnóstico comercial" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px"></label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Tipo de CTA
+            <select data-field="cta_type" value="{{ brief.cta_type }}" onChange="{{ onBrief }}" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;background:#fff"><option value="conversa">Conversa</option><option value="diagnostico">Diagnóstico</option><option value="treinamento">Treinamento</option><option value="material">Material</option><option value="resposta">Resposta ao e-mail</option></select></label>
+        </div>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">URL do CTA
+          <input data-field="cta_url" value="{{ brief.cta_url }}" onChange="{{ onBrief }}" placeholder="https://" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px"></label>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Notas internas para a IA (opcional)
+          <textarea data-field="notes" value="{{ brief.notes }}" onChange="{{ onBrief }}" rows="3" placeholder="Ângulo desejado, o que evitar, contexto da semana" style="padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px;resize:vertical"></textarea></label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-top:8px;border-top:1px solid #E6E2DA">
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Podcast da semana (título, opcional)
+            <input data-field="podcast_title" value="{{ brief.podcast_title }}" onChange="{{ onBrief }}" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px"></label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Link do episódio
+            <input data-field="podcast_url" value="{{ brief.podcast_url }}" onChange="{{ onBrief }}" placeholder="https://" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px"></label>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#1E1E1E"><input type="checkbox" checked="{{ brief.agenda_enabled }}" onChange="{{ onBriefAgenda }}"> Incluir bloco Agenda VendaMais (Segunda Radar, Terça E-zine do Raul, Quinta Podcast)</label>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <button onClick="{{ saveEdition }}" style="background:#16263A;color:#fff;border:0;border-radius:4px;padding:12px 20px;font-weight:600">{{ saveEditionLabel }}</button>
+          <span style="font-size:12px;color:#5E6770">{{ briefHint }}</span>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:14px">
+          <h2 style="margin:0;font-size:16px;font-weight:600;color:#16263A">Fontes <span style="font-weight:400;color:#5E6770;font-size:13px">({{ sourcesCount }})</span></h2>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button data-type="text" onClick="{{ setSourceType }}" style="{{ srcTypeStyle.text }}">Texto colado</button>
+            <button data-type="file" onClick="{{ setSourceType }}" style="{{ srcTypeStyle.file }}">PDF / DOCX / TXT</button>
+            <button data-type="url" onClick="{{ setSourceType }}" style="{{ srcTypeStyle.url }}">URL</button>
+            <button data-type="notes" onClick="{{ setSourceType }}" style="{{ srcTypeStyle.notes }}">Notas internas</button>
+          </div>
+          <input data-field="name" value="{{ srcDraft.name }}" onChange="{{ onSrcDraft }}" placeholder="Nome da fonte (ex.: Pesquisa interna 2026)" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px">
+          <sc-if value="{{ srcIs.text }}" hint-placeholder-val="{{ true }}"><textarea data-field="text" value="{{ srcDraft.text }}" onChange="{{ onSrcDraft }}" rows="7" placeholder="Cole aqui o texto da fonte principal ou complementar" style="padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:13px;resize:vertical"></textarea></sc-if>
+          <sc-if value="{{ srcIs.notes }}" hint-placeholder-val="{{ false }}"><textarea data-field="text" value="{{ srcDraft.text }}" onChange="{{ onSrcDraft }}" rows="5" placeholder="Notas do time, dados de projeto, observações de campo" style="padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:13px;resize:vertical"></textarea></sc-if>
+          <sc-if value="{{ srcIs.url }}" hint-placeholder-val="{{ false }}">
+            <input data-field="url" value="{{ srcDraft.url }}" onChange="{{ onSrcDraft }}" placeholder="https://" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px">
+            <div style="font-size:12px;color:#5E6770;line-height:1.5">{{ urlHint }}</div>
+            <textarea data-field="text" value="{{ srcDraft.text }}" onChange="{{ onSrcDraft }}" rows="4" placeholder="Sem a função de leitura de URL configurada, cole aqui o texto da página" style="padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:13px;resize:vertical"></textarea>
+          </sc-if>
+          <sc-if value="{{ srcIs.file }}" hint-placeholder-val="{{ false }}">
+            <input type="file" accept=".pdf,.docx,.txt,.md" onChange="{{ onSourceFile }}" style="font-size:13px">
+            <div style="font-size:12px;color:#5E6770">{{ fileHint }}</div>
+          </sc-if>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" checked="{{ srcDraft.primary }}" onChange="{{ onSrcPrimary }}"> Fonte principal</label>
+          <button onClick="{{ addSource }}" disabled="{{ addSourceDisabled }}" style="align-self:flex-start;background:#fff;color:#16263A;border:1px solid #16263A;border-radius:4px;padding:10px 16px;font-weight:600">{{ addSourceLabel }}</button>
+        </div>
+        <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;overflow:hidden">
+          <sc-if value="{{ noSources }}" hint-placeholder-val="{{ true }}"><div style="padding:20px 24px;color:#5E6770;font-size:13px">Nenhuma fonte adicionada. A newsletter só usa o que estiver aqui.</div></sc-if>
+          <sc-for list="{{ sourceRows }}" as="s" hint-placeholder-count="0">
+            <div style="display:flex;gap:12px;align-items:flex-start;padding:14px 20px;border-bottom:1px solid #E6E2DA">
+              <span style="{{ s.badgeStyle }}">{{ s.typeLabel }}</span>
+              <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px;color:#16263A">{{ s.name }} <span style="font-weight:400;color:#E2742B;font-size:12px">{{ s.primaryLabel }}</span></div><div style="font-size:12px;color:#5E6770;margin-top:2px">{{ s.meta }}</div><div style="font-size:12px;color:#5E6770;margin-top:6px;white-space:pre-wrap;max-height:60px;overflow:hidden">{{ s.preview }}</div></div>
+              <button data-id="{{ s.id }}" onClick="{{ removeSource }}" style="background:#fff;border:1px solid #E6E2DA;border-radius:4px;padding:6px 10px;font-size:12px;color:#DC2626">Remover</button>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ hasEdition }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <button onClick="{{ analyzeSources }}" disabled="{{ analyzeDisabled }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:12px 20px;font-weight:600">{{ analyzeLabel }}</button>
+            <span style="font-size:12px;color:#5E6770">{{ analyzeHint }}</span>
+          </div>
+        </sc-if>
+      </div>
+    </section>
+  </sc-if>
+
+  <!-- ===== Análise de fontes ===== -->
+  <sc-if value="{{ is.analysis }}" hint-placeholder-val="{{ false }}">
+    <section style="padding:28px 32px;display:flex;flex-direction:column;gap:20px" data-screen-label="Análise de fontes">
+      <sc-if value="{{ noAnalysis }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:32px;color:#5E6770;font-size:14px;display:flex;flex-direction:column;gap:12px;align-items:flex-start">
+          <span>Nenhuma análise ainda. Adicione fontes no briefing e clique em Analisar fontes.</span>
+          <button onClick="{{ analyzeSources }}" disabled="{{ analyzeDisabled }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:12px 20px;font-weight:600">{{ analyzeLabel }}</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{ hasAnalysis }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;align-items:start">
+          <div style="display:flex;flex-direction:column;gap:20px">
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:24px">
+              <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600;margin-bottom:8px">Resumo</div>
+              <p style="margin:0;font-size:14px;line-height:1.65">{{ analysis.summary }}</p>
+              <div style="font-size:12px;color:#5E6770;margin-top:12px">{{ analysisMeta }}</div>
+            </div>
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;overflow:hidden">
+              <div style="padding:16px 24px;border-bottom:1px solid #E6E2DA;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600">Evidências ({{ factsCount }})</div>
+              <sc-for list="{{ factRows }}" as="f" hint-placeholder-count="0">
+                <div style="display:grid;grid-template-columns:44px 90px 1fr 110px;gap:12px;padding:12px 24px;border-bottom:1px solid #E6E2DA;font-size:13px;align-items:start">
+                  <span style="font-weight:600;color:#E2742B">{{ f.id }}</span>
+                  <span style="{{ f.kindStyle }}">{{ f.kindLabel }}</span>
+                  <span style="line-height:1.5">{{ f.text }}<div style="font-size:11px;color:#5E6770;margin-top:2px">{{ f.sourceName }}</div></span>
+                  <span style="font-size:12px;color:#5E6770">força {{ f.strength }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:20px">
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:24px">
+              <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600;margin-bottom:12px">Ângulos sugeridos</div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <sc-for list="{{ angleRows }}" as="a" hint-placeholder-count="0">
+                  <div style="{{ a.cardStyle }}">
+                    <div style="font-weight:600;font-size:14px;color:#16263A">{{ a.title }}</div>
+                    <div style="font-size:13px;line-height:1.5;margin-top:4px">{{ a.thesis }}</div>
+                    <div style="font-size:12px;color:#5E6770;margin-top:4px">{{ a.why }} · evidências: {{ a.ev }}</div>
+                    <button data-idx="{{ a.idx }}" onClick="{{ useAngle }}" style="margin-top:8px;background:#fff;border:1px solid #16263A;color:#16263A;border-radius:4px;padding:6px 12px;font-size:12px;font-weight:600">{{ a.btn }}</button>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:24px">
+              <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600;margin-bottom:8px">Riscos e lacunas de prova</div>
+              <ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.6;color:#1E1E1E"><sc-for list="{{ riskRows }}" as="r" hint-placeholder-count="0"><li>{{ r }}</li></sc-for></ul>
+            </div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+              <button onClick="{{ generateNewsletter }}" disabled="{{ busy }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:12px 20px;font-weight:600">{{ genNewsletterLabel }}</button>
+              <button onClick="{{ analyzeSources }}" disabled="{{ busy }}" style="background:#fff;border:1px solid #E6E2DA;border-radius:4px;padding:12px 16px;font-weight:600;color:#16263A">Reanalisar fontes</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </section>
+  </sc-if>
+
+  <!-- ===== Brand Center ===== -->
+  <sc-if value="{{ is.brand }}" hint-placeholder-val="{{ false }}">
+    <section style="padding:28px 32px;display:flex;flex-direction:column;gap:20px" data-screen-label="Brand Center">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button data-tab="assets" onClick="{{ setBrandTab }}" style="{{ brandTabStyle.assets }}">Ativos</button>
+        <button data-tab="rules" onClick="{{ setBrandTab }}" style="{{ brandTabStyle.rules }}">Regras (brand_rules)</button>
+        <button data-tab="templates" onClick="{{ setBrandTab }}" style="{{ brandTabStyle.templates }}">Templates</button>
+        <button data-tab="docs" onClick="{{ setBrandTab }}" style="{{ brandTabStyle.docs }}">DNA e Manual</button>
+        <button data-tab="knowledge" onClick="{{ setBrandTab }}" style="{{ brandTabStyle.knowledge }}">Portfólio e conhecimento</button>
+      </div>
+      <sc-if value="{{ brandIs.knowledge }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:13px;color:#5E6770;line-height:1.5;max-width:800px">Extraído de vendamais.com.br em {{ kb.updated_at }} (v{{ kb.version }}). Entra automaticamente como evidência institucional (ids K-*) em toda análise, newsletter, post, QA e na sugestão de tema. Números e cases daqui podem ser citados; o que não estiver aqui nem nas fontes da edição é bloqueio.</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;align-items:start">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:20px 24px"><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600;margin-bottom:8px">Posicionamento</div><p style="margin:0;font-size:14px;line-height:1.6">{{ kb.positioning }}</p><p style="margin:8px 0 0;font-size:13px;color:#5E6770">{{ kb.thesis }}</p></div>
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:20px 24px"><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600;margin-bottom:10px">Números de prova</div><div style="display:flex;flex-direction:column;gap:6px"><sc-for list="{{ kbProofs }}" as="p" hint-placeholder-count="0"><div style="font-size:13px;display:flex;gap:10px"><span style="font-weight:600;color:#E2742B;min-width:52px">{{ p.id }}</span><span>{{ p.text }}</span></div></sc-for></div></div>
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:20px 24px"><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600;margin-bottom:10px">Frentes e ofertas</div><div style="display:flex;flex-direction:column;gap:12px"><sc-for list="{{ kbFronts }}" as="f" hint-placeholder-count="0"><div style="border-top:1px solid #E6E2DA;padding-top:10px"><div style="font-weight:600;font-size:14px;color:#16263A">{{ f.name }} <span style="font-weight:400;font-size:11px;color:#E2742B">{{ f.id }}</span></div><div style="font-size:12px;line-height:1.5;margin-top:2px">{{ f.promise }}</div><div style="font-size:12px;color:#5E6770;margin-top:4px">{{ f.offers }}</div></div></sc-for></div></div>
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:20px 24px"><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600;margin-bottom:10px">Cases com resultado</div><div style="display:flex;flex-direction:column;gap:8px"><sc-for list="{{ kbCases }}" as="c" hint-placeholder-count="0"><div style="font-size:13px;line-height:1.5"><span style="font-weight:600;color:#E2742B">{{ c.id }}</span> <strong>{{ c.client }}</strong> ({{ c.segment }}): {{ c.solution }} <span style="color:#5E6770">→ {{ c.results }}</span></div></sc-for></div></div>
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:20px 24px"><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600;margin-bottom:8px">Territórios editoriais</div><div style="font-size:13px;line-height:1.7">{{ kbTerritories }}</div></div>
+          </div>
+          <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:20px 24px;display:flex;flex-direction:column;gap:12px;position:sticky;top:76px">
+            <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600">Editar conhecimento (JSON)</div>
+            <div style="font-size:12px;color:#5E6770;line-height:1.5">Atualize quando o site, o portfólio ou os cases mudarem. Salvar cria a versão {{ kbNext }}.</div>
+            <textarea value="{{ knowledgeDraft }}" onChange="{{ onKnowledgeDraft }}" rows="30" spellcheck="false" style="padding:12px;border:1px solid #E6E2DA;border-radius:4px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.5;resize:vertical"></textarea>
+            <div style="display:flex;gap:12px;align-items:center"><button onClick="{{ saveKnowledge }}" style="background:#16263A;color:#fff;border:0;border-radius:4px;padding:11px 18px;font-weight:600">Salvar versão {{ kbNext }}</button><a href="https://vendamais.com.br" target="_blank" style="font-size:12px;font-weight:600">Abrir vendamais.com.br</a></div>
+            <div style="font-size:12px;color:#DC2626">{{ knowledgeError }}</div>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ brandIs.assets }}" hint-placeholder-val="{{ true }}">
+        <div style="font-size:13px;color:#5E6770;line-height:1.5;max-width:760px">Só os arquivos deste painel entram nas peças. O gerador de imagens nunca desenha logo, símbolo ou texto. Os logos atuais estão nas cores anteriores à migração (petróleo e coral); substitua quando o arquivo em navy #16263A e laranja #E2742B existir.</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px">
+          <sc-for list="{{ assetRows }}" as="a" hint-placeholder-count="0">
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
+              <div style="{{ a.previewStyle }}" title="{{ a.label }}"><sc-if value="{{ a.missing }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#5E6770">não enviado</span></sc-if></div>
+              <div style="padding:14px 16px;display:flex;flex-direction:column;gap:6px;flex:1">
+                <div style="font-weight:600;font-size:13px;color:#16263A">{{ a.label }}</div>
+                <div style="font-size:11px;color:#5E6770">{{ a.type }} · v{{ a.version }} · {{ a.stateLabel }}</div>
+                <div style="font-size:11px;color:#5E6770;line-height:1.4">{{ a.note }}</div>
+                <label style="margin-top:auto;font-size:12px;font-weight:600;color:#16263A;cursor:pointer">Substituir arquivo<input type="file" accept="image/*" data-type="{{ a.type }}" data-id="{{ a.id }}" onChange="{{ onAssetUpload }}" style="display:none"></label>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <h2 style="margin:8px 0 0;font-size:16px;font-weight:600;color:#16263A">Retratos oficiais dos sócios</h2>
+        <div style="font-size:13px;color:#5E6770">Necessários para o template T05. Rosto de sócio nunca é gerado por IA.</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">
+          <sc-for list="{{ partnerRows }}" as="p" hint-placeholder-count="0">
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:14px 16px;display:flex;gap:12px;align-items:center">
+              <div style="{{ p.avatarStyle }}" title="{{ p.name }}"></div>
+              <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px;color:#16263A">{{ p.name }}</div><div style="font-size:11px;color:#E2742B">{{ p.role }}</div><label style="font-size:11px;font-weight:600;color:#16263A;cursor:pointer">{{ p.btn }}<input type="file" accept="image/*" data-type="portrait" data-partner="{{ p.id }}" onChange="{{ onAssetUpload }}" style="display:none"></label></div>
+            </div>
+          </sc-for>
+        </div>
+        <h2 style="margin:8px 0 0;font-size:16px;font-weight:600;color:#16263A">Acervo de fotos aprovadas</h2>
+        <div style="font-size:13px;color:#5E6770">Palco, sala e contexto de cliente. Disponíveis no Image Lab como alternativa à geração e como referência de cena.</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+          <label style="background:#16263A;color:#fff;border-radius:4px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer">Adicionar fotos<input type="file" accept="image/*" multiple data-type="photo" onChange="{{ onAssetUpload }}" style="display:none"></label>
+          <span style="font-size:12px;color:#5E6770">{{ photosCount }} fotos no acervo</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">
+          <sc-for list="{{ photoRows }}" as="ph" hint-placeholder-count="0">
+            <div style="{{ ph.style }}" title="{{ ph.label }}"><button data-id="{{ ph.id }}" onClick="{{ removeAsset }}" style="position:absolute;top:6px;right:6px;background:#fff;border:0;border-radius:4px;padding:4px 8px;font-size:11px">Remover</button></div>
+          </sc-for>
+        </div>
+        <h2 style="margin:8px 0 0;font-size:16px;font-weight:600;color:#16263A">Fontes</h2>
+        <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:16px 20px;font-size:13px;line-height:1.6;display:flex;flex-direction:column;gap:8px">
+          <div><strong>Obviously</strong> · {{ obviouslyStatus }}</div>
+          <div><strong>Poppins</strong> · ativa (Google Fonts). Enquanto a Obviously não estiver carregada, toda peça sai inteira em Poppins.</div>
+          <label style="font-size:12px;font-weight:600;color:#16263A;cursor:pointer;align-self:flex-start">Enviar arquivos da Obviously (woff2/otf, uso licenciado)<input type="file" accept=".woff,.woff2,.otf,.ttf" multiple data-type="font" onChange="{{ onAssetUpload }}" style="display:none"></label>
+        </div>
+      </sc-if>
+      <sc-if value="{{ brandIs.rules }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;align-items:start">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:20px 24px">
+              <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600;margin-bottom:6px">Versão ativa</div>
+              <div style="font-size:14px">brand_rules v{{ rulesVersion }} · aprovada por {{ rulesApprovedBy }} em {{ rulesApprovedAt }}</div>
+            </div>
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:20px 24px">
+              <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600;margin-bottom:12px">Cores</div>
+              <div style="display:flex;flex-wrap:wrap;gap:10px"><sc-for list="{{ colorRows }}" as="c" hint-placeholder-count="0"><div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="{{ c.sw }}"></span>{{ c.name }} {{ c.hex }}</div></sc-for></div>
+              <div style="font-size:12px;color:#5E6770;margin-top:12px;line-height:1.5">Proporção de referência 55% navy, 20% laranja, 25% branco. Um único recurso laranja por peça. Sem gradiente. Verde e azul fora deste produto.</div>
+            </div>
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:20px 24px">
+              <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600;margin-bottom:12px">Vocabulário</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:12px;line-height:1.6"><div><strong style="color:#16A34A">Usa</strong><br>{{ vocabUse }}</div><div><strong style="color:#DC2626">Evita</strong><br>{{ vocabAvoid }}</div></div>
+            </div>
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:20px 24px">
+              <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600;margin-bottom:12px">Certo e errado</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:12px;line-height:1.6">
+                <div><strong style="color:#16A34A">Certo</strong><br>"Em 2.500 diagnósticos, três em cada quatro equipes dão desconto sem autorização."<br>Título curto, sem ponto final<br>Logo negativo sobre navy, canto superior esquerdo<br>Véu navy a 60% antes do texto branco sobre foto</div>
+                <div><strong style="color:#DC2626">Errado</strong><br>"O maior ecossistema de vendas" sem número ao lado<br>"Venda Mais" separado<br>Logo dentro de caixa branca sobre foto<br>Laranja como fundo de bloco de texto; gradiente; travessão</div>
+              </div>
+            </div>
+          </div>
+          <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:20px 24px;display:flex;flex-direction:column;gap:12px">
+            <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600">Editar e aprovar nova versão</div>
+            <div style="font-size:12px;color:#5E6770;line-height:1.5">O JSON abaixo é a fonte de verdade em runtime. Alterar e aprovar cria a versão {{ rulesNextVersion }}; versões anteriores ficam no histórico.</div>
+            <textarea value="{{ rulesDraft }}" onChange="{{ onRulesDraft }}" rows="26" spellcheck="false" style="padding:12px;border:1px solid #E6E2DA;border-radius:4px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.5;resize:vertical"></textarea>
+            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+              <input value="{{ rulesApprover }}" onChange="{{ onRulesApprover }}" placeholder="Aprovado por (nome)" style="padding:10px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:13px;flex:1;min-width:160px">
+              <button onClick="{{ approveRules }}" style="background:#16263A;color:#fff;border:0;border-radius:4px;padding:11px 18px;font-weight:600">Aprovar versão {{ rulesNextVersion }}</button>
+            </div>
+            <div style="font-size:12px;color:#DC2626">{{ rulesError }}</div>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ brandIs.templates }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px">
+          <sc-for list="{{ templateRows }}" as="t" hint-placeholder-count="0">
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;overflow:hidden">
+              <div style="{{ t.thumbStyle }}"><div style="{{ t.thumbInner }}">{{ t.id }}</div></div>
+              <div style="padding:14px 16px"><div style="font-weight:600;font-size:14px;color:#16263A">{{ t.id }} · {{ t.name }}</div><div style="font-size:12px;color:#5E6770;line-height:1.5;margin-top:4px">{{ t.desc }}</div><div style="font-size:11px;color:#E2742B;margin-top:6px">{{ t.req }}</div></div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="font-size:13px;color:#5E6770;line-height:1.5;max-width:760px">Grade social 1080 x 1350, margem de 80 px, 6 colunas. Escala: display 72, H1 44, H2 28, corpo 16, rótulo 12 com 9% de espaçamento. Logo com no mínimo 120 px de largura e área de respiro igual à altura do V. Templates são fixos; o usuário escolhe entre eles, nunca um layout livre.</div>
+      </sc-if>
+      <sc-if value="{{ brandIs.docs }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px">
+          <sc-for list="{{ docRows }}" as="d" hint-placeholder-count="0">
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:20px 24px"><div style="font-weight:600;font-size:14px;color:#16263A">{{ d.title }}</div><div style="font-size:12px;color:#5E6770;line-height:1.5;margin-top:6px">{{ d.desc }}</div><a href="{{ d.url }}" target="_blank" style="display:inline-block;margin-top:10px;font-size:12px;font-weight:600">Abrir</a></div>
+          </sc-for>
+        </div>
+        <div style="font-size:13px;color:#5E6770;line-height:1.5;max-width:760px">Os PDFs são referência humana. A IA não relê estes documentos a cada geração: ela recebe o brand_rules estruturado e os prompts versionados.</div>
+      </sc-if>
+    </section>
+  </sc-if>
+
+  <!-- ===== Configurações ===== -->
+  <sc-if value="{{ is.settings }}" hint-placeholder-val="{{ false }}">
+    <section style="padding:28px 32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;align-items:start" data-screen-label="Configurações">
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:14px">
+          <h2 style="margin:0;font-size:16px;font-weight:600;color:#16263A">Supabase (Auth, banco, arquivos e Edge Functions)</h2>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="{{ supaDot }}"></span>{{ supaStatus }}</div>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Project URL<input data-field="supabase_url" value="{{ settings.supabase_url }}" onChange="{{ onSetting }}" placeholder="https://xxxx.supabase.co" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px"></label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Anon key (pública, protegida por RLS)<input data-field="supabase_anon_key" value="{{ settings.supabase_anon_key }}" onChange="{{ onSetting }}" placeholder="eyJ..." style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px"></label>
+          <div style="font-size:12px;color:#5E6770;line-height:1.5">As chaves da OpenAI, Gemini e Anthropic nunca entram aqui. Elas ficam nos secrets das Edge Functions (ver README e pasta supabase/). Sem Supabase, o sistema opera em modo local: os dados ficam neste navegador.</div>
+          <div style="display:flex;gap:12px"><button onClick="{{ testSupabase }}" disabled="{{ busy }}" style="background:#16263A;color:#fff;border:0;border-radius:4px;padding:10px 16px;font-weight:600">Testar conexão</button><span style="font-size:12px;color:#5E6770;align-self:center">{{ supaTestResult }}</span></div>
+          <div style="border-top:1px solid #E6E2DA;padding-top:14px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600">Conta e sincronização</div>
+            <div style="font-size:13px">{{ accountLabel }}</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <sc-if value="{{ isSignedIn }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ syncNow }}" disabled="{{ busy }}" style="background:#16263A;color:#fff;border:0;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Sincronizar agora</button>
+                <button onClick="{{ pullNow }}" disabled="{{ busy }}" style="background:#fff;border:1px solid #16263A;color:#16263A;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Trazer do Supabase</button>
+                <button onClick="{{ signOut }}" style="background:#fff;border:1px solid #E6E2DA;color:#5E6770;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Sair</button>
+              </sc-if>
+              <sc-if value="{{ canLogin }}" hint-placeholder-val="{{ false }}"><button onClick="{{ showLogin }}" style="background:#16263A;color:#fff;border:0;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Entrar</button></sc-if>
+            </div>
+            <div style="font-size:12px;color:#5E6770;line-height:1.5">{{ syncHint }}</div>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:14px">
+          <h2 style="margin:0;font-size:16px;font-weight:600;color:#16263A">IA de texto</h2>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="{{ textProvDot }}"></span>{{ textProv.label }} · {{ textProvState }}</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Provedor<select data-field="text_provider" value="{{ settings.text_provider }}" onChange="{{ onSetting }}" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;background:#fff"><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="gemini">Gemini</option><option value="claude_builtin">Claude integrado (sem chave)</option></select></label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Modelo<input data-field="text_model" value="{{ settings.text_model }}" onChange="{{ onSetting }}" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px"></label>
+          </div>
+          <div style="font-size:12px;color:#5E6770;line-height:1.5">{{ textProv.hint }}</div>
+        </div>
+        <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:14px">
+          <h2 style="margin:0;font-size:16px;font-weight:600;color:#16263A">IA de imagem (Image Provider Adapter)</h2>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="{{ imageProvDot }}"></span>{{ imageProv.label }} · {{ imageProvState }}</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Provedor padrão<select data-field="image_provider_default" value="{{ settings.image_provider_default }}" onChange="{{ onSetting }}" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;background:#fff"><option value="gemini">Gemini (Nano Banana)</option><option value="openai">OpenAI GPT Image</option></select></label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Modo de custo<select data-field="image_mode" value="{{ settings.image_mode }}" onChange="{{ onSetting }}" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;background:#fff"><option value="economy">Econômico</option><option value="standard">Padrão</option><option value="premium">Premium</option></select></label>
+          </div>
+          <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600;margin-top:4px">Modelos por provedor e modo (nunca no código)</div>
+          <sc-for list="{{ imageModelRows }}" as="m" hint-placeholder-count="0">
+            <div style="display:grid;grid-template-columns:90px repeat(3,minmax(0,1fr));gap:8px;align-items:center;font-size:12px">
+              <strong>{{ m.label }}</strong>
+              <input data-provider="{{ m.id }}" data-mode="economy" value="{{ m.economy }}" onChange="{{ onImageModel }}" placeholder="econômico" style="min-width:0;width:100%;padding:8px 10px;border:1px solid #E6E2DA;border-radius:4px;font-size:12px">
+              <input data-provider="{{ m.id }}" data-mode="standard" value="{{ m.standard }}" onChange="{{ onImageModel }}" placeholder="padrão" style="min-width:0;width:100%;padding:8px 10px;border:1px solid #E6E2DA;border-radius:4px;font-size:12px">
+              <input data-provider="{{ m.id }}" data-mode="premium" value="{{ m.premium }}" onChange="{{ onImageModel }}" placeholder="premium" style="min-width:0;width:100%;padding:8px 10px;border:1px solid #E6E2DA;border-radius:4px;font-size:12px">
+            </div>
+          </sc-for>
+          <div style="font-size:12px;color:#5E6770;line-height:1.5">{{ imageProv.hint }}</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:14px">
+          <h2 style="margin:0;font-size:16px;font-weight:600;color:#16263A">Publicação (Metricool)</h2>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="{{ pubDot }}"></span>{{ pub.label }} · {{ pubState }}</div>
+          <div style="font-size:12px;color:#5E6770;line-height:1.5">{{ pub.hint }} O token da API do Metricool (Configurações da conta → API) fica só nos secrets da Edge Function: METRICOOL_USER_TOKEN e METRICOOL_USER_ID. Plano Advanced necessário.</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Marca (blogId)
+              <div style="display:flex;gap:6px"><input data-field="metricool_blog_id" value="{{ settings.metricool_blog_id }}" onChange="{{ onSetting }}" placeholder="ex.: 1234567" style="min-width:0;flex:1;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px"><button onClick="{{ loadBrands }}" disabled="{{ busy }}" style="background:#fff;border:1px solid #16263A;color:#16263A;border-radius:4px;padding:0 12px;font-size:12px;font-weight:600;white-space:nowrap">Buscar marcas</button></div></label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Fuso horário<input data-field="timezone" value="{{ settings.timezone }}" onChange="{{ onSetting }}" placeholder="America/Sao_Paulo" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px"></label>
+          </div>
+          <sc-if value="{{ hasBrands }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ brandRows }}" as="b" hint-placeholder-count="0"><button data-id="{{ b.blogId }}" data-label="{{ b.label }}" onClick="{{ pickBrand }}" style="{{ b.style }}">{{ b.label }} · {{ b.blogId }}</button></sc-for></div></sc-if>
+        </div>
+        <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:14px">
+          <h2 style="margin:0;font-size:16px;font-weight:600;color:#16263A">Qualidade e padrões</h2>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Nota mínima para o selo "Pronta" (0 a 100)<input type="number" min="0" max="100" data-field="qa_threshold" value="{{ settings.qa_threshold }}" onChange="{{ onSetting }}" style="padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px;max-width:120px"></label>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Tom padrão<select data-field="default_tone" value="{{ settings.default_tone }}" onChange="{{ onSetting }}" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;background:#fff"><option value="analítico">analítico</option><option value="provocativo">provocativo</option><option value="didático">didático</option><option value="executivo">executivo</option><option value="case">case</option><option value="tendência">tendência</option></select></label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Extensão padrão<select data-field="default_length" value="{{ settings.default_length }}" onChange="{{ onSetting }}" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;background:#fff"><option value="short">Curta</option><option value="standard">Padrão</option><option value="deep">Aprofundada</option></select></label>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:14px">
+          <h2 style="margin:0;font-size:16px;font-weight:600;color:#16263A">Prompts do sistema (versionados)</h2>
+          <sc-for list="{{ promptRows }}" as="p" hint-placeholder-count="0">
+            <details style="border:1px solid #E6E2DA;border-radius:8px;padding:10px 14px;min-width:0;overflow:hidden"><summary style="font-size:13px;font-weight:600;color:#16263A;cursor:pointer">{{ p.name }} <span style="font-weight:400;color:#5E6770">v{{ p.version }}</span></summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;max-width:100%;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.5;color:#1E1E1E;margin:10px 0 0">{{ p.prompt_text }}</pre></details>
+          </sc-for>
+        </div>
+        <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:14px">
+          <h2 style="margin:0;font-size:16px;font-weight:600;color:#16263A">Dados locais</h2>
+          <div style="font-size:12px;color:#5E6770;line-height:1.5">Backup em JSON de edições, versões, posts e configurações (imagens não incluídas).</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <button onClick="{{ exportBackup }}" style="background:#fff;border:1px solid #16263A;color:#16263A;border-radius:4px;padding:10px 16px;font-weight:600">Exportar backup</button>
+            <label style="background:#fff;border:1px solid #16263A;color:#16263A;border-radius:4px;padding:10px 16px;font-weight:600;font-size:14px;cursor:pointer">Importar backup<input type="file" accept=".json" onChange="{{ importBackup }}" style="display:none"></label>
+            <button onClick="{{ resetAll }}" style="background:#fff;border:1px solid #DC2626;color:#DC2626;border-radius:4px;padding:10px 16px;font-weight:600">Apagar tudo</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </sc-if>
+
+  <!-- ===== Histórico (auditoria) ===== -->
+  <sc-if value="{{ is.history }}" hint-placeholder-val="{{ false }}">
+    <section style="padding:28px 32px" data-screen-label="Histórico">
+      <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;overflow-x:auto">
+        <div style="min-width:720px;display:grid;grid-template-columns:150px 140px 1fr 1fr;gap:12px;padding:12px 20px;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600;border-bottom:1px solid #E6E2DA"><span>Quando</span><span>Quem</span><span>Ação</span><span>Detalhe</span></div>
+        <sc-if value="{{ noAudit }}" hint-placeholder-val="{{ true }}"><div style="padding:24px 20px;color:#5E6770;font-size:13px">Nenhuma ação registrada ainda.</div></sc-if>
+        <sc-for list="{{ auditRows }}" as="l" hint-placeholder-count="0">
+          <div style="min-width:720px;display:grid;grid-template-columns:150px 140px 1fr 1fr;gap:12px;padding:10px 20px;border-bottom:1px solid #E6E2DA;font-size:12px;align-items:start"><span style="color:#5E6770">{{ l.when }}</span><span>{{ l.user_name }}</span><span><strong>{{ l.action }}</strong> · {{ l.entity }}</span><span style="color:#5E6770;word-break:break-word">{{ l.detail }}</span></div>
+        </sc-for>
+      </div>
+    </section>
+  </sc-if>
+
+  <!-- ===== Editor da Newsletter ===== -->
+  <sc-if value="{{ is.newsletter }}" hint-placeholder-val="{{ false }}">
+    <section style="padding:24px 32px;display:flex;flex-direction:column;gap:16px" data-screen-label="Editor da Newsletter">
+      <sc-if value="{{ noNewsletter }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:32px;color:#5E6770;font-size:14px;display:flex;flex-direction:column;gap:12px;align-items:flex-start">
+          <span>{{ nlEmptyMsg }}</span>
+          <button onClick="{{ generateNewsletter }}" disabled="{{ nlGenDisabled }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:12px 20px;font-weight:600">Gerar newsletter</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{ hasNewsletter }}" hint-placeholder-val="{{ false }}">
+        <!-- barra de ações -->
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:12px 16px">
+          <span style="font-size:13px;font-weight:600;color:#16263A">Versão {{ nl.n }}</span>
+          <span style="{{ nlApprovedChip }}">{{ nlApprovedLabel }}</span>
+          <span style="font-size:12px;color:#5E6770">{{ nlMeta }}</span>
+          <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+            <button onClick="{{ undo }}" disabled="{{ noUndo }}" style="background:#fff;border:1px solid #E6E2DA;border-radius:4px;padding:8px 12px;font-size:12px;font-weight:600;color:#16263A">Desfazer</button>
+            <button onClick="{{ redo }}" disabled="{{ noRedo }}" style="background:#fff;border:1px solid #E6E2DA;border-radius:4px;padding:8px 12px;font-size:12px;font-weight:600;color:#16263A">Refazer</button>
+            <button onClick="{{ saveVersion }}" style="background:#fff;border:1px solid #E6E2DA;border-radius:4px;padding:8px 12px;font-size:12px;font-weight:600;color:#16263A">Salvar como versão</button>
+            <button onClick="{{ generateNewsletter }}" disabled="{{ busy }}" style="background:#fff;border:1px solid #E6E2DA;border-radius:4px;padding:8px 12px;font-size:12px;font-weight:600;color:#16263A">Nova versão pela IA (respeita fixados)</button>
+            <button onClick="{{ runQA }}" disabled="{{ busy }}" style="background:#16263A;color:#fff;border:0;border-radius:4px;padding:8px 14px;font-size:12px;font-weight:600">Revisão VendaMais</button>
+            <sc-if value="{{ nlNotApproved }}" hint-placeholder-val="{{ true }}"><button onClick="{{ approveNewsletter }}" disabled="{{ approveDisabled }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:8px 14px;font-size:12px;font-weight:600">Aprovar como fonte-mãe</button></sc-if>
+            <sc-if value="{{ nl.is_approved }}" hint-placeholder-val="{{ false }}"><button onClick="{{ unapproveNewsletter }}" style="background:#fff;border:1px solid #E6E2DA;border-radius:4px;padding:8px 12px;font-size:12px;font-weight:600;color:#5E6770">Reabrir edição</button></sc-if>
+          </div>
+        </div>
+        <!-- QA -->
+        <div style="{{ qaPanelStyle }}">
+          <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+            <div style="display:flex;flex-direction:column"><span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600">Nota</span><span style="font-size:34px;font-weight:600;color:#16263A;line-height:1">{{ qa.scoreLabel }}</span></div>
+            <span style="{{ qa.sealStyle }}">{{ qa.sealLabel }}</span>
+            <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#5E6770">
+              <sc-for list="{{ qa.criteria }}" as="c" hint-placeholder-count="0"><div style="display:flex;flex-direction:column;gap:3px;min-width:96px"><span>{{ c.label }} <span style="color:#9FB3C2">({{ c.weight }})</span></span><div style="height:4px;background:#E6E2DA;border-radius:2px"><div style="{{ c.barStyle }}"></div></div><span style="font-weight:600;color:#16263A">{{ c.value }}</span></div></sc-for>
+            </div>
+            <span style="margin-left:auto;font-size:12px;color:#5E6770;max-width:320px;line-height:1.5">{{ qa.summary }}</span>
+          </div>
+          <sc-if value="{{ qa.hasIssues }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:14px">
+              <sc-if value="{{ qa.hasBlockers }}" hint-placeholder-val="{{ false }}"><div style="border:1px solid #FCA5A5;background:#FEF2F2;border-radius:8px;padding:12px 14px"><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#B91C1C;font-weight:600;margin-bottom:6px">Bloqueios ({{ qa.blockers.length }})</div><sc-for list="{{ qa.blockers }}" as="b" hint-placeholder-count="0"><div style="font-size:12px;line-height:1.5;padding:4px 0;border-bottom:1px solid #FECACA"><strong>{{ b.where }}</strong> · {{ b.text }}</div></sc-for></div></sc-if>
+              <sc-if value="{{ qa.hasWarnings }}" hint-placeholder-val="{{ false }}"><div style="border:1px solid #F8DFC9;background:#FDF3EB;border-radius:8px;padding:12px 14px"><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#B85A1C;font-weight:600;margin-bottom:6px">Alertas ({{ qa.warnings.length }})</div><sc-for list="{{ qa.warnings }}" as="w" hint-placeholder-count="0"><div style="font-size:12px;line-height:1.5;padding:4px 0;border-bottom:1px solid #F8DFC9"><strong>{{ w.where }}</strong> · {{ w.text }}</div></sc-for></div></sc-if>
+              <sc-if value="{{ qa.hasAiIssues }}" hint-placeholder-val="{{ false }}"><div style="border:1px solid #E6E2DA;background:#fff;border-radius:8px;padding:12px 14px"><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600;margin-bottom:6px">Correções sugeridas pelo revisor ({{ qa.aiIssues.length }})</div><sc-for list="{{ qa.aiIssues }}" as="i" hint-placeholder-count="0"><div style="font-size:12px;line-height:1.5;padding:4px 0;border-bottom:1px solid #E6E2DA"><span style="{{ i.sevStyle }}">{{ i.severity }}</span> <strong>{{ i.where }}</strong> · {{ i.text }}<div style="color:#5E6770">{{ i.fix }}</div></div></sc-for></div></sc-if>
+            </div>
+          </sc-if>
+        </div>
+        <!-- editor + preview -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;align-items:start">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #E6E2DA;border-radius:8px;padding:8px 12px">
+              <input value="{{ regenInstruction }}" onChange="{{ onRegenInstruction }}" placeholder="Instrução para regenerar um bloco (opcional): ex. mais curto, com o número E3, tom executivo" style="flex:1;border:0;font-size:13px;padding:6px 4px;background:transparent">
+            </div>
+            <sc-for list="{{ blockRows }}" as="b" hint-placeholder-count="0">
+              <div style="{{ b.cardStyle }}">
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+                  <span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#16263A;font-weight:700">{{ b.label }}</span>
+                  <span style="{{ b.originStyle }}">{{ b.originLabel }}</span>
+                  <span style="font-size:11px;color:#5E6770">{{ b.evidence }}</span>
+                  <div style="margin-left:auto;display:flex;gap:6px">
+                    <button data-path="{{ b.path }}" onClick="{{ toggleLock }}" title="Fixar impede que a IA altere este bloco em novas versões" style="{{ b.lockStyle }}">{{ b.lockLabel }}</button>
+                    <button data-path="{{ b.path }}" onClick="{{ regenBlock }}" disabled="{{ b.regenDisabled }}" style="background:#fff;border:1px solid #16263A;color:#16263A;border-radius:4px;padding:5px 10px;font-size:11px;font-weight:600">Regenerar bloco</button>
+                    <sc-if value="{{ b.removable }}" hint-placeholder-val="{{ false }}"><button data-path="{{ b.removePath }}" data-idx="{{ b.removeIdx }}" onClick="{{ removeItem }}" style="background:#fff;border:1px solid #E6E2DA;color:#DC2626;border-radius:4px;padding:5px 10px;font-size:11px;font-weight:600">Remover</button></sc-if>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <sc-for list="{{ b.fields }}" as="f" hint-placeholder-count="0">
+                    <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:#5E6770;font-weight:500">
+                      <span style="display:flex;justify-content:space-between"><span>{{ f.label }}</span><sc-if value="{{ f.removable }}" hint-placeholder-val="{{ false }}"><button data-path="{{ f.removePath }}" data-idx="{{ f.removeIdx }}" onClick="{{ removeItem }}" style="background:transparent;border:0;color:#DC2626;font-size:11px;padding:0">remover</button></sc-if></span>
+                      <sc-if value="{{ f.textarea }}" hint-placeholder-val="{{ true }}"><textarea data-path="{{ f.path }}" value="{{ f.value }}" onChange="{{ onFieldInput }}" onBlur="{{ onFieldCommit }}" rows="{{ f.rows }}" style="padding:9px 10px;border:1px solid #E6E2DA;border-radius:4px;font-size:13px;line-height:1.5;resize:vertical;background:#fff;color:#1E1E1E"></textarea></sc-if>
+                      <sc-if value="{{ f.input }}" hint-placeholder-val="{{ false }}"><input data-path="{{ f.path }}" value="{{ f.value }}" onChange="{{ onFieldInput }}" onBlur="{{ onFieldCommit }}" style="padding:9px 10px;border:1px solid #E6E2DA;border-radius:4px;font-size:13px;background:#fff;color:#1E1E1E"></sc-if>
+                    </label>
+                  </sc-for>
+                  <sc-if value="{{ b.canAdd }}" hint-placeholder-val="{{ false }}"><button data-path="{{ b.addPath }}" data-kind="{{ b.addKind }}" onClick="{{ addItem }}" style="align-self:flex-start;background:transparent;border:1px dashed #9FB3C2;color:#16263A;border-radius:4px;padding:6px 10px;font-size:11px;font-weight:600">{{ b.addLabel }}</button></sc-if>
+                </div>
+              </div>
+            </sc-for>
+            <button onClick="{{ addSection }}" style="align-self:flex-start;background:transparent;border:1px dashed #9FB3C2;color:#16263A;border-radius:4px;padding:8px 12px;font-size:12px;font-weight:600">Adicionar seção de desenvolvimento</button>
+          </div>
+          <div style="position:sticky;top:76px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <button data-tab="preview" onClick="{{ setOutTab }}" style="{{ outTabStyle.preview }}">Preview</button>
+              <button data-tab="html" onClick="{{ setOutTab }}" style="{{ outTabStyle.html }}">HTML</button>
+              <button data-tab="text" onClick="{{ setOutTab }}" style="{{ outTabStyle.text }}">Texto simples</button>
+              <span style="flex:1"></span>
+              <button data-mode="desktop" onClick="{{ setPreviewMode }}" style="{{ pvModeStyle.desktop }}">Desktop</button>
+              <button data-mode="mobile" onClick="{{ setPreviewMode }}" style="{{ pvModeStyle.mobile }}">Mobile</button>
+            </div>
+            <sc-if value="{{ outIs.preview }}" hint-placeholder-val="{{ true }}">
+              <div style="background:#EEF1F4;border:1px solid #E6E2DA;border-radius:12px;padding:16px;display:flex;justify-content:center;overflow:hidden">
+                <iframe ref="{{ previewRef }}" title="Preview da newsletter" style="{{ previewFrameStyle }}"></iframe>
+              </div>
+            </sc-if>
+            <sc-if value="{{ outIs.html }}" hint-placeholder-val="{{ false }}">
+              <textarea readOnly="{{ true }}" value="{{ outHtml }}" style="height:70vh;padding:12px;border:1px solid #E6E2DA;border-radius:12px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.5;background:#fff;color:#1E1E1E"></textarea>
+            </sc-if>
+            <sc-if value="{{ outIs.text }}" hint-placeholder-val="{{ false }}">
+              <textarea readOnly="{{ true }}" value="{{ outText }}" style="height:70vh;padding:12px;border:1px solid #E6E2DA;border-radius:12px;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.5;background:#fff;color:#1E1E1E"></textarea>
+            </sc-if>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button onClick="{{ copyHtml }}" style="background:#16263A;color:#fff;border:0;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Copiar HTML</button>
+              <button onClick="{{ downloadHtml }}" style="background:#fff;border:1px solid #16263A;color:#16263A;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Baixar .html</button>
+              <button onClick="{{ copyText }}" style="background:#fff;border:1px solid #E6E2DA;color:#16263A;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Copiar texto</button>
+              <button onClick="{{ downloadTxt }}" style="background:#fff;border:1px solid #E6E2DA;color:#16263A;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Baixar .txt</button>
+            </div>
+            <div style="font-size:11px;color:#5E6770;line-height:1.5">{{ exportHint }}</div>
+          </div>
+        </div>
+      </sc-if>
+    </section>
+  </sc-if>
+
+  <!-- ===== Versões ===== -->
+  <sc-if value="{{ is.versions }}" hint-placeholder-val="{{ false }}">
+    <section style="padding:28px 32px;display:flex;flex-direction:column;gap:16px" data-screen-label="Versões">
+      <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;overflow-x:auto">
+        <div style="min-width:900px;display:grid;grid-template-columns:60px 130px 150px 90px 110px 1fr 200px;gap:12px;padding:12px 20px;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600;border-bottom:1px solid #E6E2DA"><span>Versão</span><span>Origem</span><span>Criada</span><span>Nota</span><span>Status</span><span>Nota do editor</span><span></span></div>
+        <sc-if value="{{ noVersions }}" hint-placeholder-val="{{ true }}"><div style="padding:24px 20px;color:#5E6770;font-size:13px">Nenhuma versão da newsletter ainda.</div></sc-if>
+        <sc-for list="{{ versionRows }}" as="v" hint-placeholder-count="0">
+          <div style="min-width:900px;display:grid;grid-template-columns:60px 130px 150px 90px 110px 1fr 200px;gap:12px;padding:12px 20px;border-bottom:1px solid #E6E2DA;font-size:13px;align-items:center">
+            <strong>v{{ v.n }}</strong><span style="color:#5E6770">{{ v.originLabel }}</span><span style="color:#5E6770">{{ v.when }}</span><span>{{ v.scoreLabel }}</span><span style="{{ v.chip }}">{{ v.statusLabel }}</span><span style="color:#5E6770;font-size:12px">{{ v.note }}</span>
+            <div style="display:flex;gap:6px;justify-content:flex-end"><button data-id="{{ v.id }}" onClick="{{ toggleCompare }}" style="{{ v.cmpStyle }}">{{ v.cmpLabel }}</button><button data-id="{{ v.id }}" onClick="{{ restoreVersion }}" disabled="{{ v.isCurrent }}" style="background:#fff;border:1px solid #E6E2DA;border-radius:4px;padding:6px 10px;font-size:12px;color:#16263A">Restaurar</button></div>
+          </div>
+        </sc-for>
+      </div>
+      <sc-if value="{{ hasCompare }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <sc-for list="{{ compareCols }}" as="c" hint-placeholder-count="0">
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:20px"><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600;margin-bottom:10px">v{{ c.n }} · {{ c.when }}</div><pre style="white-space:pre-wrap;font-family:Poppins,Arial,sans-serif;font-size:13px;line-height:1.6;margin:0;max-height:70vh;overflow:auto">{{ c.text }}</pre></div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ compareHint }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:#5E6770">{{ compareHint }}</div></sc-if>
+    </section>
+  </sc-if>
+
+  <!-- ===== Post Studio ===== -->
+  <sc-if value="{{ is.posts }}" hint-placeholder-val="{{ false }}">
+    <section style="padding:24px 32px;display:flex;flex-direction:column;gap:16px" data-screen-label="Post Studio">
+      <sc-if value="{{ noPosts }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:32px;color:#5E6770;font-size:14px;display:flex;flex-direction:column;gap:12px;align-items:flex-start">
+          <span>{{ postsEmptyMsg }}</span>
+          <button onClick="{{ derivePosts }}" disabled="{{ deriveDisabled }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:12px 20px;font-weight:600">Gerar os três posts</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{ hasPosts }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <sc-for list="{{ angleTabs }}" as="t" hint-placeholder-count="0"><button data-angle="{{ t.id }}" onClick="{{ setAngle }}" style="{{ t.style }}">{{ t.label }} <span style="{{ t.scoreStyle }}">{{ t.scoreLabel }}</span></button></sc-for>
+          <span style="margin-left:auto;font-size:12px;color:#5E6770">{{ postMeta }}</span>
+          <button onClick="{{ derivePosts }}" disabled="{{ busy }}" style="background:#fff;border:1px solid #E6E2DA;border-radius:4px;padding:8px 12px;font-size:12px;font-weight:600;color:#16263A">Regerar os três (respeita fixados)</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;align-items:start">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="{{ pqa.panelStyle }}">
+              <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+                <div style="display:flex;flex-direction:column"><span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#5E6770;font-weight:600">Nota</span><span style="font-size:30px;font-weight:600;color:#16263A;line-height:1">{{ pqa.scoreLabel }}</span></div>
+                <span style="{{ pqa.sealStyle }}">{{ pqa.sealLabel }}</span>
+                <span style="{{ postStatusChip }}">{{ postStatusLabel }}</span>
+                <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+                  <button onClick="{{ runPostQA }}" disabled="{{ busy }}" style="background:#16263A;color:#fff;border:0;border-radius:4px;padding:8px 12px;font-size:12px;font-weight:600">Revisão VendaMais</button>
+                  <button onClick="{{ approvePost }}" disabled="{{ pqa.approveDisabled }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:8px 12px;font-size:12px;font-weight:600">Aprovar post</button>
+                </div>
+              </div>
+              <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:#5E6770;margin-top:10px"><sc-for list="{{ pqa.criteria }}" as="c" hint-placeholder-count="0"><div style="display:flex;flex-direction:column;gap:2px;min-width:84px"><span>{{ c.label }}</span><div style="height:4px;background:#E6E2DA;border-radius:2px"><div style="{{ c.barStyle }}"></div></div><span style="font-weight:600;color:#16263A">{{ c.value }}</span></div></sc-for></div>
+              <sc-if value="{{ pqa.hasIssues }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+                  <sc-for list="{{ pqa.issues }}" as="i" hint-placeholder-count="0"><div style="{{ i.style }}"><strong>{{ i.kind }}</strong> · {{ i.where }} · {{ i.text }}</div></sc-for>
+                </div>
+              </sc-if>
+            </div>
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+              <span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#16263A;font-weight:700">Template</span>
+              <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ templateBtns }}" as="t" hint-placeholder-count="0"><button data-id="{{ t.id }}" onClick="{{ setTemplate }}" disabled="{{ t.disabled }}" title="{{ t.title }}" style="{{ t.style }}">{{ t.id }} · {{ t.name }}</button></sc-for></div>
+              <sc-if value="{{ isT05 }}" hint-placeholder-val="{{ false }}">
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:#5E6770;font-weight:500">Sócio que assina (nível B)
+                  <select value="{{ postPartner }}" onChange="{{ setPartner }}" style="padding:9px 10px;border:1px solid #E6E2DA;border-radius:4px;background:#fff;font-size:13px"><option value="">Selecione</option><sc-for list="{{ partnerOpts }}" as="p" hint-placeholder-count="0"><option value="{{ p.id }}">{{ p.name }} · {{ p.role }}{{ p.portraitNote }}</option></sc-for></select></label>
+              </sc-if>
+              <div style="font-size:11px;color:#5E6770;line-height:1.5">{{ templateHint }}</div>
+            </div>
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+              <span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#16263A;font-weight:700">Formato</span>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+                <button data-format="single" onClick="{{ setFormat }}" style="{{ formatBtn.single }}">Peça única</button>
+                <button data-format="carousel" onClick="{{ setFormat }}" style="{{ formatBtn.carousel }}">Carrossel</button>
+                <sc-if value="{{ isCarousel }}" hint-placeholder-val="{{ false }}">
+                  <select value="{{ carouselSlidesWanted }}" onChange="{{ onSlidesWanted }}" style="padding:7px 10px;border:1px solid #E6E2DA;border-radius:4px;background:#fff;font-size:12px"><option value="4">4 slides</option><option value="5">5 slides</option><option value="6">6 slides</option><option value="7">7 slides</option></select>
+                  <button onClick="{{ deriveCarousel }}" disabled="{{ busy }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:8px 12px;font-size:12px;font-weight:600">{{ deriveCarouselLabel }}</button>
+                </sc-if>
+              </div>
+              <div style="font-size:11px;color:#5E6770;line-height:1.5">{{ formatHint }}</div>
+            </div>
+            <sc-if value="{{ hasCarousel }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#16263A;font-weight:700">Slides ({{ slideRows.length }})</span><span style="font-size:11px;color:#5E6770">Capa usa o template e a imagem do post; miolo é tipográfico; fechamento traz logo e CTA.</span></div>
+                <sc-if value="{{ hasSlideIssues }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:4px"><sc-for list="{{ slideIssues }}" as="i" hint-placeholder-count="0"><div style="{{ i.style }}"><strong>{{ i.kind }}</strong> · {{ i.where }} · {{ i.text }}</div></sc-for></div></sc-if>
+                <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px">
+                  <sc-for list="{{ slideRows }}" as="s" hint-placeholder-count="0">
+                    <button data-idx="{{ s.idx }}" onClick="{{ selectSlide }}" style="{{ s.thumbStyle }}"><span style="font-size:10px;font-weight:700;letter-spacing:.5px">{{ s.num }}</span><span style="font-size:10px;text-transform:uppercase">{{ s.role }}</span></button>
+                  </sc-for>
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <button data-dir="-1" onClick="{{ moveSlide }}" style="background:#fff;border:1px solid #E6E2DA;border-radius:4px;padding:5px 10px;font-size:11px;font-weight:600;color:#16263A">Mover para a esquerda</button>
+                  <button data-dir="1" onClick="{{ moveSlide }}" style="background:#fff;border:1px solid #E6E2DA;border-radius:4px;padding:5px 10px;font-size:11px;font-weight:600;color:#16263A">Mover para a direita</button>
+                  <button onClick="{{ addSlide }}" style="background:#fff;border:1px dashed #9FB3C2;border-radius:4px;padding:5px 10px;font-size:11px;font-weight:600;color:#16263A">Inserir slide depois</button>
+                  <button onClick="{{ removeSlide }}" style="background:#fff;border:1px solid #E6E2DA;border-radius:4px;padding:5px 10px;font-size:11px;font-weight:600;color:#DC2626">Remover slide</button>
+                </div>
+                <sc-for list="{{ slideFields }}" as="f" hint-placeholder-count="0">
+                  <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:#5E6770;font-weight:500">{{ f.label }}
+                    <sc-if value="{{ f.textarea }}" hint-placeholder-val="{{ true }}"><textarea data-field="{{ f.field }}" value="{{ f.value }}" onChange="{{ onSlideInput }}" onBlur="{{ onSlideCommit }}" rows="{{ f.rows }}" style="width:100%;padding:9px 10px;border:1px solid #E6E2DA;border-radius:4px;font-size:13px;line-height:1.5;resize:vertical;background:#fff;color:#1E1E1E"></textarea></sc-if>
+                    <sc-if value="{{ f.input }}" hint-placeholder-val="{{ false }}"><input data-field="{{ f.field }}" value="{{ f.value }}" onChange="{{ onSlideInput }}" onBlur="{{ onSlideCommit }}" style="width:100%;padding:9px 10px;border:1px solid #E6E2DA;border-radius:4px;font-size:13px;background:#fff;color:#1E1E1E"></sc-if>
+                  </label>
+                </sc-for>
+                <div style="font-size:11px;color:#5E6770">{{ slideEvidence }}</div>
+              </div>
+            </sc-if>
+            <div style="display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #E6E2DA;border-radius:8px;padding:8px 12px">
+              <input value="{{ regenInstruction }}" onChange="{{ onRegenInstruction }}" placeholder="Instrução para regenerar um campo (opcional)" style="flex:1;border:0;font-size:13px;padding:6px 4px;background:transparent">
+            </div>
+            <sc-for list="{{ postFieldGroups }}" as="g" hint-placeholder-count="0">
+              <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+                <span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#16263A;font-weight:700">{{ g.label }}</span>
+                <sc-for list="{{ g.fields }}" as="f" hint-placeholder-count="0">
+                  <div style="{{ f.wrapStyle }}">
+                    <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px"><span style="font-size:11px;color:#5E6770;font-weight:500">{{ f.label }}</span><span style="{{ f.originStyle }}">{{ f.originLabel }}</span><div style="margin-left:auto;display:flex;gap:4px"><button data-path="{{ f.path }}" onClick="{{ togglePostLock }}" style="{{ f.lockStyle }}">{{ f.lockLabel }}</button><button data-path="{{ f.path }}" onClick="{{ regenPostField }}" disabled="{{ f.regenDisabled }}" style="background:#fff;border:1px solid #16263A;color:#16263A;border-radius:4px;padding:3px 8px;font-size:11px;font-weight:600">Regenerar</button></div></div>
+                    <sc-if value="{{ f.textarea }}" hint-placeholder-val="{{ true }}"><textarea data-path="{{ f.path }}" value="{{ f.value }}" onChange="{{ onPostFieldInput }}" onBlur="{{ onPostFieldCommit }}" rows="{{ f.rows }}" style="width:100%;padding:9px 10px;border:1px solid #E6E2DA;border-radius:4px;font-size:13px;line-height:1.5;resize:vertical;background:#fff;color:#1E1E1E"></textarea></sc-if>
+                    <sc-if value="{{ f.input }}" hint-placeholder-val="{{ false }}"><input data-path="{{ f.path }}" value="{{ f.value }}" onChange="{{ onPostFieldInput }}" onBlur="{{ onPostFieldCommit }}" style="width:100%;padding:9px 10px;border:1px solid #E6E2DA;border-radius:4px;font-size:13px;background:#fff;color:#1E1E1E"></sc-if>
+                    <div style="font-size:11px;color:#5E6770;margin-top:3px">{{ f.hint }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-for>
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:14px 16px;font-size:12px;color:#5E6770;line-height:1.6"><span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#16263A;font-weight:700">Mapa claim → fonte</span><br>{{ postClaims }}</div>
+          </div>
+          <div style="position:sticky;top:76px;display:flex;flex-direction:column;gap:10px">
+            <div style="background:#EEF1F4;border:1px solid #E6E2DA;border-radius:12px;padding:16px;display:flex;justify-content:center">
+              <canvas ref="{{ postCanvasRef }}" width="1080" height="1350" style="width:100%;max-width:432px;aspect-ratio:4/5;border-radius:4px;box-shadow:0 2px 12px rgba(22,38,58,.15);background:#fff"></canvas>
+            </div>
+            <div style="font-size:11px;color:#5E6770;text-align:center">{{ previewCaption }}</div>
+            <sc-if value="{{ hasCarousel }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:6px;justify-content:center;align-items:center"><button data-dir="-1" onClick="{{ stepSlide }}" style="background:#fff;border:1px solid #E6E2DA;border-radius:4px;padding:6px 12px;font-size:12px;font-weight:600;color:#16263A">Anterior</button><span style="font-size:12px;color:#5E6770">{{ slideCounter }}</span><button data-dir="1" onClick="{{ stepSlide }}" style="background:#fff;border:1px solid #E6E2DA;border-radius:4px;padding:6px 12px;font-size:12px;font-weight:600;color:#16263A">Próximo</button></div>
+            </sc-if>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button data-route="imagelab" onClick="{{ go }}" style="background:#16263A;color:#fff;border:0;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Abrir no Image Lab</button>
+              <sc-if value="{{ isSingle }}" hint-placeholder-val="{{ true }}">
+                <button onClick="{{ exportPng }}" style="background:#fff;border:1px solid #16263A;color:#16263A;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Baixar PNG</button>
+                <button onClick="{{ copyCaption }}" style="background:#fff;border:1px solid #E6E2DA;color:#16263A;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Copiar legenda</button>
+                <button onClick="{{ exportAll }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Exportar PNG + legenda</button>
+              </sc-if>
+              <sc-if value="{{ hasCarousel }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ exportSlidePng }}" style="background:#fff;border:1px solid #16263A;color:#16263A;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Baixar este slide</button>
+                <button onClick="{{ copyCaption }}" style="background:#fff;border:1px solid #E6E2DA;color:#16263A;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Copiar legenda</button>
+                <button onClick="{{ exportCarousel }}" disabled="{{ busy }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Exportar carrossel (ZIP)</button>
+              </sc-if>
+            </div>
+            <div style="{{ pubPanelStyle }}">
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#16263A;font-weight:700">Publicar via Metricool</span><span style="{{ pubDot }}"></span><span style="font-size:11px;color:#5E6770">{{ pubState }}</span></div>
+              <sc-if value="{{ pubLocked }}" hint-placeholder-val="{{ true }}"><div style="font-size:12px;color:#5E6770;line-height:1.5">{{ pubLockedMsg }}</div></sc-if>
+              <sc-if value="{{ pubOpen }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ networkRows }}" as="n" hint-placeholder-count="2"><button data-id="{{ n.id }}" onClick="{{ toggleNetwork }}" style="{{ n.style }}">{{ n.label }}</button></sc-for></div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
+                  <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:#5E6770;font-weight:500">Data<input type="date" value="{{ pubDate }}" onChange="{{ onPubDate }}" style="min-width:0;padding:9px 10px;border:1px solid #E6E2DA;border-radius:4px;font-size:13px"></label>
+                  <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:#5E6770;font-weight:500">Hora<input type="time" value="{{ pubTime }}" onChange="{{ onPubTime }}" style="min-width:0;padding:9px 10px;border:1px solid #E6E2DA;border-radius:4px;font-size:13px"></label>
+                </div>
+                <input value="{{ pubFirstComment }}" onChange="{{ onPubFirstComment }}" placeholder="Primeiro comentário (opcional): link da newsletter, por exemplo" style="min-width:0;width:100%;padding:9px 10px;border:1px solid #E6E2DA;border-radius:4px;font-size:13px">
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <button onClick="{{ schedulePost }}" disabled="{{ busy }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Publicar em {{ pubWhenLabel }}</button>
+                  <button onClick="{{ scheduleDraft }}" disabled="{{ busy }}" style="background:#fff;border:1px solid #16263A;color:#16263A;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Enviar como rascunho ao Metricool</button>
+                </div>
+                <div style="font-size:11px;color:#5E6770;line-height:1.5">{{ pubHint }}</div>
+              </sc-if>
+              <sc-if value="{{ hasPublications }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid #E6E2DA;padding-top:10px">
+                  <sc-for list="{{ publicationRows }}" as="pb" hint-placeholder-count="0"><div style="display:flex;gap:8px;align-items:center;font-size:12px"><span style="{{ pb.chip }}">{{ pb.statusLabel }}</span><span>{{ pb.networks }} · {{ pb.when }}</span><span style="color:#5E6770">{{ pb.meta }}</span><sc-if value="{{ pb.cancellable }}" hint-placeholder-val="{{ false }}"><button data-id="{{ pb.id }}" onClick="{{ cancelPublication }}" style="margin-left:auto;background:#fff;border:1px solid #E6E2DA;color:#DC2626;border-radius:4px;padding:3px 8px;font-size:11px;font-weight:600">Cancelar</button></sc-if></div></sc-for>
+                </div>
+              </sc-if>
+            </div>
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:14px 16px"><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#16263A;font-weight:700;margin-bottom:6px">Legenda como será publicada</div><pre style="white-space:pre-wrap;font-family:Poppins,Arial,sans-serif;font-size:13px;line-height:1.6;margin:0;color:#1E1E1E">{{ captionPreview }}</pre><div style="font-size:11px;color:#5E6770;margin-top:6px">{{ captionMeta }}</div></div>
+          </div>
+        </div>
+      </sc-if>
+    </section>
+  </sc-if>
+
+  <!-- ===== Image Lab ===== -->
+  <sc-if value="{{ is.imagelab }}" hint-placeholder-val="{{ false }}">
+    <section style="padding:24px 32px;display:flex;flex-direction:column;gap:16px" data-screen-label="Image Lab">
+      <sc-if value="{{ noPosts }}" hint-placeholder-val="{{ false }}"><div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:32px;color:#5E6770;font-size:14px">{{ postsEmptyMsg }}</div></sc-if>
+      <sc-if value="{{ hasPosts }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><sc-for list="{{ angleTabs }}" as="t" hint-placeholder-count="0"><button data-angle="{{ t.id }}" onClick="{{ setAngle }}" style="{{ t.style }}">{{ t.label }}</button></sc-for><span style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:#5E6770"><span style="{{ imageProvDot }}"></span>{{ imageProv.label }} · {{ imageProvState }}</span></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;align-items:start">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px">
+              <span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#16263A;font-weight:700">Briefing visual (imagem-base, sem texto e sem logo)</span>
+              <div style="font-size:12px;color:#5E6770;line-height:1.5">Conceito: {{ visualConcept }}</div>
+              <textarea data-path="image_prompt" value="{{ imagePromptValue }}" onChange="{{ onPostFieldInput }}" onBlur="{{ onPostFieldCommit }}" rows="7" style="padding:9px 10px;border:1px solid #E6E2DA;border-radius:4px;font-size:13px;line-height:1.5;resize:vertical;background:#fff;color:#1E1E1E"></textarea>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:#5E6770;font-weight:500">Provedor<select value="{{ labProvider }}" onChange="{{ onLabProvider }}" style="padding:9px 10px;border:1px solid #E6E2DA;border-radius:4px;background:#fff;font-size:13px"><option value="gemini">Gemini (Nano Banana)</option><option value="openai">OpenAI GPT Image</option></select></label>
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:#5E6770;font-weight:500">Modo<select value="{{ labMode }}" onChange="{{ onLabMode }}" style="padding:9px 10px;border:1px solid #E6E2DA;border-radius:4px;background:#fff;font-size:13px"><option value="economy">Econômico</option><option value="standard">Padrão</option><option value="premium">Premium</option></select></label>
+              </div>
+              <div style="font-size:11px;color:#5E6770">Modelo: {{ labModel }} · {{ labDirection }}</div>
+              <sc-if value="{{ hasAcervo }}" hint-placeholder-val="{{ false }}">
+                <span style="font-size:11px;color:#5E6770;font-weight:500">Referências de cena (acervo aprovado, opcional)</span>
+                <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ refRows }}" as="r" hint-placeholder-count="0"><button data-id="{{ r.id }}" onClick="{{ toggleRef }}" style="{{ r.style }}"><div style="{{ r.thumb }}"></div></button></sc-for></div>
+              </sc-if>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                <button onClick="{{ generateImage }}" disabled="{{ busy }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:10px 16px;font-size:13px;font-weight:600">Gerar imagem-base</button>
+                <label style="background:#fff;border:1px solid #16263A;color:#16263A;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600;cursor:pointer">Enviar imagem<input type="file" accept="image/*" onChange="{{ uploadPostImage }}" style="display:none"></label>
+                <span style="font-size:11px;color:#5E6770">{{ labHint }}</span>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px">
+              <span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#16263A;font-weight:700">Recorte 4:5</span>
+              <label style="font-size:11px;color:#5E6770">Zoom {{ cropZoomLabel }}<input type="range" min="1" max="2.5" step="0.01" data-k="scale" value="{{ crop.scale }}" onChange="{{ onCrop }}" style="width:100%"></label>
+              <label style="font-size:11px;color:#5E6770">Posição horizontal<input type="range" min="0" max="1" step="0.01" data-k="x" value="{{ crop.x }}" onChange="{{ onCrop }}" style="width:100%"></label>
+              <label style="font-size:11px;color:#5E6770">Posição vertical<input type="range" min="0" max="1" step="0.01" data-k="y" value="{{ crop.y }}" onChange="{{ onCrop }}" style="width:100%"></label>
+            </div>
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px">
+              <span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#16263A;font-weight:700">Imagens deste post ({{ postImages.length }})</span>
+              <sc-if value="{{ noPostImages }}" hint-placeholder-val="{{ true }}"><div style="font-size:12px;color:#5E6770">Nenhuma imagem ainda. Gere, envie ou escolha do acervo.</div></sc-if>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">
+                <sc-for list="{{ postImages }}" as="im" hint-placeholder-count="0">
+                  <div style="{{ im.style }}"><div style="{{ im.thumbStyle }}"></div><div style="padding:6px 8px;font-size:10px;color:#5E6770;line-height:1.4">{{ im.meta }}</div><button data-id="{{ im.id }}" onClick="{{ chooseImage }}" style="{{ im.btnStyle }}">{{ im.btnLabel }}</button></div>
+                </sc-for>
+              </div>
+              <sc-if value="{{ hasAcervo }}" hint-placeholder-val="{{ false }}">
+                <span style="font-size:11px;color:#5E6770;font-weight:500;margin-top:6px">Usar foto do acervo aprovado</span>
+                <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ refRows }}" as="r" hint-placeholder-count="0"><button data-id="{{ r.id }}" onClick="{{ useAcervo }}" style="border:1px solid #E6E2DA;background:#fff;padding:2px;border-radius:4px"><div style="{{ r.thumb }}"></div></button></sc-for></div>
+              </sc-if>
+            </div>
+          </div>
+          <div style="position:sticky;top:76px;display:flex;flex-direction:column;gap:10px">
+            <div style="background:#EEF1F4;border:1px solid #E6E2DA;border-radius:12px;padding:16px;display:flex;justify-content:center"><canvas ref="{{ postCanvasRef }}" width="1080" height="1350" style="width:100%;max-width:432px;aspect-ratio:4/5;border-radius:4px;box-shadow:0 2px 12px rgba(22,38,58,.15);background:#fff"></canvas></div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ templateBtns }}" as="t" hint-placeholder-count="0"><button data-id="{{ t.id }}" onClick="{{ setTemplate }}" disabled="{{ t.disabled }}" style="{{ t.style }}">{{ t.id }}</button></sc-for></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><button data-route="posts" onClick="{{ go }}" style="background:#16263A;color:#fff;border:0;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Voltar ao Post Studio</button><button onClick="{{ exportPng }}" style="background:#fff;border:1px solid #16263A;color:#16263A;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Baixar PNG</button></div>
+          </div>
+        </div>
+      </sc-if>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ busy }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;right:24px;bottom:24px;background:#16263A;color:#fff;border-radius:8px;padding:12px 16px;font-size:13px;display:flex;gap:10px;align-items:center;z-index:20;box-shadow:0 4px 16px rgba(22,38,58,.25)"><span style="width:14px;height:14px;border:2px solid #9FB3C2;border-top-color:#E2742B;border-radius:50%;animation:vmspin .8s linear infinite;display:inline-block"></span>{{ busyLabel }}</div>
+  </sc-if>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { ready: false, route: 'dashboard', editionId: null, brief: null, srcDraft: { type: 'text', name: '', text: '', url: '', primary: false }, filters: { q: '', status: '', date: '' }, brandTab: 'assets', rulesDraft: '', rulesApprover: '', rulesError: '', toast: { text: '', kind: 'info' }, busy: false, busyLabel: '', supaTestResult: '', saveLabel: '', blobUrls: {} };
+  M = {};
+  async componentDidMount() {
+    const base = document.baseURI;
+    const [store, providers, prompts, qa, nl, sources, brand] = await Promise.all(['store', 'providers', 'prompts', 'qa', 'newsletter-render', 'sources', 'brand-rules'].map(n => import(new URL(`engine/${n}.js`, base).href)));
+    this.M = { store, providers, prompts, qa, nl, sources, brand };
+    const db = store.db;
+    if (!db.prompt_templates.length) { db.prompt_templates = prompts.PROMPTS.map(p => ({ ...p })); store.save(); }
+    else { let changed = false; for (const p of prompts.PROMPTS) { const cur = db.prompt_templates.find(x => x.id === p.id); if (!cur) { db.prompt_templates.push({ ...p }); changed = true; } else if ((cur.version || 0) < p.version && !cur.custom) { Object.assign(cur, p); changed = true; } } if (changed) store.save(); }
+    // Em produção (Vercel), a build injeta URL/anon key do Supabase e a base das API Routes; o usuário não precisa colar nada.
+    if (window.__VM_SUPABASE_URL__ && !db.settings.supabase_url) { db.settings.supabase_url = window.__VM_SUPABASE_URL__; db.settings.supabase_anon_key = window.__VM_SUPABASE_ANON__ || ''; store.save(); }
+    if (window.__VM_API_BASE__ && db.settings.functions_base !== window.__VM_API_BASE__) { db.settings.functions_base = window.__VM_API_BASE__; store.save(); }
+    const saved = JSON.parse(localStorage.getItem('vm_ce_ui') || '{}');
+    this.M.newsletter = await import(new URL('engine/newsletter-flow.js', base).href);
+    this.M.posts = await import(new URL('engine/posts-flow.js', base).href);
+    this.M.supabase = await import(new URL('engine/supabase.js', base).href);
+    this.M.knowledge = await import(new URL('engine/knowledge.js', base).href);
+    this.M.publisher = await import(new URL('engine/publisher.js', base).href);
+    if (this.M.supabase.signedIn()) this.M.supabase.refreshIfNeeded().then(ok => ok && this.M.supabase.pullAll().then(() => this.forceUpdate()).catch(e => console.warn('pull', e)));
+    this.setState({ ready: true, route: saved.route || 'dashboard', editionId: saved.editionId || null, brief: this.emptyBrief(), rulesDraft: JSON.stringify(store.activeRules(), null, 2) }, () => { if (this.state.editionId) this.loadBrief(this.state.editionId); this.refreshBlobUrls(); });
+  }
+  persistUI = () => { const S = this.state || {}; if (!S.ready || !S.route) return; const v = JSON.stringify({ route: S.route, editionId: S.editionId || null }); if (v !== this._ui) { this._ui = v; localStorage.setItem('vm_ce_ui', v); } };
+  db() { return this.M.store.db; }
+  save(label = 'Salvo') { this.M.store.save(); this.setState({ saveLabel: `${label} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` }); this.scheduleSync(); }
+  toast(text, kind = 'info') { this.setState({ toast: { text, kind } }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: { text: '', kind } }), 4500); }
+  async run(label, fn) { this.setState({ busy: true, busyLabel: label }); try { return await fn(); } catch (e) { console.error(e); this.toast(e.name === 'ConfigError' ? `${e.message}. ${e.hint || ''}` : `Falha: ${e.message}`, 'error'); } finally { this.setState({ busy: false, busyLabel: '' }); } }
+  emptyBrief() { const s = this.db().settings; const n = this.db().editions.length + 1; return { theme: '', title: '', objective: 'Educar', audience: 'Gestor comercial', tone: s.default_tone || 'analítico', length: s.default_length || 'standard', edition_date: new Date().toISOString().slice(0, 10), number: n, cta: '', cta_type: s.default_cta_type || 'conversa', cta_url: '', notes: '', podcast_title: '', podcast_url: '', agenda_enabled: true }; }
+  edition() { return this.db().editions.find(e => e.id === this.state.editionId) || null; }
+  loadBrief(id) { const e = this.db().editions.find(x => x.id === id); if (e) this.setState({ brief: { ...this.emptyBrief(), ...e.brief } }); }
+  async refreshBlobUrls() {
+    const urls = { ...this.state.blobUrls };
+    for (const a of this.db().brand_assets) if (a.file_url?.startsWith('blob:') && !urls[a.id]) { const d = await this.M.store.blobs.get(a.id); if (d) urls[a.id] = d; }
+    this.setState({ blobUrls: urls });
+  }
+  assetUrl(a) { return a.file_url?.startsWith('blob:') ? (this.state.blobUrls[a.id] || '') : a.file_url; }
+  setStatus(ed, status) { const S = this.M.store.STATUS; if (S.indexOf(status) > S.indexOf(ed.status || 'draft') || status === 'draft') ed.status = status; ed.updated_at = this.M.store.now(); }
+  // Evidências = análise das fontes da edição + conhecimento institucional VendaMais (ids K-*), sempre rastreável.
+  evidence(editionId) { const an = this.db().analyses.find(a => a.edition_id === editionId); const kb = this.M.knowledge ? this.M.knowledge.knowledgeEvidence(this.knowledge()) : []; return [...(an ? an.facts || [] : []), ...kb]; }
+  knowledge() { return this.db().knowledge || this.M.knowledge.KNOWLEDGE_V1; }
+  // ---------- Sugestão de tema ----------
+  suggestTheme = () => this.run('Lendo tendências e cruzando com o conhecimento VendaMais', async () => {
+    const K = this.knowledge(); const b = this.state.brief;
+    const queries = ['vendas B2B Brasil', 'gestão comercial', 'liderança de vendas', 'inteligência artificial vendas', 'treinamento corporativo', 'força de vendas indústria', 'economia empresas Brasil'];
+    const { items, via } = await this.M.providers.fetchTrends(queries);
+    const headlines = items.length ? items.slice(0, 40).map(i => `- ${i.title} (${i.source || 'fonte'}, ${i.published ? new Date(i.published).toLocaleDateString('pt-BR') : ''})`).join('\n') : '(nenhuma manchete disponível; use o calendário do ano, sazonalidade comercial e os territórios editoriais)';
+    const p = this.M.prompts.fill(this.prompt('theme_suggest').prompt_text, { audience: b.audience, today: new Date().toLocaleDateString('pt-BR'), knowledge: this.M.knowledge.knowledgeSummary(K), trend_note: via === 'none' ? 'indisponíveis nesta sessão' : `${items.length} itens dos últimos 7 dias`, headlines });
+    const out = await this.M.providers.textJSON({ system: this.prompt('editor_base').prompt_text, prompt: p, purpose: 'theme.suggest' });
+    const themes = (out.themes || []).map(t => ({ ...t, score: (Number(t.heat) || 0) + (Number(t.fit) || 0) })).sort((a, z) => z.score - a.score);
+    this.M.store.audit('theme.suggest', 'edition', this.state.editionId || 'new', { headlines: items.length, via, themes: themes.length }); this.save();
+    this.setState({ themeSuggestions: themes, themeVia: via, themeCount: items.length }); this.toast(`${themes.length} temas sugeridos${items.length ? ` a partir de ${items.length} manchetes` : ' (sem manchetes disponíveis)'}.`);
+  });
+  useTheme = (e) => { const t = (this.state.themeSuggestions || [])[Number(e.currentTarget.dataset.idx)]; if (!t) return; const brief = { ...this.state.brief, theme: t.theme, audience: ['CEO/dono', 'Gestor comercial', 'RH/T&D', 'Vendedor/representante'].includes(t.audience) ? t.audience : this.state.brief.audience, tone: t.tone || this.state.brief.tone, angle_hint: t.vendamais_angle, angle_thesis: t.thesis, notes: [this.state.brief.notes, `Gancho de atualidade: ${t.why_now}`].filter(Boolean).join('\n') }; this.setState({ brief, themeSuggestions: null }); const ed = this.edition(); if (ed) { ed.brief = brief; ed.theme = brief.theme; ed.title = brief.title || brief.theme; ed.updated_at = this.M.store.now(); this.save('Autosave'); } this.toast('Tema aplicado ao briefing. Adicione as fontes sugeridas e analise.'); };
+  closeThemes = () => this.setState({ themeSuggestions: null });
+  onKnowledgeDraft = (e) => this.setState({ knowledgeDraft: e.target.value, knowledgeError: '' });
+  saveKnowledge = () => { let json; try { json = JSON.parse(this.state.knowledgeDraft); } catch (err) { return this.setState({ knowledgeError: `JSON inválido: ${err.message}` }); } json.version = (this.knowledge().version || 1) + 1; json.updated_at = new Date().toISOString().slice(0, 10); this.db().knowledge = json; this.M.store.audit('knowledge.update', 'knowledge', `v${json.version}`, {}); this.save(); this.setState({ knowledgeDraft: JSON.stringify(json, null, 2), knowledgeError: '' }); this.toast(`Conhecimento VendaMais v${json.version} salvo. Entra em toda análise, geração e QA.`); };
+  prompt(id) { return this.db().prompt_templates.find(p => p.id === id && p.active) || this.M.prompts.PROMPTS.find(p => p.id === id); }
+  fileToDataUrl(f) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); }); }
+
+  // ---------- Ações: navegação ----------
+  go = (e) => { const route = e.currentTarget.dataset.route; this.setState({ route }, this.persistUI); };
+  goNew = () => { this.setState({ route: 'briefing', editionId: null, brief: this.emptyBrief(), srcDraft: { type: 'text', name: '', text: '', url: '', primary: true } }, this.persistUI); };
+  openEdition = (e) => { e.preventDefault(); const id = e.currentTarget.dataset.id; this.setState({ editionId: id, route: 'briefing' }, () => { this.loadBrief(id); this.persistUI(); }); };
+  duplicateEdition = (e) => { const id = e.currentTarget.dataset.id; const db = this.db(); const src = db.editions.find(x => x.id === id); if (!src) return; const nid = this.M.store.uid('ed'); const copy = { ...JSON.parse(JSON.stringify(src)), id: nid, title: `${src.title} (cópia)`, status: 'draft', created_at: this.M.store.now(), updated_at: this.M.store.now() }; copy.brief.number = db.editions.length + 1; db.editions.unshift(copy); db.sources.filter(s => s.edition_id === id).forEach(s => db.sources.push({ ...s, id: this.M.store.uid('src'), edition_id: nid })); const an = db.analyses.find(a => a.edition_id === id); if (an) db.analyses.push({ ...JSON.parse(JSON.stringify(an)), id: this.M.store.uid('an'), edition_id: nid }); this.M.store.audit('edition.duplicate', 'edition', nid, { from: id }); this.save(); this.toast('Edição duplicada (briefing, fontes e análise).'); };
+  deleteEdition = (e) => { const id = e.currentTarget.dataset.id; const db = this.db(); const ed = db.editions.find(x => x.id === id); if (!ed || !confirm(`Excluir "${ed.title}" e todo o conteúdo dela?`)) return; db.editions = db.editions.filter(x => x.id !== id); db.sources = db.sources.filter(s => s.edition_id !== id); db.analyses = db.analyses.filter(a => a.edition_id !== id); db.newsletter_versions = db.newsletter_versions.filter(v => v.edition_id !== id); db.posts = db.posts.filter(p => p.edition_id !== id); this.M.store.audit('edition.delete', 'edition', id, { title: ed.title }); if (this.state.editionId === id) this.setState({ editionId: null }, this.persistUI); this.save(); };
+  onFilterQ = (e) => this.setState({ filters: { ...this.state.filters, q: e.target.value } });
+  onFilterStatus = (e) => this.setState({ filters: { ...this.state.filters, status: e.target.value } });
+  onFilterDate = (e) => this.setState({ filters: { ...this.state.filters, date: e.target.value } });
+
+  // ---------- Briefing ----------
+  onBrief = (e) => { const f = e.target.dataset.field; const brief = { ...this.state.brief, [f]: e.target.type === 'number' ? Number(e.target.value) : e.target.value }; this.setState({ brief }); const ed = this.edition(); if (ed) { ed.brief = brief; ed.title = brief.title || brief.theme; ed.theme = brief.theme; ed.audience = brief.audience; ed.objective = brief.objective; ed.edition_date = brief.edition_date; ed.updated_at = this.M.store.now(); this.save('Autosave'); } };
+  onBriefAgenda = (e) => { this.onBrief({ target: { dataset: { field: 'agenda_enabled' }, value: e.target.checked, type: 'checkbox' } }); };
+  saveEdition = () => { const b = this.state.brief; if (!b.theme.trim()) return this.toast('Informe o tema central.', 'error'); const db = this.db(); let ed = this.edition(); if (!ed) { ed = { id: this.M.store.uid('ed'), status: 'draft', created_at: this.M.store.now() }; db.editions.unshift(ed); this.M.store.audit('edition.create', 'edition', ed.id, { theme: b.theme }); } ed.brief = b; ed.title = b.title || b.theme; ed.theme = b.theme; ed.audience = b.audience; ed.objective = b.objective; ed.edition_date = b.edition_date; ed.updated_at = this.M.store.now(); this.save(); this.setState({ editionId: ed.id }, this.persistUI); this.toast('Edição salva. Agora adicione as fontes e analise.'); };
+
+  // ---------- Fontes ----------
+  setSourceType = (e) => this.setState({ srcDraft: { ...this.state.srcDraft, type: e.currentTarget.dataset.type, file: null } });
+  onSrcDraft = (e) => this.setState({ srcDraft: { ...this.state.srcDraft, [e.target.dataset.field]: e.target.value } });
+  onSrcPrimary = (e) => this.setState({ srcDraft: { ...this.state.srcDraft, primary: e.target.checked } });
+  onSourceFile = async (e) => { const f = e.target.files[0]; if (!f) return; await this.run(`Lendo ${f.name}`, async () => { const text = await this.M.sources.extractFile(f); this.setState({ srcDraft: { ...this.state.srcDraft, name: this.state.srcDraft.name || f.name, text, fileName: f.name } }); this.toast(`${f.name}: ${text.split(/\s+/).length} palavras extraídas.`); }); };
+  addSource = async () => {
+    const d = this.state.srcDraft; let ed = this.edition();
+    if (!ed) { if (!this.state.brief.theme.trim()) return this.toast('Informe o tema e salve a edição antes de adicionar fontes.', 'error'); this.saveEdition(); ed = this.edition(); }
+    let text = d.text || '';
+    if (d.type === 'url' && !text.trim()) { if (this.M.providers.supabaseConfigured()) { text = await this.run('Lendo URL', () => this.M.providers.fetchUrlText(d.url)) || ''; } if (!text.trim()) return this.toast('Leitura de URL requer a Edge Function source-fetch. Cole o texto da página.', 'error'); }
+    if (!text.trim()) return this.toast('A fonte está vazia.', 'error');
+    const hash = await this.M.store.sha256(text);
+    const db = this.db(); if (db.sources.some(s => s.edition_id === ed.id && s.hash === hash)) return this.toast('Esta fonte já foi adicionada (mesmo conteúdo).', 'error');
+    const src = { id: this.M.store.uid('src'), edition_id: ed.id, type: d.type, name: d.name || d.fileName || d.url || `Fonte ${db.sources.filter(s => s.edition_id === ed.id).length + 1}`, url: d.url || '', file_name: d.fileName || '', extracted_text: text, hash, primary: !!d.primary, created_at: this.M.store.now() };
+    if (src.primary) db.sources.filter(s => s.edition_id === ed.id).forEach(s => s.primary = false);
+    db.sources.push(src); this.M.store.audit('source.add', 'source', src.id, { type: src.type, name: src.name, chars: text.length }); ed.updated_at = this.M.store.now(); this.save();
+    this.setState({ srcDraft: { type: d.type, name: '', text: '', url: '', primary: false } });
+  };
+  removeSource = (e) => { const id = e.currentTarget.dataset.id; const db = this.db(); db.sources = db.sources.filter(s => s.id !== id); this.M.store.audit('source.remove', 'source', id, {}); this.save(); };
+
+  // ---------- Análise de fontes ----------
+  analyzeSources = () => this.run('Analisando fontes', async () => {
+    const ed = this.edition(); const db = this.db(); const srcs = db.sources.filter(s => s.edition_id === ed.id);
+    if (!srcs.length) throw new Error('Adicione ao menos uma fonte.');
+    const sourcesText = srcs.map(s => `[source_id: ${s.id}] [${s.type}] ${s.name}${s.primary ? ' (principal)' : ''}\n${s.extracted_text.slice(0, 20000)}`).join('\n\n-----\n\n') + `\n\n-----\n\n[source_id: kb_vendamais] [institucional] Conhecimento VendaMais (não extraia fatos daqui; já está disponível como evidências K-*; use apenas para sugerir ângulos coerentes com as frentes)\n${this.M.knowledge.knowledgeSummary(this.knowledge()).slice(0, 4000)}`;
+    const b = ed.brief;
+    const prompt = `${this.prompt('sources_analyze').prompt_text}\n\nBriefing: tema "${b.theme}"; objetivo ${b.objective}; público ${b.audience}; tom ${b.tone}. ${b.notes ? 'Notas: ' + b.notes : ''}\n\nFONTES:\n${sourcesText}`;
+    const out = await this.M.providers.textJSON({ system: this.prompt('editor_base').prompt_text, prompt, purpose: 'sources.analyze' });
+    const srcIds = new Set(srcs.map(s => s.id));
+    const facts = (out.facts || []).filter(f => f.source_id !== 'kb_vendamais').map((f, i) => ({ id: f.id || `E${i + 1}`, kind: f.kind || 'fact', text: f.text || '', source_id: srcIds.has(f.source_id) ? f.source_id : (srcs.find(s => s.primary) || srcs[0]).id, strength: f.strength || 'média' }));
+    const an = { id: this.M.store.uid('an'), edition_id: ed.id, summary: out.summary || '', facts, risks: [...(out.risks || []), ...(out.gaps || []).map(g => `Lacuna de prova: ${g}`)], angles: out.angles || [], created_at: this.M.store.now(), provider: db.settings.text_provider };
+    db.analyses = db.analyses.filter(a => a.edition_id !== ed.id); db.analyses.push(an);
+    this.M.store.audit('sources.analyze', 'edition', ed.id, { facts: facts.length, angles: an.angles.length }); ed.updated_at = this.M.store.now(); this.save();
+    this.setState({ route: 'analysis' }, this.persistUI); this.toast(`${facts.length} evidências extraídas de ${srcs.length} fonte(s).`);
+  });
+  useAngle = (e) => { const idx = Number(e.currentTarget.dataset.idx); const ed = this.edition(); const an = this.db().analyses.find(a => a.edition_id === ed.id); const a = an?.angles?.[idx]; if (!a) return; ed.brief.angle_hint = ed.brief.angle_hint === a.title ? '' : a.title; ed.brief.angle_thesis = ed.brief.angle_hint ? a.thesis : ''; this.setState({ brief: { ...ed.brief } }); this.save(); };
+  generateNewsletter = () => this.run('Gerando newsletter', async () => {
+    if (!this.M.newsletter) { const m = await import(new URL('engine/newsletter-flow.js', document.baseURI).href); this.M.newsletter = m; }
+    await this.M.newsletter.generate(this); this.setState({ route: 'newsletter' }, this.persistUI);
+  });
+
+  // ---------- Brand Center ----------
+  setBrandTab = (e) => this.setState({ brandTab: e.currentTarget.dataset.tab });
+  onAssetUpload = async (e) => {
+    const { type, id, partner } = e.target.dataset; const files = Array.from(e.target.files || []); if (!files.length) return; const db = this.db();
+    for (const f of files) {
+      const dataUrl = await this.fileToDataUrl(f);
+      if (id) { const a = db.brand_assets.find(x => x.id === id); a.version += 1; a.file_url = 'blob:' + a.id; a.metadata = { ...a.metadata, note: `Substituído em ${new Date().toLocaleDateString('pt-BR')} (${f.name})`, file_name: f.name }; await this.M.store.blobs.put(a.id, dataUrl); this.M.store.audit('brand.asset.replace', 'brand_asset', a.id, { file: f.name, version: a.version }); }
+      else { const aid = this.M.store.uid('asset'); if (type === 'portrait') db.brand_assets.filter(x => x.type === 'portrait' && x.partner_id === partner).forEach(x => x.active = false); db.brand_assets.push({ id: aid, type, label: f.name, partner_id: partner || null, file_url: 'blob:' + aid, version: 1, active: true, metadata: { file_name: f.name, size: f.size } }); await this.M.store.blobs.put(aid, dataUrl); this.M.store.audit('brand.asset.add', 'brand_asset', aid, { type, file: f.name }); }
+    }
+    this.save(); await this.refreshBlobUrls(); this.toast(`${files.length} arquivo(s) registrado(s) no Brand Center.`); e.target.value = '';
+  };
+  removeAsset = async (e) => { const id = e.currentTarget.dataset.id; const db = this.db(); db.brand_assets = db.brand_assets.filter(a => a.id !== id); await this.M.store.blobs.del(id); this.M.store.audit('brand.asset.remove', 'brand_asset', id, {}); this.save(); };
+  onRulesDraft = (e) => this.setState({ rulesDraft: e.target.value, rulesError: '' });
+  onRulesApprover = (e) => this.setState({ rulesApprover: e.target.value });
+  approveRules = () => { let json; try { json = JSON.parse(this.state.rulesDraft); } catch (err) { return this.setState({ rulesError: `JSON inválido: ${err.message}` }); } if (!this.state.rulesApprover.trim()) return this.setState({ rulesError: 'Informe quem aprova.' }); const db = this.db(); const v = Math.max(...db.brand_rules.map(r => r.version)) + 1; json.version = v; db.brand_rules.forEach(r => r.active = false); db.brand_rules.push({ id: `br_v${v}`, version: v, rules_json: json, approved_by: this.state.rulesApprover, approved_at: this.M.store.now(), active: true }); db.workspace.brand_rules_version = v; this.M.store.audit('brand.rules.approve', 'brand_rules', `br_v${v}`, { approved_by: this.state.rulesApprover }); this.save(); this.setState({ rulesDraft: JSON.stringify(json, null, 2), rulesError: '' }); this.toast(`brand_rules v${v} aprovada e ativa.`); };
+
+  // ---------- Configurações ----------
+  onSetting = (e) => { const f = e.target.dataset.field; this.db().settings[f] = e.target.type === 'number' ? Number(e.target.value) : e.target.value; this.M.store.audit('settings.update', 'settings', f, { value: f.includes('key') ? '[oculto]' : e.target.value }); this.save('Autosave'); this.forceUpdate(); };
+  onImageModel = (e) => { const { provider, mode } = e.target.dataset; const s = this.db().settings; s.image_models = s.image_models || {}; s.image_models[provider] = s.image_models[provider] || {}; s.image_models[provider][mode] = e.target.value; this.save('Autosave'); this.forceUpdate(); };
+  testSupabase = () => this.run('Testando Supabase', async () => { const s = this.db().settings; if (!s.supabase_url || !s.supabase_anon_key) throw new Error('Informe URL e anon key.'); const r = await fetch(`${s.supabase_url.replace(/\/$/, '')}/rest/v1/`, { headers: { apikey: s.supabase_anon_key, Authorization: `Bearer ${s.supabase_anon_key}` } }); this.setState({ supaTestResult: r.ok ? 'Conexão OK. Aplique as migrations em supabase/migrations e publique as Edge Functions.' : `Resposta ${r.status}: verifique URL e anon key.` }); });
+  exportBackup = () => { const blob = new Blob([JSON.stringify(this.db(), null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `vendamais-content-engine-${new Date().toISOString().slice(0, 10)}.json`; a.click(); };
+  importBackup = async (e) => { const f = e.target.files[0]; if (!f) return; try { const data = JSON.parse(await f.text()); Object.assign(this.db(), data); this.save(); this.toast('Backup importado.'); this.forceUpdate(); } catch (err) { this.toast('Arquivo inválido.', 'error'); } };
+  resetAll = () => { if (!confirm('Apagar todas as edições, versões e configurações locais?')) return; this.M.store.reset(); localStorage.removeItem('vm_ce_ui'); location.reload(); };
+
+  // ---------- Supabase: auth e sync ----------
+  SB() { return this.M.supabase; }
+  onAuth = (e) => this.setState({ auth: { ...(this.state.auth || {}), [e.target.dataset.field]: e.target.value, error: '' } });
+  signIn = () => this.run('Entrando', async () => { const a = this.state.auth || {}; try { await this.SB().signIn(a.email, a.password); this.setState({ auth: { ...a, password: '', error: '' }, localBypass: false }); this.toast(`Bem-vindo, ${this.db().user.name}. Trazendo dados do Supabase.`); await this.SB().pullAll(); this.forceUpdate(); } catch (err) { this.setState({ auth: { ...a, error: err.message } }); } });
+  signUp = () => this.run('Criando conta', async () => { const a = this.state.auth || {}; try { const r = await this.SB().signUp(a.email, a.password, a.name); if (r.confirmed) { this.toast('Conta criada e autenticada.'); this.setState({ localBypass: false }); } else this.setState({ auth: { ...a, error: 'Conta criada. Confirme o e-mail e depois entre.' } }); } catch (err) { this.setState({ auth: { ...a, error: err.message } }); } });
+  signOut = () => { this.SB().signOut(); this.forceUpdate(); };
+  localBypass = () => this.setState({ localBypass: true });
+  showLogin = () => this.setState({ localBypass: false, route: 'dashboard' });
+  syncNow = () => this.run('Sincronizando com o Supabase', async () => { await this.SB().pushAll(); this.toast('Sincronizado.'); this.forceUpdate(); });
+  pullNow = () => this.run('Trazendo dados do Supabase', async () => { await this.SB().pullAll(); this.toast('Dados atualizados a partir do Supabase.'); this.forceUpdate(); });
+  scheduleSync() { if (!this.M.supabase?.signedIn()) return; clearTimeout(this._sync); this._sync = setTimeout(() => this.SB().pushAll().then(() => this.setState({ saveLabel: `Sincronizado ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` })).catch(err => { console.warn('sync', err); this.toast(`Sincronização falhou: ${err.message}`, 'error'); }), 4000); }
+
+  // ---------- Newsletter ----------
+  previewRef = React.createRef(); _lastPreview = ''; undoStack = []; redoStack = [];
+  componentDidUpdate() { const f = this.previewRef.current; const html = this._previewHtml || ''; if (f && (f !== this._lastPreviewEl || html !== this._lastPreview)) { f.srcdoc = html; this._lastPreview = html; this._lastPreviewEl = f; } this.scheduleRender(); }
+  NL() { return this.M.newsletter; }
+  async ensureNL() { if (!this.M.newsletter) this.M.newsletter = await import(new URL('engine/newsletter-flow.js', document.baseURI).href); return this.M.newsletter; }
+  pushUndo(snap) { this.undoStack.push(snap); if (this.undoStack.length > 60) this.undoStack.shift(); this.redoStack = []; }
+  currentNL() { return this.M.newsletter && this.state.editionId ? this.M.newsletter.current(this.state.editionId) : null; }
+  onFieldInput = (e) => { const p = e.target.dataset.path; this.setState({ drafts: { ...(this.state.drafts || {}), [p]: e.target.value } }); };
+  onFieldCommit = (e) => { const p = e.target.dataset.path; const d = { ...(this.state.drafts || {}) }; if (!(p in d)) return; const val = d[p]; delete d[p]; this.NL().edit(this, p, val); this.setState({ drafts: d }); };
+  undo = () => { const v = this.currentNL(); if (!v || !this.undoStack.length) return; this.redoStack.push(JSON.stringify(v.content_json)); v.content_json = JSON.parse(this.undoStack.pop()); v.score = null; this.save('Autosave'); this.forceUpdate(); };
+  redo = () => { const v = this.currentNL(); if (!v || !this.redoStack.length) return; this.undoStack.push(JSON.stringify(v.content_json)); v.content_json = JSON.parse(this.redoStack.pop()); v.score = null; this.save('Autosave'); this.forceUpdate(); };
+  toggleLock = (e) => { this.NL().toggleLock(this, e.currentTarget.dataset.path); this.forceUpdate(); };
+  onRegenInstruction = (e) => this.setState({ regenInstruction: e.target.value });
+  regenBlock = (e) => { const path = e.currentTarget.dataset.path; return this.run(`Regenerando ${path}`, async () => { await this.NL().rewriteBlock(this, path, this.state.regenInstruction); this.toast(`Bloco ${path} regenerado. O restante não mudou.`); this.forceUpdate(); }); };
+  removeItem = (e) => { const { path, idx } = e.currentTarget.dataset; const v = this.currentNL(); const arr = this.NL().getPath(v.content_json, path); if (!Array.isArray(arr)) return; const next = arr.filter((_, i) => i !== Number(idx)); this.NL().edit(this, path, next); this.forceUpdate(); };
+  addItem = (e) => { const { path, kind } = e.currentTarget.dataset; const v = this.currentNL(); const arr = [...(this.NL().getPath(v.content_json, path) || [])]; arr.push(kind === 'question' ? 'Nova pergunta' : kind === 'agenda' ? { day: 'Dia', title: 'Título', desc: '' } : { title: 'Novo item', text: '' }); this.NL().edit(this, path, arr); this.forceUpdate(); };
+  addSection = () => { const v = this.currentNL(); const arr = [...(v.content_json.sections || []), { label: 'DESENVOLVIMENTO', title: 'Novo bloco', body: '', evidence_ids: [] }]; this.NL().edit(this, 'sections', arr); this.forceUpdate(); };
+  runQA = () => this.run('Revisão VendaMais em andamento', async () => { const q = await this.NL().runQA(this); this.toast(q.ready ? `Nota ${this.currentNL().score}. Pronta para aprovação.` : `Nota ${this.currentNL().score}. ${q.blockers.length} bloqueio(s).`, q.ready ? 'info' : 'error'); this.forceUpdate(); });
+  approveNewsletter = () => { try { this.NL().approve(this); this.toast('Newsletter aprovada como fonte-mãe. Os três posts podem ser gerados.'); this.forceUpdate(); } catch (e) { this.toast(e.message, 'error'); } };
+  unapproveNewsletter = () => { this.NL().unapprove(this); this.forceUpdate(); };
+  saveVersion = () => { const note = prompt('Nota desta versão (opcional):') || 'Versão salva manualmente'; this.NL().saveAsVersion(this, note); this.toast('Versão salva.'); this.forceUpdate(); };
+  restoreVersion = (e) => { this.NL().restoreVersion(this, e.currentTarget.dataset.id); this.toast('Versão restaurada como nova versão atual.'); this.forceUpdate(); };
+  toggleCompare = (e) => { const id = e.currentTarget.dataset.id; let c = [...(this.state.compare || [])]; c = c.includes(id) ? c.filter(x => x !== id) : [...c, id].slice(-2); this.setState({ compare: c }); };
+  setOutTab = (e) => this.setState({ outTab: e.currentTarget.dataset.tab });
+  setPreviewMode = (e) => this.setState({ previewMode: e.currentTarget.dataset.mode });
+  outputs() { const ed = this.edition(); const v = this.currentNL(); if (!ed || !v) return null; return this.NL().renderOutputs(ed, v, this); }
+  copyHtml = async () => { const o = this.outputs(); await navigator.clipboard.writeText(o.html); this.M.store.audit('newsletter.export.copy_html', 'edition', this.edition().id, {}); this.markExported(); this.toast('HTML copiado.'); };
+  copyText = async () => { const o = this.outputs(); await navigator.clipboard.writeText(o.text); this.toast('Texto simples copiado.'); };
+  downloadHtml = () => { const o = this.outputs(); const ed = this.edition(); this.NL().download(`radar-vendamais-ed${String(ed.brief.number).padStart(2, '0')}.html`, o.html, 'text/html'); this.M.store.audit('newsletter.export.html', 'edition', ed.id, {}); this.markExported(); };
+  downloadTxt = () => { const o = this.outputs(); const ed = this.edition(); this.NL().download(`radar-vendamais-ed${String(ed.brief.number).padStart(2, '0')}.txt`, o.text); this.M.store.audit('newsletter.export.txt', 'edition', ed.id, {}); };
+  markExported() { const ed = this.edition(); ed.exports = ed.exports || {}; ed.exports.newsletter = this.M.store.now(); if (ed.status === 'approved' || (ed.status === 'newsletter_approved' && ed.exports.posts)) this.setStatus(ed, 'exported'); this.save(); }
+
+  newsletterVals(ed, db, fmtDT) {
+    const NLm = this.M.newsletter; const S = this.state; const v = ed && NLm ? NLm.current(ed.id) : null; const an = ed ? db.analyses.find(a => a.edition_id === ed.id) : null;
+    const out = { hasNewsletter: !!v, noNewsletter: !v, nlEmptyMsg: an ? 'Nenhuma versão gerada. A newsletter será escrita a partir do briefing e das evidências analisadas.' : 'Analise as fontes antes de gerar a newsletter.', nlGenDisabled: !an || S.busy, versionRows: [], noVersions: true, compareCols: [], hasCompare: false, compareHint: '', qa: { criteria: [], blockers: [], warnings: [], aiIssues: [] }, blockRows: [], outIs: {}, outTabStyle: {}, pvModeStyle: {} };
+    if (!v) return out;
+    const c = v.content_json; const drafts = S.drafts || {}; const val = (p) => (p in drafts ? drafts[p] : (NLm.getPath(c, p) ?? ''));
+    const locks = v.meta?.locks || {}; const edited = v.meta?.edited || {};
+    const origin = (p) => { const e = edited[p] || Object.keys(edited).find(k => k.startsWith(p + '.')) && edited[Object.keys(edited).find(k => k.startsWith(p + '.'))]; return e === 'human' ? ['Editado por pessoa', '#DCFCE7;color:#15803D'] : e === 'ai' ? ['Regenerado pela IA', '#FDF3EB;color:#B85A1C'] : ['Gerado pela IA', '#F3F4F6;color:#5E6770']; };
+    const mk = (path, label, fields, extra = {}) => { const [ol, os] = origin(path); const locked = !!locks[path]; return { path, label, fields, originLabel: ol, originStyle: `font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;background:${os}`, lockLabel: locked ? 'Fixado' : 'Fixar', lockStyle: `border-radius:4px;padding:5px 10px;font-size:11px;font-weight:600;border:1px solid ${locked ? '#E2742B' : '#E6E2DA'};background:${locked ? '#E2742B' : '#fff'};color:${locked ? '#fff' : '#5E6770'}`, regenDisabled: locked || S.busy, cardStyle: `background:#fff;border:1px solid ${locked ? '#E2742B' : '#E6E2DA'};border-radius:12px;padding:14px 16px`, evidence: '', removable: false, canAdd: false, ...extra }; };
+    const F = (path, label, o = {}) => ({ path, label, value: val(path), textarea: !!o.rows, input: !o.rows, rows: o.rows || 2, removable: !!o.removePath, removePath: o.removePath || '', removeIdx: o.removeIdx ?? -1 });
+    const rows = [];
+    rows.push(mk('subject', 'Assunto do e-mail', [F('subject', 'Assunto')]));
+    rows.push(mk('preheader', 'Preheader', [F('preheader', 'Preheader')]));
+    rows.push(mk('headline', 'Headline principal', [F('headline', 'Headline (sem ponto final)')]));
+    rows.push(mk('intro', 'Abertura', [F('intro', 'Abertura', { rows: 3 })]));
+    (c.sections || []).forEach((s, i) => rows.push(mk(`sections.${i}`, s.label || `Seção ${i + 1}`, [F(`sections.${i}.label`, 'Rótulo (kicker)'), F(`sections.${i}.title`, 'Título'), F(`sections.${i}.body`, 'Texto', { rows: 6 })], { evidence: s.evidence_ids?.length ? `evidências: ${s.evidence_ids.join(', ')}` : 'sem evidência vinculada', removable: (c.sections.length > 1), removePath: 'sections', removeIdx: i })));
+    rows.push(mk('practical_block', 'Ferramenta da semana', [F('practical_block.title', 'Título'), F('practical_block.intro', 'Introdução', { rows: 2 }), ...(c.practical_block.steps || []).flatMap((s, i) => [F(`practical_block.steps.${i}.title`, `Item ${i + 1} · título`), F(`practical_block.steps.${i}.text`, `Item ${i + 1} · texto`, { rows: 2, removePath: 'practical_block.steps', removeIdx: i })])], { canAdd: true, addPath: 'practical_block.steps', addKind: 'step', addLabel: 'Adicionar item' }));
+    rows.push(mk('interpretation', 'Como interpretar', [F('interpretation.title', 'Título'), ...(c.interpretation.items || []).flatMap((s, i) => [F(`interpretation.items.${i}.title`, `Leitura ${i + 1} · título`), F(`interpretation.items.${i}.text`, `Leitura ${i + 1} · texto`, { rows: 2, removePath: 'interpretation.items', removeIdx: i })])], { canAdd: true, addPath: 'interpretation.items', addKind: 'item', addLabel: 'Adicionar leitura' }));
+    rows.push(mk('action', 'Como agir', [F('action.title', 'Título'), ...(c.action.steps || []).flatMap((s, i) => [F(`action.steps.${i}.title`, `Passo ${i + 1} · o que fazer`), F(`action.steps.${i}.text`, `Passo ${i + 1} · como fazer`, { rows: 2, removePath: 'action.steps', removeIdx: i })])], { canAdd: true, addPath: 'action.steps', addKind: 'step', addLabel: 'Adicionar passo' }));
+    rows.push(mk('common_error', 'Erro comum', [F('common_error.title', 'Título'), F('common_error.body', 'Texto', { rows: 3 })]));
+    rows.push(mk('meeting_questions', 'Leve para a próxima reunião', [F('meeting_questions.title', 'Título'), ...(c.meeting_questions.questions || []).map((q, i) => F(`meeting_questions.questions.${i}`, `Pergunta ${i + 1}`, { removePath: 'meeting_questions.questions', removeIdx: i }))], { canAdd: true, addPath: 'meeting_questions.questions', addKind: 'question', addLabel: 'Adicionar pergunta' }));
+    rows.push(mk('question_of_week', 'Pergunta da semana', [F('question_of_week.text', 'Pergunta', { rows: 2 })]));
+    rows.push(mk('closing', 'Fechamento', [F('closing', 'Conclusão útil', { rows: 3 })]));
+    rows.push(mk('cta', 'CTA', [F('cta.label', 'Texto do botão'), F('cta.url', 'URL'), F('cta.type', 'Tipo (conversa, diagnostico, treinamento, material, resposta)')]));
+    rows.push(mk('podcast', 'Podcast VendaMais (opcional)', [F('podcast.title', 'Título do episódio'), F('podcast.description', 'Descrição', { rows: 2 }), F('podcast.url', 'Link')], { evidence: c.podcast?.enabled ? 'ativo' : 'oculto (preencha o título no briefing para ativar)' }));
+    rows.push(mk('agenda', 'Agenda VendaMais', (c.agenda?.items || []).flatMap((a, i) => [F(`agenda.items.${i}.day`, `Dia ${i + 1}`), F(`agenda.items.${i}.title`, `Título ${i + 1}`), F(`agenda.items.${i}.desc`, `Descrição ${i + 1}`, { removePath: 'agenda.items', removeIdx: i })]), { evidence: c.agenda?.enabled ? 'ativa' : 'oculta', canAdd: true, addPath: 'agenda.items', addKind: 'agenda', addLabel: 'Adicionar dia' }));
+    out.blockRows = rows;
+    const o = this.NL().renderOutputs(ed, v, this); this._previewHtml = o.preview;
+    const tab = S.outTab || 'preview'; const mode = S.previewMode || 'desktop'; const tabBtn = (on) => `background:${on ? '#16263A' : '#fff'};color:${on ? '#fff' : '#16263A'};border:1px solid ${on ? '#16263A' : '#E6E2DA'};border-radius:4px;padding:7px 12px;font-size:12px;font-weight:600`;
+    out.outIs = { preview: tab === 'preview', html: tab === 'html', text: tab === 'text' }; out.outTabStyle = { preview: tabBtn(tab === 'preview'), html: tabBtn(tab === 'html'), text: tabBtn(tab === 'text') }; out.pvModeStyle = { desktop: tabBtn(mode === 'desktop'), mobile: tabBtn(mode === 'mobile') };
+    out.previewFrameStyle = `border:0;background:#EEF1F4;width:${mode === 'mobile' ? '375px' : '100%'};max-width:100%;height:70vh;border-radius:${mode === 'mobile' ? '20px' : '4px'}`; out.outHtml = o.html; out.outText = o.text;
+    const logos = this.NL().logoUrls(this); out.exportHint = (!logos.logoNegUrl ? 'Logo negativo ausente no Brand Center: o HTML sai com marcador de logo não configurado. ' : '') + (logos.logoNegUrl.startsWith('data:') ? 'Os logos estão embutidos como data URL; para envio por e-mail, hospede-os (Supabase Storage) e substitua as URLs. ' : 'Antes do envio, confirme que as URLs dos logos são públicas (Supabase Storage). ') + 'O rodapé traz {{unsubscribe_url}} para a plataforma de e-mail substituir.';
+    out.nl = v; out.nlNotApproved = !v.is_approved; out.nlApprovedLabel = v.is_approved ? 'Aprovada · fonte-mãe' : 'Em edição'; out.nlApprovedChip = `display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;background:${v.is_approved ? '#DCFCE7' : '#E6E2DA'};color:${v.is_approved ? '#15803D' : '#5E6770'}`;
+    const det = v.qa_json?.deterministic || this.M.qa.deterministicChecks(c, this.evidence(ed.id), 'newsletter'); out.nlMeta = `${det.wordCount} palavras · ${v.origin === 'ai' ? 'gerada pela IA' : v.origin === 'human' ? 'salva pelo editor' : 'restaurada'} em ${fmtDT(v.created_at)} · ${Object.keys(locks).filter(k => locks[k]).length} bloco(s) fixado(s)`;
+    out.noUndo = !this.undoStack.length; out.noRedo = !this.redoStack.length; out.regenInstruction = S.regenInstruction || '';
+    const R = this.M.store.activeRules(); const ai = v.qa_json?.ai; const blockers = [...det.blockers, ...((ai?.issues || []).filter(i => i.severity === 'bloqueio').map(i => ({ where: i.where, text: i.text })))];
+    const ready = v.score != null && v.score >= R.qa.threshold && blockers.length === 0;
+    out.qa = { scoreLabel: v.score == null ? '–' : String(v.score), sealLabel: v.score == null ? 'Sem revisão' : ready ? 'Pronta' : blockers.length ? 'Bloqueada' : `Abaixo de ${R.qa.threshold}`, sealStyle: `padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700;background:${v.score == null ? '#E6E2DA' : ready ? '#DCFCE7' : '#FEE2E2'};color:${v.score == null ? '#5E6770' : ready ? '#15803D' : '#B91C1C'}`,
+      criteria: R.qa.criteria.map(cr => { const s = cr.id === 'visual' ? (ai ? 100 : null) : ai?.scores?.[cr.id]; return { label: cr.label, weight: cr.weight, value: s == null ? '–' : s, barStyle: `height:4px;border-radius:2px;width:${s ?? 0}%;background:${(s ?? 0) >= 85 ? '#16A34A' : (s ?? 0) >= 60 ? '#E2742B' : '#DC2626'}` }; }),
+      summary: ai?.summary || (v.score == null ? 'Execute a Revisão VendaMais para obter nota, bloqueios e correções.' : ''), blockers, warnings: det.warnings, aiIssues: (ai?.issues || []).filter(i => i.severity !== 'bloqueio').map(i => ({ ...i, fix: i.fix ? `Correção: ${i.fix}` : '', sevStyle: `font-size:10px;font-weight:700;text-transform:uppercase;color:${i.severity === 'alta' ? '#B91C1C' : '#B85A1C'}` })), hasBlockers: blockers.length > 0, hasWarnings: det.warnings.length > 0 };
+    out.qa.hasAiIssues = out.qa.aiIssues.length > 0; out.qa.hasIssues = out.qa.hasBlockers || out.qa.hasWarnings || out.qa.hasAiIssues;
+    out.qaPanelStyle = `background:#fff;border:1px solid ${blockers.length ? '#FCA5A5' : '#E6E2DA'};border-radius:12px;padding:16px 20px`; out.approveDisabled = blockers.length > 0 || S.busy;
+    const vs = NLm.versionsOf(ed.id); const cmp = S.compare || [];
+    out.versionRows = vs.slice().reverse().map(x => ({ id: x.id, n: x.n, originLabel: { ai: 'IA', human: 'Editor', restore: 'Restauração' }[x.origin] || x.origin, when: fmtDT(x.created_at), scoreLabel: x.score == null ? '–' : x.score, statusLabel: x.is_approved ? 'Aprovada' : x.id === v.id ? 'Atual' : 'Histórico', chip: `display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:600;background:${x.is_approved ? '#DCFCE7' : x.id === v.id ? '#FDF3EB' : '#F3F4F6'};color:${x.is_approved ? '#15803D' : x.id === v.id ? '#B85A1C' : '#5E6770'}`, note: x.note || '', isCurrent: x.id === v.id, cmpLabel: cmp.includes(x.id) ? 'Selecionada' : 'Comparar', cmpStyle: `border-radius:4px;padding:6px 10px;font-size:12px;font-weight:600;border:1px solid ${cmp.includes(x.id) ? '#16263A' : '#E6E2DA'};background:${cmp.includes(x.id) ? '#16263A' : '#fff'};color:${cmp.includes(x.id) ? '#fff' : '#16263A'}` }));
+    out.noVersions = vs.length === 0; out.hasCompare = cmp.length === 2; out.compareHint = cmp.length === 1 ? 'Selecione uma segunda versão para comparar lado a lado.' : cmp.length === 0 ? 'Selecione duas versões para comparar.' : '';
+    out.compareCols = cmp.length === 2 ? cmp.map(id => vs.find(x => x.id === id)).filter(Boolean).map(x => ({ n: x.n, when: fmtDT(x.created_at), text: this.M.nl.renderPlainText(x.content_json, { editionNumber: ed.brief.number }) })) : [];
+    return out;
+  }
+
+  // ---------- Posts / Image Lab ----------
+  postCanvasRef = React.createRef(); _lastSig = ''; imgUrlCache = {};
+  PF() { return this.M.posts; }
+  activePost() { const ed = this.edition(); if (!ed || !this.M.posts) return null; return this.M.posts.post(ed.id, this.state.activeAngle || 'training'); }
+  scheduleRender() { const p = this.activePost(); const cv = this.postCanvasRef.current; if (!p || !cv) return; const c = p.content_json; const car = this.isCarousel(p); const si = this.slideIndex(p); const sig = JSON.stringify([p.id, p.template_id, c.headline, c.support_line, c.kicker, c.proof_number, c.proof_label, c.caption?.cta, p.crop, p.image_id, p.partner_id, car, si, car ? p.carousel.slides : null, this.state.route, this.db().brand_assets.map(a => a.id + a.version + a.active).join(',')]); if (sig === this._lastSig && cv.dataset.sig === sig) return; this._lastSig = sig; cv.dataset.sig = sig; clearTimeout(this._rt); this._rt = setTimeout(() => (car && this.state.route === 'posts' ? this.PF().renderCarouselSlide(this, p, si, cv) : this.PF().renderPost(this, p, cv)).catch(err => console.error('render', err)), 60); }
+  // ---------- Publicação (Metricool) ----------
+  PUB() { return this.M.publisher; }
+  loadBrands = () => this.run('Buscando marcas no Metricool', async () => { const brands = await this.PUB().listBrands(); this.setState({ brands }); this.toast(`${brands.length} marca(s) encontrada(s). Clique para escolher.`); });
+  pickBrand = (e) => { const { id, label } = e.currentTarget.dataset; this.db().settings.metricool_blog_id = id; this.db().settings.metricool_brand_name = label; this.M.store.audit('settings.update', 'settings', 'metricool_blog_id', { value: id }); this.save(); this.forceUpdate(); };
+  toggleNetwork = (e) => { const id = e.currentTarget.dataset.id; const set = new Set(this.state.pubNetworks || ['linkedin', 'instagram']); set.has(id) ? set.delete(id) : set.add(id); this.setState({ pubNetworks: [...set] }); };
+  onPubDate = (e) => this.setState({ pubDate: e.target.value });
+  onPubTime = (e) => this.setState({ pubTime: e.target.value });
+  onPubFirstComment = (e) => this.setState({ pubFirstComment: e.target.value });
+  pubWhen() { const d = this.state.pubDate || this.edition()?.edition_date || new Date().toISOString().slice(0, 10); const t = this.state.pubTime || '09:00'; return `${d}T${t}:00`; }
+  schedulePost = () => this.run('Renderizando artes e agendando no Metricool', async () => { const rec = await this.PUB().schedule(this, this.activePost(), { networks: this.state.pubNetworks || ['linkedin', 'instagram'], dateTime: this.pubWhen(), draft: false, firstComment: this.state.pubFirstComment || '' }); this.toast(`Agendado no Metricool para ${new Date(rec.date_time).toLocaleString('pt-BR')} (${rec.networks.join(', ')}).`); this.forceUpdate(); });
+  scheduleDraft = () => this.run('Enviando rascunho ao Metricool', async () => { await this.PUB().schedule(this, this.activePost(), { networks: this.state.pubNetworks || ['linkedin', 'instagram'], dateTime: this.pubWhen(), draft: true, firstComment: this.state.pubFirstComment || '' }); this.toast('Rascunho criado no planner do Metricool.'); this.forceUpdate(); });
+  cancelPublication = (e) => this.run('Cancelando agendamento', async () => { const pub = (this.db().publications || []).find(x => x.id === e.currentTarget.dataset.id); if (pub) await this.PUB().cancel(this, pub); this.forceUpdate(); });
+  publisherVals(p, fmtDT) {
+    const PUB = this.M.publisher; const S = this.state; const st = PUB ? PUB.status() : { ok: false, label: 'Metricool', hint: '' }; const signedIn = !!this.M.supabase?.signedIn();
+    const dot = (ok) => `display:inline-block;width:8px;height:8px;border-radius:50%;background:${ok ? '#16A34A' : '#EAB308'};`;
+    const out = { pub: st, pubDot: dot(st.ok && signedIn), pubState: st.ok && signedIn ? 'pronto' : 'não configurado', brandRows: (S.brands || []).map(b => ({ ...b, style: `background:${String(b.blogId) === String(this.db().settings.metricool_blog_id) ? '#16263A' : '#fff'};color:${String(b.blogId) === String(this.db().settings.metricool_blog_id) ? '#fff' : '#16263A'};border:1px solid #E6E2DA;border-radius:4px;padding:6px 10px;font-size:12px;font-weight:600` })), hasBrands: (S.brands || []).length > 0, networkRows: [], publicationRows: [], hasPublications: false, pubLocked: true, pubOpen: false, pubLockedMsg: '', pubPanelStyle: 'background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px' };
+    if (!p) return out;
+    const approved = p.status === 'approved' || p.status === 'exported';
+    out.pubLocked = !(approved && st.ok && signedIn); out.pubOpen = !out.pubLocked;
+    out.pubLockedMsg = !approved ? 'Aprove o post na Revisão VendaMais para liberar a publicação.' : !st.ok || !signedIn ? `Publicação não configurada: ${st.hint}${signedIn ? '' : ' Faça login no Supabase.'}` : '';
+    const nets = new Set(S.pubNetworks || ['linkedin', 'instagram']);
+    out.networkRows = PUB ? PUB.NETWORKS.map(n => ({ ...n, style: `background:${nets.has(n.id) ? '#16263A' : '#fff'};color:${nets.has(n.id) ? '#fff' : '#16263A'};border:1px solid ${nets.has(n.id) ? '#16263A' : '#E6E2DA'};border-radius:4px;padding:7px 12px;font-size:12px;font-weight:600` })) : [];
+    out.pubDate = S.pubDate || this.edition()?.edition_date || new Date().toISOString().slice(0, 10); out.pubTime = S.pubTime || '09:00'; out.pubFirstComment = S.pubFirstComment || '';
+    out.pubWhenLabel = new Date(this.pubWhen()).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const isCar = p.format === 'carousel' && p.carousel?.slides?.length;
+    out.pubHint = `${isCar ? `Carrossel com ${p.carousel.slides.length} slides: no Instagram vira carrossel; no LinkedIn vira documento (PDF) com a headline como título.` : 'Peça única 1080 x 1350 com a legenda abaixo.'} As artes são renderizadas agora, hospedadas no Supabase e o Metricool publica na hora marcada (${this.db().settings.timezone || 'America/Sao_Paulo'}).`;
+    const pubs = PUB ? PUB.publicationsOf(p.id) : [];
+    out.publicationRows = pubs.map(x => ({ id: x.id, statusLabel: { scheduled: 'Agendado', draft: 'Rascunho', cancelled: 'Cancelado', published: 'Publicado' }[x.status] || x.status, chip: `padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;background:${x.status === 'scheduled' ? '#FDF3EB' : x.status === 'cancelled' ? '#F3F4F6' : '#DCFCE7'};color:${x.status === 'scheduled' ? '#B85A1C' : x.status === 'cancelled' ? '#5E6770' : '#15803D'}`, networks: x.networks.join(' + '), when: new Date(x.date_time).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }), meta: `${x.media_urls.length} arte(s) · criado ${fmtDT(x.created_at)}`, cancellable: x.status === 'scheduled' || x.status === 'draft' }));
+    out.hasPublications = pubs.length > 0; return out;
+  }
+
+  // ---------- Carrossel ----------
+  isCarousel(p) { return p?.format === 'carousel' && p.carousel?.slides?.length > 0; }
+  slideIndex(p) { const n = p?.carousel?.slides?.length || 0; return Math.min(Math.max(0, this.state.slideIdx || 0), Math.max(0, n - 1)); }
+  setFormat = (e) => { const f = e.currentTarget.dataset.format; this.PF().setFormat(this, this.activePost(), f); this.forceUpdate(); };
+  onSlidesWanted = (e) => this.setState({ slidesWanted: Number(e.target.value) });
+  deriveCarousel = () => this.run('Derivando carrossel', async () => { const p = this.activePost(); const c = await this.PF().deriveCarousel(this, p, this.state.slidesWanted || 6); this.setState({ slideIdx: 0 }); this.toast(`Carrossel com ${c.slides.length} slides gerado.`); });
+  selectSlide = (e) => this.setState({ slideIdx: Number(e.currentTarget.dataset.idx) });
+  stepSlide = (e) => { const p = this.activePost(); const n = p.carousel.slides.length; this.setState({ slideIdx: (this.slideIndex(p) + Number(e.currentTarget.dataset.dir) + n) % n }); };
+  moveSlide = (e) => { const p = this.activePost(); const i = this.slideIndex(p); const d = Number(e.currentTarget.dataset.dir); this.PF().moveSlide(this, p, i, d); if (i > 0 && i + d > 0 && i + d < p.carousel.slides.length - 1) this.setState({ slideIdx: i + d }); else this.forceUpdate(); };
+  addSlide = () => { const p = this.activePost(); const i = this.slideIndex(p); this.PF().addSlide(this, p, Math.min(i, p.carousel.slides.length - 2)); this.setState({ slideIdx: Math.min(i, p.carousel.slides.length - 2) + 1 }); };
+  removeSlide = () => { const p = this.activePost(); const i = this.slideIndex(p); this.PF().removeSlide(this, p, i); this.setState({ slideIdx: Math.max(0, i - 1) }); };
+  onSlideInput = (e) => { const p = this.activePost(); const k = `slide:${p.id}:${this.slideIndex(p)}:${e.target.dataset.field}`; this.setState({ drafts: { ...(this.state.drafts || {}), [k]: e.target.value } }); };
+  onSlideCommit = (e) => { const p = this.activePost(); const i = this.slideIndex(p); const f = e.target.dataset.field; const k = `slide:${p.id}:${i}:${f}`; const d = { ...(this.state.drafts || {}) }; if (!(k in d)) return; let v = d[k]; delete d[k]; if (f === 'evidence_ids') v = v.split(/[,\s]+/).filter(Boolean); this.PF().editSlide(this, p, i, f, v); this.setState({ drafts: d }); };
+  exportSlidePng = () => this.run('Renderizando slide', async () => { const p = this.activePost(); const i = this.slideIndex(p); const cv = document.createElement('canvas'); await this.PF().renderCarouselSlide(this, p, i, cv); const blob = await new Promise(r => cv.toBlob(r, 'image/png')); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `radar-ed${String(this.edition().brief.number).padStart(2, '0')}-${p.angle}-slide${String(i + 1).padStart(2, '0')}.png`; a.click(); });
+  exportCarousel = () => this.run('Exportando carrossel', async () => { await this.PF().exportCarousel(this, this.activePost()); this.toast('ZIP com os slides e a legenda baixado.'); this.forceUpdate(); });
+  carouselVals(p) {
+    const S = this.state; const car = this.isCarousel(p); const fmt = p.format === 'carousel' ? 'carousel' : 'single';
+    const btn = (on) => `background:${on ? '#16263A' : '#fff'};color:${on ? '#fff' : '#16263A'};border:1px solid ${on ? '#16263A' : '#E6E2DA'};border-radius:4px;padding:7px 12px;font-size:12px;font-weight:600`;
+    const out = { formatBtn: { single: btn(fmt === 'single'), carousel: btn(fmt === 'carousel') }, isCarousel: fmt === 'carousel', isSingle: fmt !== 'carousel' || !car, hasCarousel: car, carouselSlidesWanted: String(S.slidesWanted || 6), deriveCarouselLabel: car ? 'Regerar slides pela IA' : 'Gerar slides pela IA', formatHint: fmt === 'carousel' ? (car ? 'Cada slide é uma peça 1080 x 1350. A capa herda template, imagem e headline do post; edite os slides abaixo.' : 'Escolha a quantidade e gere os slides a partir deste post. A legenda e a imagem-base continuam as mesmas.') : 'Uma arte 1080 x 1350 para LinkedIn e Instagram. Troque para Carrossel quando o conteúdo pedir sequência (passos, lista, prova + ação).', slideRows: [], slideFields: [], slideIssues: [], hasSlideIssues: false, previewCaption: '1080 x 1350 px · mesmo arquivo para LinkedIn e Instagram', slideCounter: '', slideEvidence: '' };
+    if (!car) return out;
+    const i = this.slideIndex(p); const L = p.carousel.slides; const s = L[i]; const drafts = S.drafts || {}; const val = (f) => { const k = `slide:${p.id}:${i}:${f}`; return k in drafts ? drafts[k] : (Array.isArray(s[f]) ? s[f].join(', ') : (s[f] ?? '')); };
+    const roleLabel = { cover: 'Capa', point: 'Ponto', proof: 'Prova', action: 'Ação', closing: 'Fechamento' };
+    out.slideRows = L.map((x, idx) => ({ idx, num: String(idx + 1).padStart(2, '0'), role: roleLabel[x.role] || x.role, thumbStyle: `flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:2px;width:64px;height:80px;justify-content:center;border-radius:6px;border:2px solid ${idx === i ? '#E2742B' : '#E6E2DA'};background:${x.role === 'cover' || x.role === 'closing' ? '#16263A' : idx % 2 ? '#FAF7F2' : '#fff'};color:${x.role === 'cover' || x.role === 'closing' ? '#fff' : '#16263A'}` }));
+    const F = (field, label, o = {}) => ({ field, label, value: val(field), textarea: !!o.rows, input: !o.rows, rows: o.rows || 2 });
+    out.slideFields = [F('kicker', 'Kicker'), F('title', 'Título (até 10 palavras, sem ponto final)'), F('body', 'Texto de apoio', { rows: 3 }), ...(s.role === 'proof' || s.proof_number ? [F('proof_number', 'Número de prova'), F('proof_label', 'Complemento do número')] : []), F('evidence_ids', 'Evidências (ids, separados por vírgula)')];
+    out.slideIssues = this.PF().carouselChecks(p, this.evidence(p.edition_id)).map(x => ({ ...x, style: `font-size:12px;line-height:1.5;padding:6px 10px;border-radius:6px;background:${x.kind === 'Bloqueio' ? '#FEF2F2' : '#FDF3EB'};color:${x.kind === 'Bloqueio' ? '#B91C1C' : '#B85A1C'}` })); out.hasSlideIssues = out.slideIssues.length > 0;
+    out.previewCaption = `Slide ${i + 1} de ${L.length} · ${roleLabel[s.role] || s.role} · 1080 x 1350`; out.slideCounter = `${i + 1} / ${L.length}`; out.slideEvidence = (s.evidence_ids || []).length ? `Evidências deste slide: ${s.evidence_ids.join(', ')}` : (s.role === 'cover' || s.role === 'closing' ? '' : 'Sem evidência vinculada. Se houver número, é bloqueio.');
+    return out;
+  }
+  async loadImgUrls(ids) { let changed = false; for (const id of ids) if (!this.imgUrlCache[id]) { this.imgUrlCache[id] = await this.M.store.blobs.get(id) || ''; changed = true; } if (changed) this.forceUpdate(); }
+  setAngle = (e) => this.setState({ activeAngle: e.currentTarget.dataset.angle });
+  derivePosts = () => this.run('Derivando os três posts da newsletter aprovada', async () => { await this.PF().derive(this); this.setState({ route: 'posts', activeAngle: 'training' }, this.persistUI); this.toast('Três posts gerados: Treinamento, Consultoria e Negócio.'); });
+  onPostFieldInput = (e) => { const p = this.activePost(); const k = `post:${p.id}:${e.target.dataset.path}`; this.setState({ drafts: { ...(this.state.drafts || {}), [k]: e.target.value } }); };
+  onPostFieldCommit = (e) => { const p = this.activePost(); const path = e.target.dataset.path; const k = `post:${p.id}:${path}`; const d = { ...(this.state.drafts || {}) }; if (!(k in d)) return; let val = d[k]; delete d[k]; if (path === 'caption.hashtags') val = val.split(/[,\s]+/).map(h => h.replace(/^#/, '').trim()).filter(Boolean); this.PF().edit(this, p, path, val); this.setState({ drafts: d }); };
+  togglePostLock = (e) => { this.PF().toggleLock(this, this.activePost(), e.currentTarget.dataset.path); this.forceUpdate(); };
+  regenPostField = (e) => { const path = e.currentTarget.dataset.path; return this.run(`Regenerando ${path}`, async () => { await this.PF().rewriteField(this, this.activePost(), path, this.state.regenInstruction); this.toast(`Campo ${path} regenerado.`); this.forceUpdate(); }); };
+  setTemplate = (e) => { this.PF().setTemplate(this, this.activePost(), e.currentTarget.dataset.id); this.forceUpdate(); };
+  setPartner = (e) => { this.PF().setPartner(this, this.activePost(), e.target.value); this.forceUpdate(); };
+  runPostQA = () => this.run('Revisão VendaMais do post', async () => { const q = await this.PF().runQA(this, this.activePost()); this.toast(q.ready ? `Nota ${this.activePost().score}. Post pronto.` : `Nota ${this.activePost().score}. ${q.blockers.length} bloqueio(s).`, q.ready ? 'info' : 'error'); this.forceUpdate(); });
+  approvePost = () => { try { this.PF().approvePost(this, this.activePost()); this.toast('Post aprovado.'); this.forceUpdate(); } catch (e) { this.toast(e.message, 'error'); } };
+  exportPng = () => this.run('Renderizando PNG 1080x1350', async () => { await this.PF().exportPost(this, this.activePost(), { png: true, copy: false }); this.forceUpdate(); });
+  exportAll = () => this.run('Exportando PNG + legenda', async () => { await this.PF().exportPost(this, this.activePost(), { png: true, copy: true }); this.forceUpdate(); });
+  copyCaption = async () => { await navigator.clipboard.writeText(this.PF().captionText(this.activePost())); this.toast('Legenda copiada.'); };
+  onLabProvider = (e) => this.setState({ labProvider: e.target.value });
+  onLabMode = (e) => this.setState({ labMode: e.target.value });
+  toggleRef = (e) => { const id = e.currentTarget.dataset.id; const refs = new Set(this.state.labRefs || []); refs.has(id) ? refs.delete(id) : refs.add(id); this.setState({ labRefs: [...refs] }); };
+  generateImage = () => this.run('Gerando imagem-base', async () => { const p = this.activePost(); const refs = []; for (const id of (this.state.labRefs || [])) { const a = this.db().brand_assets.find(x => x.id === id); if (a) refs.push(this.assetUrl(a)); } const rec = await this.PF().generateImage(this, p, { prompt: p.content_json.image_prompt, provider: this.state.labProvider || this.db().settings.image_provider_default, mode: this.state.labMode || this.db().settings.image_mode, references: refs }); this.toast(`Imagem gerada com ${rec.provider} (${rec.model}) em ${(rec.ms / 1000).toFixed(1)}s.`); this.forceUpdate(); });
+  uploadPostImage = async (e) => { const f = e.target.files[0]; if (!f) return; const dataUrl = await this.fileToDataUrl(f); await this.PF().addImageFromDataUrl(this, this.activePost(), dataUrl, 'upload', f.name); e.target.value = ''; this.toast('Imagem enviada e aplicada ao post.'); this.forceUpdate(); };
+  useAcervo = async (e) => { const a = this.db().brand_assets.find(x => x.id === e.currentTarget.dataset.id); if (!a) return; await this.PF().addImageFromDataUrl(this, this.activePost(), this.assetUrl(a), 'acervo', a.label); this.toast('Foto do acervo aplicada.'); this.forceUpdate(); };
+  chooseImage = (e) => { this.PF().chooseImage(this, this.activePost(), e.currentTarget.dataset.id); this.forceUpdate(); };
+  onCrop = (e) => { this.PF().setCrop(this, this.activePost(), { [e.target.dataset.k]: Number(e.target.value) }); this.forceUpdate(); };
+
+  postsVals(ed, db, fmtDT) {
+    const S = this.state; const PF = this.M.posts; const NLm = this.M.newsletter; const R = this.M.store.activeRules();
+    const nl = ed && NLm ? NLm.current(ed.id) : null; const posts = ed && PF ? PF.postsOf(ed.id) : [];
+    const out = { ...this.publisherVals(null, fmtDT), hasPosts: posts.length > 0, noPosts: posts.length === 0, postsEmptyMsg: !nl ? 'Gere e aprove a newsletter antes dos posts.' : !nl.is_approved ? 'A newsletter ainda não foi aprovada como fonte-mãe. Aprove-a no Editor da Newsletter para liberar os três posts.' : 'Newsletter aprovada. Gere os três posts derivados: Treinamento, Consultoria e Negócio.', deriveDisabled: !nl?.is_approved || S.busy, angleTabs: [], templateBtns: [], postFieldGroups: [], pqa: { criteria: [], issues: [] }, postImages: [], refRows: [], crop: { scale: 1, x: 0.5, y: 0.5 }, partnerOpts: [] };
+    if (!posts.length) return out;
+    const angle = S.activeAngle || 'training'; const p = PF.post(ed.id, angle) || posts[0]; const c = p.content_json;
+    const labels = { training: 'Treinamento', consulting: 'Consultoria', business: 'Negócio' };
+    out.angleTabs = ['training', 'consulting', 'business'].map(a => { const x = PF.post(ed.id, a); const on = a === angle; return { id: a, label: labels[a], style: `display:flex;align-items:center;gap:8px;background:${on ? '#16263A' : '#fff'};color:${on ? '#fff' : '#16263A'};border:1px solid ${on ? '#16263A' : '#E6E2DA'};border-radius:4px;padding:9px 14px;font-size:13px;font-weight:600`, scoreLabel: x?.score == null ? '' : x.score, scoreStyle: `font-size:11px;padding:1px 7px;border-radius:999px;background:${x?.score == null ? 'transparent' : x.score >= R.qa.threshold ? '#DCFCE7' : '#FEE2E2'};color:${x?.score >= R.qa.threshold ? '#15803D' : '#B91C1C'}` }; });
+    const drafts = S.drafts || {}; const val = (path) => { const k = `post:${p.id}:${path}`; if (k in drafts) return drafts[k]; const v = NLm.getPath(c, path); return Array.isArray(v) ? v.join(', ') : (v ?? ''); };
+    const locks = p.meta?.locks || {}, edited = p.meta?.edited || {};
+    const F = (path, label, o = {}) => { const locked = !!locks[path]; const org = edited[path]; return { path, label, value: val(path), textarea: !!o.rows, input: !o.rows, rows: o.rows || 2, hint: o.hint || '', wrapStyle: `border-left:3px solid ${locked ? '#E2742B' : 'transparent'};padding-left:${locked ? 8 : 0}px`, lockLabel: locked ? 'Fixado' : 'Fixar', lockStyle: `border-radius:4px;padding:3px 8px;font-size:11px;font-weight:600;border:1px solid ${locked ? '#E2742B' : '#E6E2DA'};background:${locked ? '#E2742B' : '#fff'};color:${locked ? '#fff' : '#5E6770'}`, regenDisabled: locked || S.busy, originLabel: org === 'human' ? 'editado' : org === 'ai' ? 'regenerado' : 'IA', originStyle: `font-size:10px;font-weight:600;padding:1px 7px;border-radius:999px;background:${org === 'human' ? '#DCFCE7' : org === 'ai' ? '#FDF3EB' : '#F3F4F6'};color:${org === 'human' ? '#15803D' : org === 'ai' ? '#B85A1C' : '#5E6770'}` }; };
+    out.postFieldGroups = [
+      { label: 'Arte (texto renderizado pelo sistema)', fields: [F('kicker', 'Kicker (rótulo em caixa alta)'), F('headline', 'Headline', { hint: 'Até 12 palavras, sem ponto final. Precisa caber legível no celular.' }), F('support_line', 'Linha de apoio', { rows: 2 }), F('proof_number', 'Número de prova (opcional, T02 e T04)', { hint: 'Só com evidência. Ex.: 3 em 4' }), F('proof_label', 'Complemento do número', { hint: 'Ex.: equipes dão desconto sem autorização' })] },
+      { label: 'Tese e conceito visual', fields: [F('thesis', 'Tese do post', { rows: 2 }), F('visual_concept', 'Conceito visual', { rows: 2 }), F('image_prompt', 'Prompt da imagem-base (sem texto, sem logo)', { rows: 4 })] },
+      { label: 'Legenda', fields: [F('caption.hook', 'Gancho', { rows: 2 }), F('caption.body', 'Corpo', { rows: 5 }), F('caption.practical_takeaway', 'Ponto aplicável', { rows: 2 }), F('caption.cta', 'CTA'), F('caption.hashtags', 'Hashtags (máx. 5, separadas por vírgula)')] } ];
+    const portraitOf = (id) => db.brand_assets.find(a => a.type === 'portrait' && a.partner_id === id && a.active);
+    const anyPortrait = R.partners.some(x => portraitOf(x.id));
+    Object.assign(out, this.carouselVals(p), this.publisherVals(p, fmtDT));
+    out.templateBtns = R.templates.map(t => { const on = p.template_id === t.id; const disabled = t.id === 'T05' && !anyPortrait; return { id: t.id, name: t.name, disabled, title: disabled ? 'Envie um retrato oficial no Brand Center' : t.desc, style: `background:${on ? '#16263A' : '#fff'};color:${on ? '#fff' : '#16263A'};border:1px solid ${on ? '#16263A' : '#E6E2DA'};border-radius:4px;padding:7px 10px;font-size:11px;font-weight:600` }; });
+    out.isT05 = p.template_id === 'T05'; out.postPartner = p.partner_id || ''; out.partnerOpts = R.partners.map(x => ({ id: x.id, name: x.name, role: x.role, portraitNote: portraitOf(x.id) ? '' : ' (sem retrato)' }));
+    out.templateHint = R.templates.find(t => t.id === p.template_id)?.desc || ''; if (p.template_id === 'T05') out.templateHint += ' Nível B: a peça passa a ser assinada pelo sócio e exige aprovação dele.';
+    out.postMeta = `${labels[angle]} · atualizado ${fmtDT(p.updated_at)} · ${Object.values(locks).filter(Boolean).length} campo(s) fixado(s)`;
+    out.postClaims = (c.source_claims || []).length ? c.source_claims.map(s => `${s.evidence_id}: ${s.text}`).join(' · ') : 'Nenhuma afirmação rastreada. Se o post traz número ou case, isso é bloqueio.';
+    const det = p.qa_json?.deterministic || this.M.qa.deterministicChecks(c, this.evidence(ed.id), 'post'); const ai = p.qa_json?.ai; const vis = p.qa_json?.visual;
+    const blockers = [...det.blockers, ...((vis?.issues || []).map(i => ({ where: 'render', text: i.text }))), ...((ai?.issues || []).filter(i => i.severity === 'bloqueio'))];
+    const ready = p.score != null && p.score >= R.qa.threshold && blockers.length === 0;
+    const issue = (kind, where, text, color, bg) => ({ kind, where, text, style: `font-size:12px;line-height:1.5;padding:8px 10px;border-radius:6px;background:${bg};color:${color}` });
+    out.pqa = { scoreLabel: p.score == null ? '–' : p.score, sealLabel: p.score == null ? 'Sem revisão' : ready ? 'Pronta' : blockers.length ? 'Bloqueada' : `Abaixo de ${R.qa.threshold}`, sealStyle: `padding:5px 10px;border-radius:999px;font-size:12px;font-weight:700;background:${p.score == null ? '#E6E2DA' : ready ? '#DCFCE7' : '#FEE2E2'};color:${p.score == null ? '#5E6770' : ready ? '#15803D' : '#B91C1C'}`, panelStyle: `background:#fff;border:1px solid ${blockers.length ? '#FCA5A5' : '#E6E2DA'};border-radius:12px;padding:14px 16px`, approveDisabled: blockers.length > 0 || S.busy || p.status === 'approved',
+      criteria: R.qa.criteria.map(cr => { const s = cr.id === 'visual' ? vis?.score : ai?.scores?.[cr.id]; return { label: cr.label, value: s == null ? '–' : s, barStyle: `height:4px;border-radius:2px;width:${s ?? 0}%;background:${(s ?? 0) >= 85 ? '#16A34A' : (s ?? 0) >= 60 ? '#E2742B' : '#DC2626'}` }; }),
+      issues: [...blockers.map(b => issue('Bloqueio', b.where, b.text, '#B91C1C', '#FEF2F2')), ...det.warnings.map(w => issue('Alerta', w.where, w.text, '#B85A1C', '#FDF3EB')), ...((ai?.issues || []).filter(i => i.severity !== 'bloqueio').map(i => issue(i.severity, i.where, i.text + (i.fix ? ` Correção: ${i.fix}` : ''), '#1E1E1E', '#FAF7F2')))] };
+    out.pqa.hasIssues = out.pqa.issues.length > 0;
+    out.postStatusLabel = { draft: 'Rascunho', approved: 'Aprovado', exported: 'Exportado' }[p.status] || p.status; out.postStatusChip = `display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;background:${p.status === 'draft' ? '#E6E2DA' : '#DCFCE7'};color:${p.status === 'draft' ? '#5E6770' : '#15803D'}`;
+    out.captionPreview = PF.captionText(p); out.captionMeta = `${out.captionPreview.length} caracteres · Instagram 400 a 900 · LinkedIn 900 a 1.500`;
+    const imgs = PF.imagesOf(p.id); this.loadImgUrls(imgs.map(i => i.id));
+    out.postImages = imgs.map(i => { const on = i.id === p.image_id; return { id: i.id, url: this.imgUrlCache[i.id] || '', meta: `${i.source === 'ai' ? `${i.provider} · ${i.model}` : i.source === 'upload' ? 'envio manual' : 'acervo'} · ${fmtDT(i.created_at)}${i.cost_meta?.cost ? ` · ${i.cost_meta.cost}` : ''}`, style: `border:2px solid ${on ? '#E2742B' : '#E6E2DA'};border-radius:8px;overflow:hidden;background:#fff`, thumbStyle: `width:100%;aspect-ratio:4/5;background-color:#E6E2DA;background-image:url("${this.imgUrlCache[i.id] || ''}");background-size:cover;background-position:center;border-radius:6px 6px 0 0`, btnLabel: on ? 'Em uso' : 'Usar esta', btnStyle: `width:100%;border:0;border-top:1px solid #E6E2DA;background:${on ? '#FDF3EB' : '#fff'};color:${on ? '#B85A1C' : '#16263A'};padding:6px;font-size:11px;font-weight:600` }; });
+    out.noPostImages = imgs.length === 0; out.imageStateLabel = p.image_id ? 'imagem-base aplicada' : (['T01', 'T02', 'T03'].includes(p.template_id) ? 'sem imagem-base (placeholder cinza)' : 'template sem imagem obrigatória');
+    const acervo = db.brand_assets.filter(a => a.type === 'photo' && a.active); const refs = new Set(S.labRefs || []);
+    out.hasAcervo = acervo.length > 0; out.refRows = acervo.map(a => ({ id: a.id, url: this.assetUrl(a), thumb: `width:64px;height:80px;border-radius:3px;background-color:#E6E2DA;background-image:url("${this.assetUrl(a)}");background-size:cover;background-position:center`, style: `border:2px solid ${refs.has(a.id) ? '#E2742B' : '#E6E2DA'};background:#fff;padding:2px;border-radius:4px` }));
+    out.crop = p.crop || { scale: 1, x: 0.5, y: 0.5 }; out.cropZoomLabel = `${(out.crop.scale || 1).toFixed(2)}x`;
+    out.labProvider = S.labProvider || db.settings.image_provider_default; out.labMode = S.labMode || db.settings.image_mode; out.labModel = db.settings.image_models?.[out.labProvider]?.[out.labMode] || 'não definido'; out.labDirection = `Direção ${labels[angle]}: ${R.angles[angle].image}. Evitar: ${R.angles[angle].image_avoid}.`;
+    out.visualConcept = c.visual_concept || ''; out.imagePromptValue = val('image_prompt');
+    const ip = this.M.providers.imageProviderStatus(out.labProvider); out.labHint = ip.ok ? 'Prompt, provedor, modelo, custo e horário são registrados na auditoria.' : `Geração não configurada: ${ip.hint} Enquanto isso, envie uma imagem ou use o acervo.`;
+    return out;
+  }
+
+  knowledgeVals() {
+    const S = this.state; const K = this.knowledge(); const th = S.themeSuggestions;
+    return { kb: K, kbNext: (K.version || 1) + 1, knowledgeDraft: S.knowledgeDraft ?? JSON.stringify(K, null, 2), knowledgeError: S.knowledgeError || '',
+      kbProofs: K.proof_numbers.map(p => ({ id: `K-${p.id}`, text: p.text })), kbFronts: K.fronts.map(f => ({ id: `K-${f.id}`, name: f.name, promise: f.promise, offers: f.offers.join(' · ') })), kbCases: K.cases.map(c => ({ id: `K-${c.id}`, client: c.client, segment: c.segment, solution: c.solution, results: c.results.join('; ') })), kbTerritories: K.editorial_territories.join(' · '),
+      hasThemes: Array.isArray(th) && th.length > 0, themeMeta: th ? (S.themeCount ? `${S.themeCount} manchetes dos últimos 7 dias cruzadas com o conhecimento VendaMais` : 'sem manchetes nesta sessão; sugestões baseadas em sazonalidade e territórios editoriais') : '',
+      themeRows: (th || []).map((t, idx) => ({ ...t, idx, sources: (t.sources_hint || []).join('; ') || 'a definir', badge: `font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap;background:${t.score >= 8 ? '#DCFCE7' : '#F3F4F6'};color:${t.score >= 8 ? '#15803D' : '#5E6770'}` })) };
+  }
+
+  // ---------- renderVals ----------
+  renderVals() {
+    const S = this.state; const ready = S.ready; const db = ready ? this.db() : null;
+    const navBase = 'text-align:left;background:transparent;border:0;color:#fff;padding:9px 12px;border-radius:4px;font-size:13px;font-weight:500;';
+    const routeAlias = S.route === 'new' ? 'briefing' : S.route;
+    const navStyle = {}; for (const r of ['dashboard', 'new', 'brand', 'settings', 'history', 'briefing', 'analysis', 'newsletter', 'posts', 'imagelab', 'versions']) navStyle[r] = navBase + ((routeAlias === r || (r === 'new' && routeAlias === 'briefing' && !S.editionId)) ? 'background:#24364D;color:#fff;font-weight:600;' : 'color:#9FB3C2;');
+    if (S.editionId && routeAlias === 'briefing') navStyle.new = navBase + 'color:#9FB3C2;';
+    const SBm = this.M.supabase; const signedIn = !!SBm?.signedIn(); const requireLogin = typeof window !== 'undefined' && !!window.__VM_REQUIRE_LOGIN__;
+    const needsLogin = ready && !!SBm?.configured() && !signedIn && (requireLogin || (!S.localBypass && routeAlias !== 'settings'));
+    const is = needsLogin ? {} : { dashboard: routeAlias === 'dashboard', briefing: routeAlias === 'briefing', analysis: routeAlias === 'analysis', brand: routeAlias === 'brand', settings: routeAlias === 'settings', history: routeAlias === 'history', newsletter: routeAlias === 'newsletter', versions: routeAlias === 'versions', posts: routeAlias === 'posts', imagelab: routeAlias === 'imagelab' };
+    const titles = { dashboard: 'Dashboard', briefing: S.editionId ? 'Briefing e fontes' : 'Nova edição', analysis: 'Análise de fontes', brand: 'Brand Center', settings: 'Configurações', history: 'Histórico', newsletter: 'Editor da Newsletter', posts: 'Post Studio', imagelab: 'Image Lab', versions: 'Versões' };
+    const dot = (ok) => `display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:${ok ? '#16A34A' : '#EAB308'};`;
+    const chip = (status) => { const map = { draft: '#E6E2DA;color:#5E6770', newsletter_generated: '#FDF3EB;color:#B85A1C', newsletter_approved: '#FDF3EB;color:#B85A1C', posts_generated: '#F8DFC9;color:#B85A1C', approved: '#DCFCE7;color:#15803D', exported: '#16263A;color:#fff' }; return `display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;background:${map[status] || map.draft}`; };
+    const fmtD = (d) => d ? new Date(d.length === 10 ? d + 'T12:00:00' : d).toLocaleDateString('pt-BR') : '';
+    const fmtDT = (d) => d ? new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+    const H = {}; for (const k of Object.keys(this)) if (typeof this[k] === 'function') H[k] = this[k];
+    if (!ready) return { ...H, is: { dashboard: true }, navStyle, pageTitle: 'Carregando', toast: S.toast, editionRows: [], noEditions: true, stats: {}, textProv: {}, imageProv: {}, filters: S.filters, saveLabel: '' };
+
+    this.persistUI();
+    const P = this.M.providers; const textProv = P.textProviderStatus(); const imageProv = P.imageProviderStatus(); const supa = P.supabaseConfigured();
+    const ed = this.edition(); const STATUS_LABEL = this.M.store.STATUS_LABEL;
+    const editions = db.editions.filter(e => (!S.filters.q || (e.title + ' ' + e.theme).toLowerCase().includes(S.filters.q.toLowerCase())) && (!S.filters.status || e.status === S.filters.status) && (!S.filters.date || e.edition_date === S.filters.date));
+    const editionRows = editions.map(e => ({ id: e.id, title: e.title, theme: e.theme, audience: e.audience, dateFmt: fmtD(e.edition_date), statusLabel: STATUS_LABEL[e.status] || e.status, chipStyle: chip(e.status), updatedFmt: fmtDT(e.updated_at) }));
+    const sources = ed ? db.sources.filter(s => s.edition_id === ed.id) : [];
+    const typeLabel = { text: 'Texto', file: 'Arquivo', url: 'URL', notes: 'Notas' };
+    const sourceRows = sources.map(s => ({ id: s.id, name: s.name, typeLabel: typeLabel[s.type] || s.type, primaryLabel: s.primary ? '· principal' : '', meta: `${s.extracted_text.split(/\s+/).length} palavras · ${s.url || s.file_name || ''} · hash ${s.hash.slice(0, 8)}`, preview: s.extracted_text.slice(0, 180), badgeStyle: 'flex:0 0 auto;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:4px 8px;border-radius:4px;background:#FAF7F2;border:1px solid #E6E2DA;color:#5E6770;margin-top:2px' }));
+    const an = ed ? db.analyses.find(a => a.edition_id === ed.id) : null;
+    const srcName = (id) => sources.find(s => s.id === id)?.name || id;
+    const kindStyle = (k) => `font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:3px 8px;border-radius:4px;background:${k === 'number' ? '#FDF3EB;color:#B85A1C' : '#FAF7F2;color:#5E6770'};border:1px solid #E6E2DA;text-align:center`;
+    const kindLabel = { fact: 'Fato', number: 'Número', example: 'Exemplo', argument: 'Argumento', quote: 'Citação' };
+    const factRows = an ? an.facts.map(f => ({ ...f, kindStyle: kindStyle(f.kind), kindLabel: kindLabel[f.kind] || f.kind, sourceName: srcName(f.source_id) })) : [];
+    const angleRows = an ? an.angles.map((a, idx) => { const sel = ed.brief.angle_hint === a.title; return { idx, title: a.title, thesis: a.thesis, why: a.why, ev: (a.evidence_ids || []).join(', '), btn: sel ? 'Ângulo selecionado' : 'Usar este ângulo', cardStyle: `border:1px solid ${sel ? '#E2742B' : '#E6E2DA'};border-radius:8px;padding:12px 14px;background:${sel ? '#FDF3EB' : '#fff'}` }; }) : [];
+    const rules = this.M.store.activeRules(); const activeRule = db.brand_rules.find(r => r.active) || db.brand_rules[0];
+    const assetTypes = ['logo_primary', 'logo_negative', 'logo_negative_v', 'logo_orange', 'symbol_v', 'logo_square'];
+    const assetRows = assetTypes.map(t => { const a = db.brand_assets.find(x => x.type === t && x.active); const dark = t.startsWith('logo_negative'); if (!a) return { id: '', type: t, label: { logo_orange: 'Logo laranja (destaque)' }[t] || t, version: 0, stateLabel: 'não enviado', note: 'Envie o arquivo oficial. Sem ele, o renderizador não usa esta versão.', file_url: '', missing: true, previewStyle: `height:110px;display:flex;align-items:center;justify-content:center;background:${dark ? '#16263A' : '#FAF7F2'};border-bottom:1px solid #E6E2DA` }; return { id: a.id, type: t, label: a.label, version: a.version, stateLabel: a.file_url.startsWith('blob:') ? 'arquivo local' : 'arquivo do projeto', note: a.metadata?.note || '', file_url: this.assetUrl(a), previewStyle: `height:110px;display:flex;align-items:center;justify-content:center;background-color:${dark ? '#16263A' : '#FAF7F2'};background-image:url("${this.assetUrl(a)}");background-size:auto 64px;background-repeat:no-repeat;background-position:center;border-bottom:1px solid #E6E2DA` }; });
+    const partnerRows = rules.partners.map(p => { const a = db.brand_assets.find(x => x.type === 'portrait' && x.partner_id === p.id && x.active); return { id: p.id, name: p.name, role: p.role, hasPortrait: !!a, url: a ? this.assetUrl(a) : '', btn: a ? 'Substituir retrato' : 'Enviar retrato', avatarStyle: `width:52px;height:52px;flex:0 0 52px;background-color:#E6E2DA;${a ? `background-image:url("${this.assetUrl(a)}");background-size:cover;background-position:center;` : ''}clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);overflow:hidden` }; });
+    const photos = db.brand_assets.filter(a => a.type === 'photo' && a.active); const photoRows = photos.map(a => ({ id: a.id, url: this.assetUrl(a), label: a.label, style: `position:relative;aspect-ratio:4/5;background-color:#E6E2DA;background-image:url("${this.assetUrl(a)}");background-size:cover;background-position:center;border-radius:8px;overflow:hidden` }));
+    const fonts = db.brand_assets.filter(a => a.type === 'font' && a.active);
+    const colorRows = Object.entries(rules.colors).filter(([k, v]) => typeof v === 'string').map(([k, v]) => ({ name: k.replace(/_/g, ' '), hex: v, sw: `display:inline-block;width:22px;height:22px;border-radius:4px;border:1px solid #E6E2DA;background:${v}` }));
+    const templateRows = rules.templates.map(t => { const navy = t.id === 'T01' || t.id === 'T03'; return { ...t, req: t.needs.length ? `Requer: ${t.needs.map(n => ({ image: 'imagem-base', portrait: 'retrato oficial', partner: 'sócio assinante' })[n]).join(', ')}` : 'Sem imagem obrigatória', thumbStyle: `aspect-ratio:4/5;max-height:180px;background:${navy ? '#16263A' : t.id === 'T04' ? '#FAF7F2' : '#fff'};display:flex;align-items:flex-end;padding:16px;border-bottom:1px solid #E6E2DA`, thumbInner: `border-left:4px solid #E2742B;padding-left:10px;font-size:22px;font-weight:600;color:${navy ? '#fff' : '#16263A'}` }; });
+    const docRows = [{ title: 'DNA Criativo VendaMais', desc: 'Arquivo-mestre da marca (set/2026). Base do brand_rules.', url: 'uploads/DNA Criativo - Venda Mais.pdf' }, { title: 'Manual de Marca v2.0', desc: 'Sete rostos, três níveis de assinatura, Obviously e Poppins.', url: 'uploads/Manual de Marca - Venda Mais.pdf' }, { title: 'Análise de Marca v2.0', desc: 'Ecossistema de seis frentes, sociedade, quatro sistemas visuais.', url: 'uploads/Análise de Marca - Venda Mais.pdf' }, { title: 'Documento Mestre do Content Engine', desc: 'Especificação oficial deste sistema (v1.0, 11/09/2026).', url: 'uploads/Documento_Mestre_VendaMais_Content_Engine.docx' }];
+    const imageModelRows = ['gemini', 'openai'].map(id => ({ id, label: id === 'gemini' ? 'Gemini' : 'OpenAI', ...(db.settings.image_models?.[id] || {}) }));
+    const auditRows = db.audit_log.slice(0, 300).map(l => ({ ...l, when: new Date(l.created_at).toLocaleString('pt-BR'), detail: JSON.stringify(l.metadata || {}).slice(0, 160) }));
+    const tabBtn = (on) => `background:${on ? '#16263A' : '#fff'};color:${on ? '#fff' : '#16263A'};border:1px solid ${on ? '#16263A' : '#E6E2DA'};border-radius:4px;padding:8px 14px;font-size:13px;font-weight:600`;
+    const pendingMsg = { newsletter: an ? 'O Editor da Newsletter é a próxima etapa em construção. Clique em "Gerar newsletter" na Análise de fontes quando ela estiver disponível.' : 'Analise as fontes antes de gerar a newsletter.', posts: 'Os três posts são gerados somente após a aprovação da newsletter.', imagelab: 'O Image Lab abre a partir de um post gerado.', versions: 'Versões e comparação lado a lado aparecem após a primeira geração.' }[routeAlias] || '';
+    return {
+      ...H, is, navStyle, pageTitle: titles[routeAlias] || '', toast: S.toast, toastStyle: `margin:16px 32px 0;padding:12px 16px;border-radius:8px;font-size:13px;background:${S.toast.kind === 'error' ? '#FEE2E2' : '#FDF3EB'};color:${S.toast.kind === 'error' ? '#B91C1C' : '#B85A1C'};border:1px solid ${S.toast.kind === 'error' ? '#FCA5A5' : '#F8DFC9'}`,
+      busy: S.busy, busyLabel: S.busyLabel, saveLabel: S.saveLabel, filters: S.filters,
+      hasEdition: !!ed, edition: ed || {}, statusLabel: ed ? STATUS_LABEL[ed.status] : '', statusChipStyle: chip(ed?.status),
+      modeLabel: supa ? (signedIn ? 'Supabase · sincronizado' : 'Supabase configurado · sem login') : 'Modo local (sem Supabase)', modeDotStyle: dot(supa && signedIn), userLabel: db.user ? `${db.user.name || db.user.email} · ${{ admin: 'Admin', editor: 'Editor', viewer: 'Viewer' }[db.user.role] || 'Editor'}` : 'Usuário local · Editor',
+      needsLogin, allowLocalBypass: !requireLogin, auth: S.auth || { email: '', password: '', name: '', error: '' }, isSignedIn: signedIn, canLogin: supa && !signedIn, accountLabel: signedIn ? `${db.user.email} · ${db.user.role || 'editor'}${db.last_sync ? ` · última sincronização ${fmtDT(db.last_sync)}` : ''}` : supa ? 'Sem login. Entre para sincronizar edições, versões e ativos com o Supabase.' : 'Configure URL e anon key para habilitar login e sincronização.', syncHint: signedIn ? 'Cada alteração salva localmente é enviada ao Supabase alguns segundos depois. Imagens-base sobem para o bucket images; logos e retratos para o bucket brand (público, usado nos e-mails).' : '',
+      stats: { total: db.editions.length, inProgress: db.editions.filter(e => !['exported'].includes(e.status)).length, exported: db.editions.filter(e => e.status === 'exported').length },
+      textProv, imageProv, textProvDot: dot(textProv.ok), imageProvDot: dot(imageProv.ok), textProvState: textProv.ok ? 'configurado' : 'não configurado', imageProvState: imageProv.ok ? 'configurado' : 'não configurado',
+      editionRows, noEditions: editionRows.length === 0,
+      brief: S.brief || this.emptyBrief(), saveEditionLabel: ed ? 'Salvar briefing' : 'Criar edição', briefHint: ed ? 'Alterações no briefing são salvas automaticamente.' : 'Crie a edição para liberar fontes e análise.',
+      srcDraft: S.srcDraft, srcIs: { text: S.srcDraft.type === 'text', file: S.srcDraft.type === 'file', url: S.srcDraft.type === 'url', notes: S.srcDraft.type === 'notes' }, srcTypeStyle: Object.fromEntries(['text', 'file', 'url', 'notes'].map(t => [t, tabBtn(S.srcDraft.type === t)])),
+      urlHint: supa ? 'A página será lida pela Edge Function source-fetch.' : 'Leitura automática de URL não configurada (requer Supabase + Edge Function source-fetch).', fileHint: S.srcDraft.fileName ? `${S.srcDraft.fileName} lido: ${(S.srcDraft.text || '').split(/\s+/).length} palavras.` : 'PDF e DOCX são lidos neste navegador; o texto extraído fica na fonte.',
+      addSourceDisabled: S.busy, addSourceLabel: 'Adicionar fonte', sourcesCount: sources.length, sourceRows, noSources: sources.length === 0,
+      analyzeDisabled: S.busy || sources.length === 0, analyzeLabel: an ? 'Reanalisar fontes' : 'Analisar fontes', analyzeHint: textProv.ok ? `Usa ${textProv.label}.` : `IA de texto não configurada: ${textProv.hint}`,
+      hasAnalysis: !!an, noAnalysis: !an, analysis: an || {}, analysisMeta: an ? `Analisada em ${fmtDT(an.created_at)} com ${an.provider === 'claude_builtin' ? 'Claude integrado' : an.provider} · ${sources.length} fonte(s)` : '', factsCount: factRows.length, factRows, angleRows, riskRows: an?.risks || [], genNewsletterLabel: db.newsletter_versions.some(v => v.edition_id === ed?.id) ? 'Gerar nova versão da newsletter' : 'Gerar newsletter',
+      ...this.knowledgeVals(),
+      brandIs: { assets: S.brandTab === 'assets', rules: S.brandTab === 'rules', templates: S.brandTab === 'templates', docs: S.brandTab === 'docs', knowledge: S.brandTab === 'knowledge' }, brandTabStyle: Object.fromEntries(['knowledge', 'assets', 'rules', 'templates', 'docs'].map(t => [t, tabBtn(S.brandTab === t)])),
+      assetRows, partnerRows, photoRows, photosCount: photos.length, obviouslyStatus: fonts.length ? `${fonts.length} arquivo(s) enviado(s)` : 'não instalada (sem arquivos licenciados no sistema)',
+      rulesVersion: activeRule.version, rulesApprovedBy: activeRule.approved_by, rulesApprovedAt: fmtDT(activeRule.approved_at), rulesNextVersion: Math.max(...db.brand_rules.map(r => r.version)) + 1, rulesDraft: S.rulesDraft, rulesApprover: S.rulesApprover, rulesError: S.rulesError,
+      colorRows, vocabUse: rules.voice.use.join(', '), vocabAvoid: rules.voice.avoid.join(', '), templateRows, docRows,
+      settings: db.settings, supaDot: dot(supa), supaStatus: supa ? 'Configurado. Autenticação e sincronização usam este projeto.' : 'Não configurado. Operando em modo local.', supaTestResult: S.supaTestResult, imageModelRows, promptRows: db.prompt_templates,
+      auditRows, noAudit: auditRows.length === 0, pendingMsg, previewRef: this.previewRef,
+      ...this.newsletterVals(ed, db, fmtDT), ...this.postsVals(ed, db, fmtDT), postCanvasRef: this.postCanvasRef
+    };
+  }
+}
+</script>
+</body>
+</html>

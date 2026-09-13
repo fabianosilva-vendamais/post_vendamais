@@ -1,0 +1,11 @@
+{
+  "framework": "nextjs",
+  "regions": [
+    "gru1"
+  ],
+  "functions": {
+    "app/api/**/route.js": {
+      "maxDuration": 120
+    }
+  }
+}
