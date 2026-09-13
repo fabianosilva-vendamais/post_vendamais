@@ -50,16 +50,22 @@ const pick = (o, keys) => Object.fromEntries(keys.filter(k => k in o).map(k => [
 // Envia o estado local para o Supabase (upsert por id). Binários locais sobem para o Storage.
 export async function pushAll() {
   if (!signedIn()) throw new Error('Faça login para sincronizar.'); await refreshIfNeeded();
-  for (const a of db.brand_assets) if (a.file_url?.startsWith('blob:')) { const data = await blobs.get(a.id); if (data) { const ext = (data.match(/^data:image\/(\w+)/) || [])[1] || 'png'; a.file_url = await upload('brand', `${a.type}/${a.id}.${ext}`, data); } }
-  for (const i of db.generated_images) if (!i.file_url) { const data = await blobs.get(i.id); if (data) i.file_url = await upload('images', `${i.post_id}/${i.id}.png`, data); }
-  await rest('brand_assets', 'POST', db.brand_assets.map(a => ({ ...pick(a, ['id', 'type', 'label', 'partner_id', 'file_url', 'version', 'active', 'metadata']), workspace_id: WS })));
+  // Binários nunca vão para o Postgres: blob:/data: sobem para o Storage e a tabela guarda só a URL.
+  for (const a of db.brand_assets) {
+    if (a.file_url?.startsWith('blob:')) { const data = await blobs.get(a.id); if (data) { const ext = (data.match(/^data:image\/(\w+)/) || [])[1] || 'png'; a.file_url = await upload('brand', `${a.type}/${a.id}.${ext}`, data); } }
+    else if (a.file_url?.startsWith('data:')) { const data = a.file_url; await blobs.put(a.id, data); const ext = (data.match(/^data:image\/(\w+)/) || [])[1] || 'png'; a.file_url = await upload('brand', `${a.type}/${a.id}.${ext}`, data); }
+  }
+  for (const i of db.generated_images) if (!i.file_url || i.file_url.startsWith('data:')) { const data = i.file_url?.startsWith('data:') ? i.file_url : await blobs.get(i.id); if (data) { await blobs.put(i.id, data); i.file_url = await upload('images', `${i.post_id}/${i.id}.png`, data); } }
+  const strip = (o) => JSON.parse(JSON.stringify(o, (k, v) => (typeof v === 'string' && v.startsWith('data:') && v.length > 2000) ? '' : v));
+  const clean = (rows) => rows.map(strip);
+  await rest('brand_assets', 'POST', clean(db.brand_assets.map(a => ({ ...pick(a, ['id', 'type', 'label', 'partner_id', 'file_url', 'version', 'active', 'metadata']), workspace_id: WS }))));
   await rest('brand_rules', 'POST', db.brand_rules.map(r => ({ ...pick(r, ['id', 'version', 'rules_json', 'approved_by', 'approved_at', 'active']), workspace_id: WS })));
   if (db.editions.length) await rest('editions', 'POST', db.editions.map(e => ({ ...pick(e, ['id', 'title', 'theme', 'audience', 'objective', 'status', 'edition_date', 'brief', 'exports', 'created_at', 'updated_at']), workspace_id: WS })));
   if (db.sources.length) await rest('sources', 'POST', db.sources.map(s => pick(s, ['id', 'edition_id', 'type', 'name', 'url', 'file_name', 'primary', 'extracted_text', 'hash', 'created_at'])));
   if (db.analyses.length) await rest('analyses', 'POST', db.analyses.map(a => pick(a, ['id', 'edition_id', 'summary', 'facts', 'risks', 'angles', 'provider', 'created_at'])));
   if (db.newsletter_versions.length) await rest('newsletter_versions', 'POST', db.newsletter_versions.map(v => pick(v, ['id', 'edition_id', 'n', 'content_json', 'meta', 'html', 'plain', 'score', 'qa_json', 'is_approved', 'origin', 'note', 'provider', 'approved_at', 'created_at'])));
-  if (db.posts.length) await rest('posts', 'POST', db.posts.map(p => pick(p, ['id', 'edition_id', 'angle', 'content_json', 'template_id', 'image_id', 'crop', 'partner_id', 'status', 'score', 'qa_json', 'origin', 'meta', 'versions', 'approved_at', 'created_at', 'updated_at'])));
-  if (db.generated_images.length) await rest('generated_images', 'POST', db.generated_images.map(i => pick(i, ['id', 'post_id', 'edition_id', 'source', 'provider', 'model', 'mode', 'prompt', 'file_url', 'cost_meta', 'ms', 'created_at'])));
+  if (db.posts.length) await rest('posts', 'POST', clean(db.posts.map(p => ({ ...pick(p, ['id', 'edition_id', 'angle', 'content_json', 'template_id', 'image_id', 'crop', 'partner_id', 'status', 'score', 'qa_json', 'origin', 'meta', 'approved_at', 'created_at', 'updated_at']), versions: (p.versions || []).slice(-5) }))));
+  if (db.generated_images.length) await rest('generated_images', 'POST', clean(db.generated_images.map(i => pick(i, ['id', 'post_id', 'edition_id', 'source', 'provider', 'model', 'mode', 'prompt', 'file_url', 'cost_meta', 'ms', 'created_at']))));
   if ((db.publications || []).length) await rest('publications', 'POST', db.publications.map(x => pick(x, ['id', 'post_id', 'edition_id', 'provider', 'networks', 'date_time', 'timezone', 'draft', 'media_urls', 'remote', 'status', 'created_at'])));
   if (db.renders.length) await rest('renders', 'POST', db.renders.map(r => pick(r, ['id', 'post_id', 'template_id', 'image_id', 'image_url', 'render_url', 'dimensions', 'created_at'])));
   await rest('prompt_templates', 'POST', db.prompt_templates.map(p => ({ ...pick(p, ['id', 'name', 'version', 'prompt_text', 'active', 'custom']), workspace_id: WS })));
