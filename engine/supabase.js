@@ -46,7 +46,7 @@ export async function uploadPublic(bucket, path, dataUrl) {
 }
 async function signedUrl(storagePath) { const [, bucket, ...rest_] = storagePath.replace('storage://', '/').split('/'); const path = rest_.join('/'); const r = await fetch(`${base()}/storage/v1/object/sign/${bucket}/${path}`, { method: 'POST', headers: H(), body: JSON.stringify({ expiresIn: 3600 }) }); const d = await r.json(); return d.signedURL ? `${base()}/storage/v1${d.signedURL}` : null; }
 
-const pick = (o, keys) => Object.fromEntries(keys.filter(k => k in o).map(k => [k, o[k]]));
+const pick = (o, keys) => Object.fromEntries(keys.map(k => [k, o[k] === undefined ? null : o[k]])); // todas as linhas com as mesmas chaves (PGRST102)
 // Envia o estado local para o Supabase (upsert por id). Binários locais sobem para o Storage.
 export async function pushAll() {
   if (!signedIn()) throw new Error('Faça login para sincronizar.'); await refreshIfNeeded();
