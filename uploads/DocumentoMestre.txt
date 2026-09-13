@@ -1,0 +1,458 @@
+VENDA MAIS
+Content Engine
+Newsletter + Conteúdo Social + Geração Visual
+Documento Mestre para construção no Claude/Cloud Design
+Versão 1.0  |  11 de setembro de 2026
+OBJETIVO EM UMA FRASE
+Criar uma única newsletter forte, prática e consistente com o DNA da VendaMais e, a partir dela, gerar automaticamente três peças sociais completas - cada uma com um ângulo editorial diferente, imagem, diagramação, copy e CTA - sem perder a unidade da marca.
+Este documento foi pensado para ser entregue diretamente ao Claude/Cloud Design e também servir como especificação para um programador.
+[Heading1] 1. Visão do produto
+PRINCÍPIO DO SISTEMA
+O sistema será uma central editorial da VendaMais. A newsletter é a peça-mãe. Os conteúdos de LinkedIn e Instagram não serão produzidos como ideias independentes: eles serão derivados do mesmo conteúdo aprovado, cada um reinterpretado para uma lente específica.
+DECISÃO-CHAVE
+Os três posts representam ângulos editoriais, não três marcas nem três BUs. A comunicação visual continua sendo 100% VendaMais. O leitor deve enxergar uma única marca falando de treinamento, consultoria ou negócio conforme o assunto.
+[Heading2] 1.1 Resultado de cada edição
+[ListBullet] 1 newsletter em HTML responsivo, pronta para copiar, exportar ou enviar por uma plataforma de e-mail.
+[ListBullet] Assunto do e-mail, preheader, título principal, abertura, desenvolvimento, bloco prático e CTA.
+[ListBullet] 1 post com ângulo Educação / Treinamento.
+[ListBullet] 1 post com ângulo Consultoria / Gestão Comercial.
+[ListBullet] 1 post com ângulo Negócio / VendaMais.
+[ListBullet] Para cada post: headline, texto de apoio, conceito visual, imagem final 1080 x 1350 px, legenda/copy, CTA e hashtags opcionais.
+[ListBullet] Histórico de versões, regenerações, aprovação e exportação.
+[Heading2] 1.2 O que o sistema não deve fazer
+[ListBullet] Criar três conteúdos desconectados do tema da newsletter.
+[ListBullet] Expor a estrutura interna de BUs como se fossem marcas separadas.
+[ListBullet] Gerar visual inteiro dentro do modelo de imagem com logo e tipografia “imitados”.
+[ListBullet] Inventar números, cases, clientes ou provas que não estejam nas fontes fornecidas.
+[ListBullet] Publicar ou disparar automaticamente sem uma etapa humana de aprovação.
+[ListBullet] Produzir reflexão genérica sem responder também “o que fazer” e “como fazer”.
+[Heading1] 2. A regra estrutural: conteúdo gerado, marca renderizada
+POR QUE SEPARAR INTELIGÊNCIA DE DESIGN
+O sistema deve separar duas tarefas que normalmente são misturadas. A IA decide o conteúdo e cria a imagem-base. Um motor de renderização aplica a identidade visual da VendaMais com regras fixas. Essa separação é o que torna o resultado profissional e repetível.
+Fontes
+&gt;
+IA de conteúdo
+&gt;
+Imagem-base
+&gt;
+Render da marca
+&gt;
+Aprovação
+&gt;
+Exportação
+[Heading2] 2.1 Camada de inteligência
+[ListBullet] Lê o briefing e as fontes.
+[ListBullet] Produz a newsletter em estrutura de blocos.
+[ListBullet] Extrai os três melhores ângulos sociais.
+[ListBullet] Cria headline, subheadline, copy, CTA e briefing visual.
+[ListBullet] Checa coerência, prova, clareza e aderência ao DNA.
+[Heading2] 2.2 Camada visual determinística
+[ListBullet] Usa sempre os arquivos oficiais do logo e do símbolo V.
+[ListBullet] Aplica cores, margens, hierarquia, tipografia e grafismos conforme templates aprovados.
+[ListBullet] Coloca o texto sobre a imagem em SVG/HTML e só depois converte para PNG.
+[ListBullet] Garante que o logo nunca seja redesenhado pela IA.
+[ListBullet] Mantém o mesmo padrão quando o provedor de imagem for trocado.
+REGRA DE PRODUÇÃO
+Pedir ao gerador de imagens “faça um post da VendaMais com logo e texto” é proibido. O gerador entrega apenas a fotografia/ilustração-base. Texto, logo e elementos da marca entram depois, no renderizador.
+[Heading1] 3. Brand Engine - DNA da VendaMais codificado
+FONTE DE VERDADE
+O sistema deve usar o DNA Criativo e o Manual de Marca como fonte oficial, mas não deve reler PDFs inteiros em toda geração. Na implantação, as regras são transformadas em um objeto estruturado “brand_rules”, versionado e aprovado. Quando a marca mudar, esse objeto é atualizado primeiro.
+Regra
+Aplicação no sistema
+Marca
+Grafia obrigatória: VendaMais. Uma marca, sete rostos. No fluxo deste produto, padrão institucional = marca sozinha.
+Tese
+“Vendas levadas a sério”. Prova antes da promessa. Método, rotina e aplicação acima de energia e superlativos.
+Cores
+Navy #16263A, laranja #E2742B e branco #FFFFFF como base. Areia e tons de apoio conforme o manual.
+Proporção visual
+Referência de peça típica: 55% navy, 20% laranja, 25% branco. Laranja como ação, não como fundo dominante.
+Tipografia
+Obviously na frente; Poppins no apoio. O sistema permite upload/licenciamento da fonte oficial e usa Poppins como fallback.
+Grafismos
+Símbolo V, barra laranja, hexágono apenas para retrato de sócio. Sem gradiente e sem efeitos 3D.
+Fotografia
+Pele natural, contraste médio, sombras puxadas para navy. Se houver texto sobre foto, camada navy antes do texto branco.
+Vocabulário
+Preferir método, campo, previsibilidade, governança, cultura comercial, rotina de execução e indicador.
+Evitar
+Energia, mindset, virada de chave, disruptivo, paixão por vendas, “o maior/o melhor” sem prova.
+Texto
+Número antes do adjetivo; verbo de ação; título curto; sem ponto final em título.
+[Heading2] 3.1 Biblioteca de ativos
+[ListBullet] Logos oficiais: principal, negativa, laranja e símbolo V.
+[ListBullet] Retratos oficiais dos sócios e fotos aprovadas de palco, sala e contexto de cliente.
+[ListBullet] Fontes oficiais, somente quando houver licença adequada para uso no sistema.
+[ListBullet] DNA Criativo, Manual de Marca e versões anteriores apenas como arquivo de referência.
+[ListBullet] Templates visuais aprovados e exemplos de “certo / errado”.
+[Heading1] 4. Jornada do usuário
+DO BRIEFING À PUBLICAÇÃO
+[ListNumber] Entrar no Dashboard e clicar em “Nova edição”.
+[ListNumber] Informar tema, objetivo, público, CTA desejado e data da edição.
+[ListNumber] Adicionar fontes: texto colado, URL, PDF, DOCX, notas internas ou arquivos de apoio.
+[ListNumber] Clicar em “Analisar fontes”. O sistema extrai fatos, dados, exemplos, argumentos e possíveis ângulos.
+[ListNumber] Gerar a primeira versão da newsletter.
+[ListNumber] Editar qualquer bloco diretamente na tela e regenerar somente o bloco selecionado, sem perder o restante.
+[ListNumber] Executar “Revisão VendaMais”: clareza, utilidade prática, evidência, vocabulário, consistência e CTA.
+[ListNumber] Aprovar a newsletter como “fonte-mãe”.
+[ListNumber] Gerar os três posts derivados.
+[ListNumber] Escolher ou regenerar imagem-base de cada post.
+[ListNumber] Renderizar o layout final 1080 x 1350 px.
+[ListNumber] Revisar, editar texto, trocar imagem, mudar template ou regenerar apenas a parte desejada.
+[ListNumber] Exportar PNG + copy de cada post e HTML + texto simples da newsletter.
+EXPERIÊNCIA IMPORTANTE
+Nenhum botão “Regenerar tudo”. A interface deve favorecer regenerações locais: título, parágrafo, CTA, imagem, copy ou post específico. Isso reduz retrabalho e evita perder uma versão boa por causa de um único trecho ruim.
+[Heading1] 5. Módulo Newsletter
+A PEÇA-MÃE
+[Heading2] 5.1 Entradas do briefing
+Campo
+Tipo / regra
+Tema central
+Obrigatório. Uma frase simples.
+Objetivo
+Educar, gerar demanda, relacionamento, posicionamento ou convite.
+Público principal
+CEO/dono, gestor comercial, RH/T&amp;D, vendedor/representante ou outro.
+Fonte principal
+Texto, arquivo ou URL.
+Fontes complementares
+0 a N arquivos/links/notas.
+CTA
+Pode ser informado pelo usuário ou sugerido pela IA.
+Tom da edição
+Analítico, provocativo, didático, executivo, case, tendência.
+Extensão
+Curta, padrão ou aprofundada. Padrão recomendado: 700-1.200 palavras.
+[Heading2] 5.2 Estrutura editorial obrigatória
+[ListBullet] Assunto do e-mail: específico, sem clickbait.
+[ListBullet] Preheader: complementa o assunto; não repete.
+[ListBullet] Headline principal: uma tese clara.
+[ListBullet] Abertura: problema real ou tensão, sem “Hoje vamos falar sobre...”.
+[ListBullet] Contexto / diagnóstico: por que isso importa para uma operação comercial.
+[ListBullet] Desenvolvimento: 2 a 4 blocos com argumentos, exemplos ou dados.
+[ListBullet] Aplicação prática: “o que fazer” e “como fazer”. Deve existir sempre.
+[ListBullet] Checklist, roteiro, perguntas ou passos que o leitor possa aplicar.
+[ListBullet] Fechamento: uma conclusão útil, sem frase motivacional vazia.
+[ListBullet] CTA: coerente com o conteúdo. Pode ser conversa, diagnóstico, treinamento, material ou resposta ao e-mail.
+[Heading2] 5.3 HTML de e-mail
+[ListBullet] Template responsivo com largura principal de 600 px.
+[ListBullet] HTML de e-mail com estilos inline e estrutura compatível com Gmail e Outlook.
+[ListBullet] Nada de JavaScript dentro do e-mail.
+[ListBullet] Imagens com alt text, largura responsiva e links editáveis.
+[ListBullet] Versão “plain text” gerada automaticamente.
+[ListBullet] Botão: copiar HTML, baixar .html e visualizar desktop/mobile.
+[ListBullet] O conteúdo é armazenado em JSON estruturado e renderizado em HTML; a IA não escreve um layout HTML livre a cada edição.
+newsletter = {  subject, preheader, headline, intro,  sections: [{title, body, evidence_ids[]}],  practical_block: {title, steps[]},  closing, cta: {label, url, type},  sources_used[], quality_score}
+[Heading1] 6. Motor de reaproveitamento: três posts, uma tese
+DERIVAÇÃO EDITORIAL
+Somente depois de a newsletter ser aprovada, o sistema gera os três conteúdos sociais. Cada post precisa conseguir viver sozinho, mas deve ser rastreável à newsletter e às mesmas fontes.
+Ângulo
+Público / tensão
+Como deve aparecer
+Treinamento / Educação
+RH, T&amp;D, líderes e gestores que precisam transformar conhecimento em comportamento.
+Aplicação, prática, aprendizagem, acompanhamento, indicador, transferência para o campo. Não vender “curso” genérico.
+Consultoria / Gestão
+CEO, dono, diretor ou gerente comercial com problema de previsibilidade, processo ou execução.
+Diagnóstico, governança, processo, rotina, forecast, gestão, indicadores, arquitetura comercial e sustentação.
+Negócio / VendaMais
+Lideranças que olham crescimento, produtividade e performance de forma mais ampla.
+Tese de negócio, leitura de mercado, decisão gerencial, relação entre vendas, liderança, marketing, IA e crescimento.
+REGRA DE UNIDADE
+Não escrever “pela ótica da BU Treinamentos” ou “pela ótica da BU Consultoria”. O sistema muda o ângulo, não a marca. Todos os posts são VendaMais.
+[Heading2] 6.1 Saída estruturada por post
+post = {  angle: "training | consulting | business",  thesis, headline, support_line,  visual_concept, image_prompt, template_id,  caption: {hook, body, practical_takeaway, cta, hashtags[]},  source_claims[], quality_score}
+[Heading2] 6.2 Regras da copy
+[ListBullet] Abrir com uma tensão ou afirmação específica; evitar perguntas genéricas.
+[ListBullet] Entregar valor mesmo para quem não clicar em nada.
+[ListBullet] Incluir pelo menos um ponto aplicável ou uma pergunta de gestão.
+[ListBullet] CTA proporcional: conversar, salvar, compartilhar, ler a newsletter ou conhecer uma solução.
+[ListBullet] Hashtags são opcionais e limitadas; não usar bloco de 15 a 30 hashtags.
+[ListBullet] Não repetir na legenda exatamente o texto que já está na arte.
+[Heading1] 7. Geração visual dos posts
+FORMATO COMPARTILHADO LINKEDIN + INSTAGRAM
+FORMATO-MESTRE
+1080 x 1350 px (4:5). É o formato vertical mais seguro para reaproveitar a mesma peça no feed do LinkedIn e do Instagram, com boa ocupação de tela e sem criar dois arquivos para o mesmo post.
+[Heading2] 7.1 Pipeline visual
+Briefing visual
+&gt;
+Gerador de imagem
+&gt;
+Recorte / crop
+&gt;
+Template VM
+&gt;
+PNG final
+[ListBullet] O gerador recebe um briefing sem logo e sem textos obrigatórios.
+[ListBullet] A imagem-base deve deixar área negativa para o título quando o template exigir.
+[ListBullet] O sistema cria crop 4:5 e permite reposicionar a imagem manualmente.
+[ListBullet] O renderizador aplica overlay, logo, título, barra laranja, símbolo V e demais elementos.
+[ListBullet] O usuário pode escolher entre 3 a 5 templates aprovados; nunca um layout totalmente livre.
+[ListBullet] Exportação final em PNG de alta qualidade.
+[Heading2] 7.2 Direção de imagem por ângulo
+Ângulo
+Direção visual preferida
+Evitar
+Treinamento
+Pessoas reais em sala, dinâmica, cocriação, liderança, mão na massa, quadro e interação.
+Foto genérica de plateia comemorando, braços cruzados, “high five” de banco de imagens.
+Consultoria
+Mesa de decisão, quadro de indicadores, executivos trabalhando, campo, reunião de diagnóstico.
+Aperto de mão, gráfico flutuando no ar, “consultor apontando tela” artificial.
+Negócio
+Liderança, operação, mercado, tomada de decisão, vendas conectadas a crescimento e produtividade.
+Imagem abstrata de foguete, alvo, lâmpada, xadrez ou metáfora empresarial clichê.
+[Heading2] 7.3 Templates mínimos do MVP
+[ListBullet] T01 - Foto cheia + overlay navy + headline branca + barra laranja.
+[ListBullet] T02 - Fundo branco + foto em bloco + headline navy + número/dado em laranja.
+[ListBullet] T03 - Fundo navy + imagem recortada + frase curta + símbolo V.
+[ListBullet] T04 - Card editorial limpo + dado/prova + apoio visual discreto.
+[ListBullet] T05 - Retrato de sócio, somente quando a peça for realmente assinada por uma pessoa e respeitar as regras do Manual.
+[Heading1] 8. Integração com geração de imagens
+ARQUITETURA SEM DEPENDÊNCIA DE FORNECEDOR
+A aplicação terá um “Image Provider Adapter”. O usuário escolhe o provedor nas configurações. O restante do sistema não muda. Isso evita reconstruir o produto quando surgir um modelo melhor.
+Modo
+Provedor sugerido hoje
+Uso
+Padrão
+Gemini 3.1 Flash Image (Nano Banana 2)
+Boa relação entre qualidade, velocidade e custo para geração recorrente.
+Premium
+Gemini 3 Pro Image (Nano Banana Pro)
+Peças mais complexas, alto controle criativo, consistência e produção de ativos profissionais.
+Alternativa
+OpenAI GPT Image 2.5
+Geração/edição; Sunburst favorece precisão de edição e Flare prioriza velocidade no fluxo cotidiano.
+Fallback
+Modelo configurável em Admin
+Nunca deixar nomes de modelo espalhados no código; salvar em configuração.
+[Heading2] 8.1 Regras técnicas
+[ListBullet] Chaves de API ficam somente no backend, em variáveis de ambiente. Nunca expor no navegador.
+[ListBullet] Salvar prompt, provedor, modelo, custo estimado, horário e resultado para auditoria.
+[ListBullet] Permitir “modo econômico”, “padrão” e “premium”.
+[ListBullet] Aceitar imagens de referência aprovadas para direcionar cena e linguagem visual.
+[ListBullet] Nunca usar o gerador como fonte do logo oficial.
+[ListBullet] Se a API falhar, manter briefing e conteúdo salvos e permitir tentar outro provedor.
+[Heading2] 8.2 Exemplo de prompt para imagem-base
+Crie uma fotografia editorial B2B realista para uma peça da VendaMais.Assunto: [tema do post].Cena: [contexto concreto].Pessoas: profissionais brasileiros/latino-americanos, naturais, sem pose de banco de imagens.Composição: vertical 4:5, espaço negativo em [lado] para aplicação posterior de título.Luz: natural, contraste médio, pele natural, sombras ligeiramente frias.NÃO inserir texto, letras, logotipos, marcas, ícones, gráficos falsos, molduras ou watermark visual.Evitar clichês de negócios como aperto de mão, alvo, foguete, lâmpada, peças de xadrez e “high five”.
+[Heading1] 9. Arquitetura técnica recomendada
+STACK SIMPLES PARA EVOLUIR
+Camada
+Tecnologia recomendada
+Responsabilidade
+Frontend
+Next.js / React + Tailwind
+Dashboard, editores, previews, configurações e exportação.
+Backend
+API Routes / Server Actions em Vercel
+Orquestra IA, protege chaves e renderiza arquivos.
+Banco/Auth
+Supabase Postgres + Auth
+Usuários, edições, versões, prompts, brand rules e auditoria.
+Arquivos
+Supabase Storage
+Fontes, PDFs, logos, imagens-base, renders e exports.
+Texto IA
+Provider configurável
+Geração estruturada da newsletter e posts.
+Imagem IA
+Gemini / OpenAI via adapter
+Somente imagem-base e edição visual.
+Render social
+SVG/Satori + Sharp (ou equivalente)
+Aplica layout, fonte, logo e converte para PNG.
+Render e-mail
+MJML ou template HTML estruturado
+Gera HTML consistente e responsivo.
+[Heading2] 9.1 Endpoints principais
+POST /api/sources/analyzePOST /api/newsletter/generatePOST /api/newsletter/rewrite-blockPOST /api/newsletter/qaPOST /api/posts/generatePOST /api/posts/rewritePOST /api/images/generatePOST /api/social/renderPOST /api/export/newsletterPOST /api/export/postGET  /api/projects/:id
+[Heading2] 9.2 Variáveis de ambiente
+SUPABASE_URL=...SUPABASE_ANON_KEY=...SUPABASE_SERVICE_ROLE_KEY=...TEXT_PROVIDER=...TEXT_MODEL=...GEMINI_API_KEY=...OPENAI_API_KEY=...IMAGE_PROVIDER_DEFAULT=geminiIMAGE_MODEL_STANDARD=gemini-3.1-flash-imageIMAGE_MODEL_PREMIUM=gemini-3-pro-image
+[Heading1] 10. Estrutura de dados
+SUPABASE
+Tabela
+Campos essenciais
+workspaces
+id, name, brand_rules_version, created_at
+users
+id, workspace_id, role, name, email
+brand_assets
+id, type, file_url, version, active, metadata
+brand_rules
+id, version, rules_json, approved_by, approved_at
+editions
+id, title, theme, audience, objective, status, edition_date
+sources
+id, edition_id, type, url/file, extracted_text, hash
+newsletter_versions
+id, edition_id, content_json, html, score, is_approved
+posts
+id, edition_id, angle, content_json, status, score
+generated_images
+id, post_id, provider, model, prompt, file_url, cost_meta
+renders
+id, post_id, template_id, image_url, render_url, dimensions
+prompt_templates
+id, name, version, prompt_text, active
+audit_log
+id, user_id, action, entity, entity_id, metadata, created_at
+[Heading2] 10.1 Status de uma edição
+Draft
+&gt;
+Newsletter gerada
+&gt;
+Newsletter aprovada
+&gt;
+Posts gerados
+&gt;
+Aprovado
+&gt;
+Exportado
+[Heading2] 10.2 Permissões no MVP
+[ListBullet] Admin: Brand Center, integrações, usuários, prompts e todas as edições.
+[ListBullet] Editor: criar, editar, gerar, aprovar e exportar conteúdo.
+[ListBullet] Viewer (fase 2): visualizar e comentar sem alterar.
+[Heading1] 11. Telas do sistema
+INTERFACE
+Tela
+Elementos obrigatórios
+Dashboard
+Nova edição, edições recentes, status, filtro por data/tema, atalhos.
+Nova edição
+Briefing + fontes + CTA + público + profundidade.
+Análise de fontes
+Resumo, fatos, números, evidências, riscos e ângulos sugeridos.
+Editor da Newsletter
+Preview e edição por blocos; regeneração local; QA; desktop/mobile.
+Post Studio
+Abas Treinamento / Consultoria / Negócio; texto, visual, copy e score.
+Image Lab
+Gerar, escolher, comparar, editar prompt, crop e trocar provedor.
+Brand Center
+Logo, símbolo V, cores, fontes, templates, DNA e Manual.
+Configurações
+Provedores, modelos, chaves, modo de custo e defaults.
+Histórico
+Versões, quem alterou, quando, antes/depois e restauração.
+[Heading2] 11.1 Requisitos de UX
+[ListBullet] Preview visual sempre ao lado do editor quando houver espaço de tela.
+[ListBullet] Autosave a cada alteração relevante.
+[ListBullet] Desfazer/refazer.
+[ListBullet] Duplicar edição.
+[ListBullet] Regenerar seleção, não somente conteúdo inteiro.
+[ListBullet] Comparar duas versões lado a lado.
+[ListBullet] Botão “Fixar” em trechos bons para impedir que a IA altere em novas versões.
+[ListBullet] Mostrar claramente o que é conteúdo gerado e o que foi editado por uma pessoa.
+[Heading1] 12. Guardrails editoriais e de marca
+QA ANTES DE APROVAR
+Cada saída recebe uma nota de 0 a 100. A peça pode ser salva em qualquer nota, mas só recebe o selo interno “Pronta” quando atingir o limite configurado, sugerido inicialmente em 85.
+Critério
+Peso
+Checagem
+Fidelidade às fontes
+25
+Não inventa dados, cases, nomes, números ou causalidades.
+Utilidade prática
+20
+Explica o que fazer e como fazer; entrega aplicação concreta.
+DNA verbal
+15
+Vocabulário, tese, sobriedade, prova antes da promessa.
+Ajuste ao canal
+10
+Newsletter, post e legenda têm densidade adequada.
+Unidade da marca
+10
+VendaMais única; sem linguagem de BU na frente do cliente.
+Qualidade visual
+10
+Cores, logo, contraste, tipografia, margem, crop e legibilidade.
+CTA
+5
+Coerente, específico e proporcional.
+Revisão linguística
+5
+Ortografia, pontuação, clareza e leitura natural.
+[Heading2] 12.1 Bloqueios automáticos
+[ListBullet] “Venda Mais” separado quando se referir à marca.
+[ListBullet] Superlativo (“maior”, “melhor”, “número 1”) sem evidência associada.
+[ListBullet] Logo gerado por IA ou asset não oficial.
+[ListBullet] Gradiente em peça social.
+[ListBullet] Cor fora da paleta sem exceção aprovada.
+[ListBullet] Dado numérico sem source_id.
+[ListBullet] Cliente citado sem ter aparecido nas fontes.
+[ListBullet] Post marcado como pronto sem headline legível em preview mobile.
+PRINCÍPIO DE EVIDÊNCIA
+Toda afirmação factual forte deve ser rastreável. O sistema mantém internamente um mapa “claim -&gt; source”. Esse mapa não precisa aparecer para o leitor, mas precisa existir para a revisão.
+[Heading1] 13. Prompts internos do sistema
+BASE PARA IMPLEMENTAÇÃO
+[Heading2] 13.1 Prompt-base do Editor
+Você é o editor executivo da VendaMais. Escreva conteúdo B2B para líderes comerciais, CEOs, RH/T&amp;D e profissionais de vendas.REGRAS DE MARCA:- VendaMais, uma palavra.- Prova antes da promessa.- Método, campo, previsibilidade, governança, cultura comercial, rotina de execução e indicador são territórios naturais.- Evite energia, mindset, virada de chave, disruptivo, paixão por vendas e superlativos sem prova.- Não invente cases, números, clientes ou fatos.- Conteúdo deve ser útil sozinho: diagnóstico + implicação + o que fazer + como fazer.- Linguagem adulta, clara, direta, natural e sem “corporativês”.- Não exponha BUs na frente do cliente; a marca é VendaMais.Use somente as evidências fornecidas. Retorne JSON no schema solicitado.
+[Heading2] 13.2 Prompt de derivação dos três posts
+A newsletter abaixo foi aprovada. Transforme-a em três posts independentes, sem repetir a mesma headline ou a mesma construção.1) TREINAMENTO: traduza a tese para aprendizagem, comportamento, prática, acompanhamento e indicador.2) CONSULTORIA: traduza para diagnóstico, processo, governança, previsibilidade e execução.3) NEGÓCIO: traduza para decisão executiva, crescimento, produtividade, mercado e performance da operação.Todos são VendaMais. Não escreva “BU”, “pela ótica de” ou equivalentes.Cada post deve trazer tese, headline, apoio curto, briefing de imagem sem texto/logo e uma legenda completa com valor prático e CTA.
+[Heading2] 13.3 Prompt de QA
+Audite esta peça como revisor de marca e editor B2B. Dê nota de 0 a 100. Liste: (1) fatos sem fonte, (2) linguagem genérica, (3) clichês, (4) desalinhamentos com o DNA, (5) falhas de utilidade prática, (6) repetição, (7) CTA fraco, (8) correções exatas. Não elogie por educação. Só aprove se todos os bloqueios forem resolvidos.
+[Heading1] 14. MVP, fases e critérios de aceite
+ESCOPO CONTROLADO
+[Heading2] 14.1 MVP - construir agora
+[ListBullet] Login simples e um workspace VendaMais.
+[ListBullet] Brand Center com regras e ativos.
+[ListBullet] Criação de edição + fontes.
+[ListBullet] Geração e edição da newsletter.
+[ListBullet] Preview HTML desktop/mobile + exportação.
+[ListBullet] Geração dos três posts derivados.
+[ListBullet] Integração com pelo menos um provedor de imagem + arquitetura para segundo provedor.
+[ListBullet] 5 templates visuais 1080 x 1350.
+[ListBullet] Copy completa para cada post.
+[ListBullet] QA, score e bloqueios.
+[ListBullet] Histórico de versões e autosave.
+[Heading2] 14.2 Fase 2 - depois do MVP validado
+[ListBullet] Integração direta com plataforma de e-mail/CRM.
+[ListBullet] Agendamento/publicação em LinkedIn e Instagram.
+[ListBullet] Analytics de abertura, clique, alcance e engajamento.
+[ListBullet] Recomendações editoriais baseadas no desempenho histórico.
+[ListBullet] Biblioteca de temas, calendário editorial e reutilização por campanha.
+[ListBullet] Aprovação por comentários e fluxo multiusuário.
+[ListBullet] A/B de assunto, headline e CTA.
+[Heading2] 14.3 Critérios de aceite do MVP
+#
+Critério
+01
+Uma edição completa pode ser criada sem sair do sistema.
+02
+Newsletter HTML renderiza corretamente em desktop e mobile.
+03
+Os 3 posts são claramente diferentes em ângulo, mas coerentes com a mesma newsletter.
+04
+A imagem final usa logo oficial e tipografia controlada, nunca logo inventado pela IA.
+05
+O mesmo PNG 1080 x 1350 está pronto para LinkedIn e Instagram.
+06
+Usuário consegue editar conteúdo sem regenerar tudo.
+07
+Nenhum dado factual forte fica sem referência interna de fonte.
+08
+API keys não aparecem no client.
+09
+O sistema não perde trabalho se uma chamada de IA falhar.
+10
+Exportar HTML, PNG e copy leva no máximo poucos cliques.
+[Heading1] 15. Prompt mestre para entregar ao Claude/Cloud Design
+COPIAR E USAR JUNTO DESTE DOCUMENTO
+COMO USAR
+Anexe este documento ao projeto e cole o prompt abaixo. A orientação é construir o MVP funcional, não apenas um mockup visual. Se a plataforma limitar backend ou secrets, ela deve gerar o frontend completo e o pacote de integração/backend necessário, com instruções objetivas do que ainda precisa ser conectado.
+Construa o MVP funcional descrito no documento “VendaMais Content Engine”.Objetivo: uma aplicação web interna da VendaMais que transforma briefing + fontes em uma newsletter HTML e, após aprovação, em três posts sociais completos (Treinamento, Consultoria e Negócio), todos derivados da mesma tese e seguindo o DNA da marca.Requisitos obrigatórios:1. Use o documento anexado como especificação principal e não simplifique o fluxo.2. A newsletter é a fonte-mãe. Os posts só são gerados após sua aprovação.3. Conteúdo e design são camadas separadas: IA gera texto estruturado e imagem-base; o app renderiza logo, tipografia, cores e grafismos de forma determinística.4. Nunca peça ao modelo de imagem para desenhar o logo ou o texto final da peça.5. Formato social mestre: 1080x1350 px (4:5).6. Crie Brand Center com regras, logos, fontes, templates e versionamento.7. Use Supabase para Auth, Postgres e Storage.8. Proteja todas as API keys no backend.9. Crie Image Provider Adapter que permita Gemini/Nano Banana e OpenAI sem alterar o restante da aplicação.10. Permita regeneração local de título, bloco, CTA, copy ou imagem, sem regenerar tudo.11. Implemente QA/score e bloqueios do documento.12. Gere HTML de e-mail responsivo e exportável, além da versão plain text.13. Gere PNG + copy para os três posts.14. Faça uma UI premium, sóbria, limpa e coerente com navy #16263A, laranja #E2742B e branco, sem gradientes.15. Não use dados fictícios para parecer que integrações funcionam. Quando algo depender de chave/configuração externa, mostre estado “não configurado” e permita configurar.Entregue:- aplicação funcional;- schema/migrations do Supabase;- variáveis de ambiente necessárias;- rotas de API;- templates de e-mail e social;- prompts do sistema versionados;- README com setup, deploy e testes;- checklist do que ficou 100% funcional e do que exige credencial externa.Antes de encerrar, percorra o fluxo completo com dados de teste e corrija erros de interface, persistência, renderização e responsividade.
+[Heading1] 16. Decisões técnicas atuais e observações
+ESTADO EM 11/09/2026
+[ListBullet] Google recomenda atualmente o Gemini 3.1 Flash Image (Nano Banana 2) como opção geral e mantém Gemini 3 Pro Image (Nano Banana Pro) para produção visual complexa e controle profissional.
+[ListBullet] A documentação atual da OpenAI oferece geração e edição por API com GPT Image 2.5, inclusive em fluxos multi-etapas; modelos e nomes devem permanecer configuráveis no Admin.
+[ListBullet] O LinkedIn aceita imagem orgânica até a proporção 4:5 e recomenda 1080 px de largura para melhor qualidade. O formato 1080 x 1350 é, portanto, adequado ao uso compartilhado com Instagram.
+[ListBullet] A camada de composição é mais importante do que escolher “o melhor gerador de imagem”. Ela é o mecanismo que preserva o DNA da marca ao longo do tempo.
+[ListBullet] A primeira versão deve otimizar consistência e velocidade de produção, não automação de publicação. Distribuição e analytics entram depois da validação editorial.
+[Heading2] 16.1 Referências técnicas consultadas
+OpenAI API - Image generation: https://developers.openai.com/api/docs/guides/image-generation
+Google AI for Developers - Nano Banana image generation: https://ai.google.dev/gemini-api/docs/image-generation
+LinkedIn Help - Share photos on LinkedIn: https://www.linkedin.com/help/linkedin/answer/a526313/
+Fontes de marca: DNA Criativo VendaMais e Manual de Marca VendaMais v2.0 (setembro de 2026).
+RESULTADO ESPERADO
+O Content Engine transforma uma pauta em um pequeno sistema editorial: uma tese bem construída entra; saem uma newsletter útil e três conteúdos sociais prontos, visualmente consistentes, rastreáveis às fontes e fáceis de aprovar. O ganho real não é “gerar conteúdo com IA”; é criar consistência, velocidade e reaproveitamento sem diluir a VendaMais.
