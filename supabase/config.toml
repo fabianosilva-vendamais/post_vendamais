@@ -1,0 +1,12 @@
+project_id = "vendamais-content-engine"
+
+[functions.text-generate]
+verify_jwt = false
+[functions.image-generate]
+verify_jwt = false
+[functions.source-fetch]
+verify_jwt = false
+[functions.trends-fetch]
+verify_jwt = false
+[functions.publish-schedule]
+verify_jwt = false
