@@ -1,0 +1,4 @@
+Descompacte este ZIP DENTRO da pasta do repositório post_vendamais (mesmo nível do package.json), aceitando substituir.
+Os arquivos já estão com nome e pasta certos (.gitignore, .github/, scripts/, next.config.mjs).
+Depois rode:  git add -A && git commit -m "build config" && git push
+Atenção: arquivos que começam com ponto ficam ocultos no Explorer/Finder; eles estão lá mesmo assim. "git add -A" pega todos.
