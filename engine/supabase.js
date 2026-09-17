@@ -70,7 +70,7 @@ export async function pushAll() {
   if (db.renders.length) await rest('renders', 'POST', db.renders.map(r => pick(r, ['id', 'post_id', 'template_id', 'image_id', 'image_url', 'render_url', 'dimensions', 'created_at'])));
   await rest('prompt_templates', 'POST', db.prompt_templates.map(p => ({ ...pick(p, ['id', 'name', 'version', 'prompt_text', 'active', 'custom']), workspace_id: WS })));
   if (db.audit_log.length) await rest('audit_log', 'POST', db.audit_log.slice(0, 500).map(l => ({ ...pick(l, ['id', 'user_id', 'user_name', 'action', 'entity', 'entity_id', 'metadata', 'created_at']), workspace_id: WS })));
-  if (db.user?.role === 'admin') await rest('settings', 'POST', [{ workspace_id: WS, settings_json: { ...db.settings, supabase_anon_key: undefined, supabase_url: undefined }, updated_at: now() }]);
+  if (db.user?.role === 'admin') await rest('settings', 'POST', [{ workspace_id: WS, settings_json: { ...db.settings, supabase_anon_key: undefined, supabase_url: undefined, knowledge: db.knowledge || null, editorial_guide: db.editorial_guide || null }, updated_at: now() }]);
   db.last_sync = now(); save(); return db.last_sync;
 }
 // Traz do Supabase e mescla por id (registro remoto mais novo vence).

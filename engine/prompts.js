@@ -42,13 +42,26 @@ Conteúdo atual do bloco: {{block_json}}
 Contexto da newsletter: {{context}}
 Evidências: {{evidence}}
 Retorne apenas o JSON do bloco.` },
-  { id: 'posts_derive', name: 'Derivação dos três posts', version: 2, active: true, prompt_text:
-`A newsletter abaixo foi aprovada. Transforme-a em três posts independentes, sem repetir a mesma headline ou a mesma construção.
-1) TREINAMENTO: traduza a tese para aprendizagem, comportamento, prática, acompanhamento e indicador.
-2) CONSULTORIA: traduza para diagnóstico, processo, governança, previsibilidade e execução.
-3) NEGÓCIO: traduza para decisão executiva, crescimento, produtividade, mercado e performance da operação.
-Todos são VendaMais. Não escreva "BU", "pela ótica de" ou equivalentes. Cada post deve viver sozinho, abrir com tensão ou afirmação específica, entregar valor mesmo sem clique, trazer um ponto aplicável ou pergunta de gestão, CTA proporcional e no máximo 5 hashtags. A legenda não repete o texto da arte.
-Retorne JSON: {"posts":[{"angle":"training|consulting|business","thesis":string,"headline":string (até 12 palavras, sem ponto final),"support_line":string (até 20 palavras),"proof_number":string|null (SÓ o número curto com origem nas evidências, até 12 caracteres, ex.: "38%", "7 em 10", "2.500"; ou null),"proof_label":string|null (complemento curto, até 60 caracteres, ex.: "das oportunidades paradas há mais de 30 dias"),"visual_concept":string,"image_prompt":string (cena concreta, pessoas brasileiras naturais, vertical 4:5, espaço negativo indicado; SEM texto, letras, logos, marcas, ícones, gráficos ou molduras),"negative_space":"left|right|top|bottom","template_id":"T01|T02|T03|T04","caption":{"hook":string,"body":string,"practical_takeaway":string,"cta":string,"hashtags":[string]},"source_claims":[{"text":string,"evidence_id":string}]}]}
+  { id: 'newsletter_structure', name: 'Estruturar texto pronto (sem reescrever)', version: 1, active: true, prompt_text:
+`O editor já escreveu a newsletter. Sua tarefa é APENAS organizar o texto no JSON abaixo, preservando as palavras dele. Não reescreva, não resuma, não acrescente ideias, não mude o tom. Só pode: separar em blocos, criar rótulos (labels) curtos em caixa alta quando não houver, propor subject e preheader a partir do próprio texto se não existirem, e dividir listas em itens.
+Se um bloco não existir no texto, deixe o array vazio ou a string vazia; nunca invente conteúdo.
+{"subject": string, "preheader": string, "headline": string, "intro": string,
+"sections": [{"label": string, "title": string, "body": string, "evidence_ids": []}],
+"practical_block": {"label": string, "title": string, "intro": string, "steps": [{"title": string, "text": string}]},
+"interpretation": {"label": string, "title": string, "items": [{"title": string, "text": string}]},
+"action": {"label": string, "title": string, "steps": [{"title": string, "text": string}]},
+"common_error": {"label": string, "title": string, "body": string},
+"meeting_questions": {"label": string, "title": string, "questions": [string]},
+"question_of_week": {"label": string, "text": string},
+"closing": string, "cta": {"label": string, "url": string, "type": string}, "claims": []}
+TEXTO DO EDITOR:
+{{text}}` },
+  { id: 'posts_derive', name: 'Derivação dos três posts', version: 3, active: true, prompt_text:
+`A newsletter abaixo foi aprovada. Transforme-a em três posts de alto nível editorial, seguindo a LINHA EDITORIAL abaixo. Não resuma a newsletter: reinterprete a tese para cada público.
+{{guide}}
+Regras de marca: todos os posts assinam VendaMais; nunca escreva "BU" ou "pela ótica de" no texto publicado. Cada post vive sozinho, entrega valor sem clique, CTA leve, até 5 hashtags. A legenda não repete o texto da arte.
+Para cada post, defina internamente público, objetivo, mensagem principal e reação desejada (campo "brief"), e escolha o formato pela ideia (campo "format": "single" ou "carousel"; carrossel só para raciocínio progressivo, antes/depois, camadas ou framework).
+Retorne JSON: {"posts":[{"angle":"training|consulting|business","brief":{"audience":string,"objective":string,"message":string,"reaction":string},"format":"single|carousel","format_reason":string,"thesis":string,"headline":string (até 12 palavras, sem ponto final),"support_line":string (até 20 palavras),"proof_number":string|null (SÓ o número curto com origem nas evidências, até 12 caracteres, ex.: "38%", "7 em 10", "2.500"; ou null),"proof_label":string|null (complemento curto, até 60 caracteres, ex.: "das oportunidades paradas há mais de 30 dias"),"visual_concept":string,"image_prompt":string (cena concreta, pessoas brasileiras naturais, vertical 4:5, espaço negativo indicado; SEM texto, letras, logos, marcas, ícones, gráficos ou molduras),"negative_space":"left|right|top|bottom","template_id":"T01|T02|T03|T04","caption":{"hook":string,"body":string,"practical_takeaway":string,"cta":string,"hashtags":[string]},"source_claims":[{"text":string,"evidence_id":string}]}]}
 Newsletter aprovada: {{newsletter}}
 Evidências: {{evidence}}` },
   { id: 'post_rewrite', name: 'Regeneração local de post', version: 1, active: true, prompt_text:

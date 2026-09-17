@@ -1,7 +1,7 @@
-VERSÃO ESTÁTICA (sem build). Como publicar:
-1. No GitHub, repositório post_vendamais: apague TODOS os arquivos e pastas antigos (Settings > Delete não; apenas apague os arquivos, ou crie um repositório novo chamado post-vendamais-site).
-   Forma simples: Add file > Upload files, arraste todo o conteúdo desta pasta e confirme. Depois apague pelo site as pastas app/, supabase/, scripts/ e os arquivos package.json, next.config.mjs (lápis > ícone de lixeira).
-2. Edite config.js no GitHub: cole Project URL e anon key do Supabase.
-3. Na Vercel, projeto post-vendamais > Settings > General > Framework Preset = "Other", Build Command vazio, Output Directory vazio. Salve. Deployments > Redeploy.
-4. Abra https://post-vendamais.vercel.app/ com Ctrl+F5.
-A IA de texto e imagem usa as Edge Functions do Supabase (rode setup-supabase.sh uma vez, ou eu te guio).
+ATUALIZAÇÃO v2 (linha editorial + modo Texto pronto + correções)
+1. GitHub > repositório post_vendamais > Add file > Upload files.
+2. Arraste TODO o conteúdo desta pasta (index.html, Content Engine.dc.html e a pasta engine). Confirme "Commit changes".
+   O GitHub substitui os arquivos de mesmo nome e cria engine/editorial-guide.js (novo).
+3. Aguarde o ✅ da Vercel (1 a 2 min). Abra https://post-vendamais.vercel.app com Ctrl+Shift+R.
+4. Teste: Nova edição > aba "Texto pronto" > cole a newsletter > Montar newsletter.
+Novidades: Brand Center > Linha editorial; posts derivados seguem o Guia Editorial e escolhem formato pela ideia.

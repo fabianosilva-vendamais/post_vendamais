@@ -2,6 +2,7 @@
 import { db, uid, now, audit, activeRules, assetByType, blobs } from './store.js';
 import { textJSON, imageGenerate } from './providers.js';
 import { fill } from './prompts.js';
+import { guideForPrompt, EDITORIAL_GUIDE_V1 } from './editorial-guide.js';
 import { deterministicChecks, combineScore, visualChecks } from './qa.js';
 import { render, renderSlide, loadImage, ensureFonts, canvasToBlob } from './social-render.js';
 import { current as currentNL, getPath, setPath, download, sanitize } from './newsletter-flow.js';
@@ -17,15 +18,17 @@ export async function derive(app) {
   const ed = app.edition(); const nl = currentNL(ed.id); if (!nl?.is_approved) throw new Error('Aprove a newsletter antes de gerar os posts.');
   const evidence = app.evidence(ed.id); const R = activeRules(); const existing = postsOf(ed.id);
   const lockedNote = existing.filter(p => Object.values(p.meta?.locks || {}).some(Boolean)).map(p => `Post ${p.angle}: manter exatamente ${Object.keys(p.meta.locks).filter(k => p.meta.locks[k]).map(k => `${k}=${JSON.stringify(getPath(p.content_json, k))}`).join('; ')}`).join('\n');
-  const p = fill(prompt('posts_derive'), { newsletter: JSON.stringify(nl.content_json).slice(0, 16000), evidence: evidenceText(evidence) }) + (lockedNote ? `\nCAMPOS FIXADOS PELO EDITOR:\n${lockedNote}` : '') + `\nDireção de imagem por ângulo: ${ANGLES.map(a => `${a}: preferir ${R.angles[a].image}; evitar ${R.angles[a].image_avoid}`).join(' | ')}`;
+  const recent = db.posts.filter(x => x.edition_id !== ed.id && (x.status === 'approved' || x.status === 'exported')).sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || '')).slice(0, 6).map(x => `${x.format === 'carousel' ? 'carrossel' : 'peça única'} ${x.template_id}`);
+  const guide = guideForPrompt(db.editorial_guide || EDITORIAL_GUIDE_V1, recent);
+  const p = fill(prompt('posts_derive'), { newsletter: JSON.stringify(nl.content_json).slice(0, 16000), evidence: evidenceText(evidence), guide }) + (lockedNote ? `\nCAMPOS FIXADOS PELO EDITOR:\n${lockedNote}` : '') + `\nDireção de imagem por ângulo: ${ANGLES.map(a => `${a}: preferir ${R.angles[a].image}; evitar ${R.angles[a].image_avoid}`).join(' | ')}`;
   const out = await textJSON({ system: prompt('editor_base'), prompt: p, purpose: 'posts.derive', maxTokens: 10000 });
   const list = Array.isArray(out.posts) ? out.posts : [];
   for (const a of ANGLES) {
     const c = list.find(x => x.angle === a) || {}; const prev = post(ed.id, a);
     const content = normalizePost(c, a);
     if (prev?.meta?.locks) for (const k of Object.keys(prev.meta.locks)) if (prev.meta.locks[k]) setPath(content, k, JSON.parse(JSON.stringify(getPath(prev.content_json, k))));
-    if (prev) { prev.versions = prev.versions || []; prev.versions.push({ content_json: prev.content_json, at: prev.updated_at || prev.created_at, origin: prev.origin }); prev.content_json = content; prev.origin = 'ai'; prev.score = null; prev.qa_json = null; prev.status = 'draft'; prev.updated_at = now(); if (!prev.template_id || !prev.meta?.edited?.template_id) prev.template_id = content.template_id || DEFAULT_TEMPLATE[a]; }
-    else db.posts.push({ id: uid('post'), edition_id: ed.id, angle: a, content_json: content, template_id: ['T01', 'T02', 'T03', 'T04'].includes(content.template_id) ? content.template_id : DEFAULT_TEMPLATE[a], image_id: null, crop: { scale: 1, x: 0.5, y: 0.5 }, partner_id: null, status: 'draft', score: null, qa_json: null, origin: 'ai', meta: { locks: {}, edited: {} }, versions: [], created_at: now(), updated_at: now() });
+    if (prev) { prev.versions = prev.versions || []; prev.versions.push({ content_json: prev.content_json, at: prev.updated_at || prev.created_at, origin: prev.origin }); prev.content_json = content; prev.origin = 'ai'; prev.score = null; prev.qa_json = null; prev.status = 'draft'; prev.updated_at = now(); if (!prev.template_id || !prev.meta?.edited?.template_id) prev.template_id = content.template_id || DEFAULT_TEMPLATE[a]; if (!prev.meta?.edited?.format) prev.format = c.format === 'carousel' ? 'carousel' : 'single'; }
+    else db.posts.push({ id: uid('post'), edition_id: ed.id, angle: a, content_json: content, template_id: ['T01', 'T02', 'T03', 'T04'].includes(content.template_id) ? content.template_id : DEFAULT_TEMPLATE[a], image_id: null, crop: { scale: 1, x: 0.5, y: 0.5 }, partner_id: null, format: c.format === 'carousel' ? 'carousel' : 'single', status: 'draft', score: null, qa_json: null, origin: 'ai', meta: { locks: {}, edited: {} }, versions: [], created_at: now(), updated_at: now() });
   }
   app.setStatus(ed, 'posts_generated'); audit('posts.derive', 'edition', ed.id, { count: list.length }); app.save();
 }
@@ -35,7 +38,7 @@ export function normalizePost(c, angle) {
   let pn = String(c.proof_number || '').trim(), pl = String(c.proof_label || '').trim();
   if (pn.length > 14) { const m = pn.match(/(\d+(?:[.,]\d+)*\s*(?:%|em cada \d+|de cada \d+|em \d+|mil|milhões|bilhões|pontos|p\.p\.)?)/i); if (m) { pl = pl || pn.replace(m[0], '').replace(/^[\s,.:;]+|[\s,.:;]+$/g, '').replace(/\s{2,}/g, ' '); pn = m[0].replace(/\s+(de|em) cada\s+/i, ' em ').trim(); } else { pl = pl || pn; pn = ''; } }
   if (pl.length > 90) pl = pl.slice(0, 87).replace(/\s\S*$/, '') ;
-  return { angle, thesis: c.thesis || '', headline: String(c.headline || '').replace(/[.]+$/, ''), support_line: c.support_line || '', proof_number: pn, proof_label: pl, visual_concept: c.visual_concept || '', image_prompt: c.image_prompt || '', negative_space: c.negative_space || 'bottom', template_id: c.template_id || '', kicker: c.kicker || R.angles[angle].kicker,
+  return { angle, brief: c.brief || null, format_reason: c.format_reason || '', thesis: c.thesis || '', headline: String(c.headline || '').replace(/[.]+$/, ''), support_line: c.support_line || '', proof_number: pn, proof_label: pl, visual_concept: c.visual_concept || '', image_prompt: c.image_prompt || '', negative_space: c.negative_space || 'bottom', template_id: c.template_id || '', kicker: c.kicker || R.angles[angle].kicker,
     caption: { hook: cap.hook || '', body: cap.body || '', practical_takeaway: cap.practical_takeaway || '', cta: cap.cta || '', hashtags: Array.isArray(cap.hashtags) ? cap.hashtags.slice(0, R.voice.length.hashtags_max) : [] }, source_claims: Array.isArray(c.source_claims) ? c.source_claims : [] };
 }
 export function edit(app, p, path, value) { if (JSON.stringify(getPath(p.content_json, path)) === JSON.stringify(value)) return; p.versions = p.versions || []; p.versions.push({ content_json: JSON.parse(JSON.stringify(p.content_json)), at: now(), origin: 'autosave' }); if (p.versions.length > 40) p.versions.shift(); setPath(p.content_json, path, value); p.meta.edited[path] = 'human'; p.score = null; p.updated_at = now(); app.save('Autosave'); }
@@ -75,7 +78,7 @@ export async function buildSpec(app, p) {
 export async function renderPost(app, p, canvas) { await ensureFonts(); const spec = await buildSpec(app, p); const meta = render(canvas, spec); return { spec, meta }; }
 
 // ---- Carrossel ----
-export function setFormat(app, p, format) { p.format = format; p.updated_at = now(); audit('post.format', 'post', p.id, { format }); app.save(); }
+export function setFormat(app, p, format) { p.format = format; p.meta.edited.format = 'human'; p.updated_at = now(); audit('post.format', 'post', p.id, { format }); app.save(); }
 export async function deriveCarousel(app, p, slides = 6) {
   const evidence = app.evidence(p.edition_id); const R = activeRules();
   const pr = fill(prompt('carousel_derive'), { angle: p.angle, slides, post: JSON.stringify(p.content_json), evidence: evidenceText(evidence) });
@@ -111,7 +114,8 @@ function buildZip(files) {
 }
 export async function runQA(app, p) {
   const evidence = app.evidence(p.edition_id); const R = activeRules(); const det = deterministicChecks(p.content_json, evidence, 'post');
-  const pr = fill(prompt('qa_audit'), { channel: `post social 1080x1350 (LinkedIn + Instagram) com legenda de 400 a 1.500 caracteres, ângulo ${p.angle}, nível A`, piece: JSON.stringify(p.content_json), evidence: evidenceText(evidence) });
+  const G = db.editorial_guide || EDITORIAL_GUIDE_V1; const ga = G.angles[p.angle];
+  const pr = fill(prompt('qa_audit'), { channel: `post social 1080x1350 (LinkedIn + Instagram) com legenda de 400 a 1.500 caracteres, ângulo ${ga.label} para ${ga.audience}. LINHA EDITORIAL: reprove (severity bloqueio) se ${G.quality_gate.join('; ')}. Voz: ${G.voice.traits.join('; ')}. CTA nunca: ${G.cta.avoid.join(' / ')}`, piece: JSON.stringify(p.content_json), evidence: evidenceText(evidence) });
   const ai = await textJSON({ system: prompt('editor_base'), prompt: pr, purpose: 'post.qa' });
   const canvas = document.createElement('canvas'); const { spec, meta } = await renderPost(app, p, canvas);
   const vis = visualChecks({ templateId: p.template_id, hasImage: !!spec.image, logoAssetOk: !!(spec.logoPrimary && spec.logoNegative), headline: p.content_json.headline, headlineFontPx: meta.headlineFontPx, portraitOk: !!spec.portrait, partner: spec.partner });

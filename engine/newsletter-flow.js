@@ -52,8 +52,18 @@ function lockedText(prev) {
 }
 function prompt(id) { return db.prompt_templates.find(p => p.id === id && p.active)?.prompt_text || ''; }
 
+// Modo "texto pronto": o editor traz a newsletter escrita; a IA só estrutura em blocos, sem reescrever.
+async function structureReady(app, ed, evidence, prev) {
+  const text = (ed.brief.ready_text || '').trim(); if (text.split(/\s+/).length < 80) throw new Error('Cole o texto completo da newsletter (mínimo 80 palavras) no campo "Texto pronto".');
+  const out = await textJSON({ system: 'Você organiza texto em JSON sem alterar as palavras do autor. Retorne apenas JSON válido; dentro das strings use aspas simples para citações.', prompt: fill(prompt('newsletter_structure'), { text }), purpose: 'newsletter.structure', maxTokens: 9000 });
+  const content = normalize(out, ed);
+  const v = { id: uid('nlv'), edition_id: ed.id, n: (prev?.n || 0) + 1, content_json: content, meta: { locks: {}, edited: {}, mode: 'ready' }, origin: 'human', score: null, qa_json: null, is_approved: false, created_at: now(), provider: db.settings.text_provider, note: 'Texto do editor, estruturado pelo sistema' };
+  const det = deterministicChecks(content, evidence, 'newsletter'); v.qa_json = { deterministic: det };
+  db.newsletter_versions.push(v); app.setStatus(ed, 'newsletter_generated'); audit('newsletter.structure', 'newsletter_version', v.id, { n: v.n, words: det.wordCount }); app.save(); return v;
+}
 export async function generate(app) {
   const ed = app.edition(); const evidence = app.evidence(ed.id); const prev = current(ed.id);
+  if (ed.brief.mode === 'ready') return structureReady(app, ed, evidence, prev);
   const p = fill(prompt('newsletter_generate'), { length_words: LENGTH_WORDS[ed.brief.length] || 950, briefing: briefingText(ed, evidence), evidence: evidenceText(evidence), locked: lockedText(prev) });
   // Geração em duas etapas (mesmo schema): parte 1 = tese e desenvolvimento; parte 2 = aplicação e fechamento, com a parte 1 como contexto. Respostas menores = menos timeout e JSON mais confiável.
   const part1 = await textJSON({ system: prompt('editor_base'), prompt: p + '\n\nETAPA 1 DE 2: retorne SOMENTE estas chaves do JSON: subject, preheader, headline, intro, sections, practical_block, sources_used, claims.', purpose: 'newsletter.generate.1', maxTokens: 6000 });
