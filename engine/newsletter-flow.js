@@ -54,9 +54,24 @@ function prompt(id) { return db.prompt_templates.find(p => p.id === id && p.acti
 
 // Modo "texto pronto": o editor traz a newsletter escrita; a IA só estrutura em blocos, sem reescrever.
 async function structureReady(app, ed, evidence, prev) {
-  const text = (ed.brief.ready_text || '').trim(); if (text.split(/\s+/).length < 80) throw new Error('Cole o texto completo da newsletter (mínimo 80 palavras) no campo "Texto pronto".');
+  const R = activeRules();
+  // Limpeza determinística: remove cabeçalho/slogan/rodapé que o template já imprime.
+  const junk = [new RegExp('^\\s*' + R.newsletter.name.replace(/\s+/g, '\\s*') + '\\s*([•·|-].*)?$', 'i'), new RegExp('^\\s*' + R.newsletter.tagline + '\\s*$', 'i'), /^\s*edi[çc][aã]o\s*(piloto|n?º?\s*\d+).*$/i, /^\s*(cancelar inscri[çc][aã]o|unsubscribe|newsletter semanal).*$/i];
+  const text = (ed.brief.ready_text || '').split('\n').filter(l => !junk.some(rx => rx.test(l))).join('\n').trim();
+  if (text.split(/\s+/).length < 80) throw new Error('Cole o texto completo da newsletter (mínimo 80 palavras) no campo "Texto pronto".');
   const out = await textJSON({ system: 'Você organiza texto em JSON sem alterar as palavras do autor. Retorne apenas JSON válido; dentro das strings use aspas simples para citações.', prompt: fill(prompt('newsletter_structure'), { text }), purpose: 'newsletter.structure', maxTokens: 9000 });
   const content = normalize(out, ed);
+  const isJunk = (s) => !s || new RegExp('^' + R.newsletter.name.replace(/\s+/g, '\\s*') + '$', 'i').test(s.trim()) || s.trim().toLowerCase() === R.newsletter.tagline.toLowerCase();
+  if (isJunk(content.headline)) { const firstLine = text.split('\n').map(l => l.trim()).find(l => l.length > 20 && l.length < 140) || ''; content.headline = firstLine.replace(/[.]+$/, ''); }
+  if (isJunk(content.intro)) content.intro = '';
+  const stripNum = (s = '') => String(s).replace(/^\s*\d+\s*[.)-]\s*/, '');
+  ['practical_block.steps', 'action.steps', 'interpretation.items'].forEach(k => { const arr = getPath(content, k); if (Array.isArray(arr)) arr.forEach(it => { it.title = stripNum(it.title); }); });
+  // Seções que o template já cobre em blocos próprios (podcast, agenda, rodapé) ou que duplicam interpretação
+  const interpTitle = (content.interpretation?.title || '').trim().toLowerCase();
+  content.sections = (content.sections || []).filter(s => { const t = (s.title || '').toLowerCase(), l = (s.label || '').toLowerCase(); if (/podcast|agenda|cancelar|newsletter semanal/.test(t + ' ' + l)) return false; if (interpTitle && t === interpTitle && content.interpretation.items?.length) return false; return (s.body || '').trim().length > 0 || (s.title || '').trim().length > 0; });
+  // Fechamento: se veio vazio e a última seção é curta e conclusiva, promove
+  if (!content.closing && content.sections.length && (content.sections[content.sections.length - 1].body || '').split(/\s+/).length < 60 && !content.sections[content.sections.length - 1].evidence_ids?.length) { const last = content.sections.pop(); content.closing = [last.title, last.body].filter(Boolean).join('\n\n'); }
+  content.intro = content.intro.split('\n').filter(l => !isJunk(l)).join('\n').trim();
   const v = { id: uid('nlv'), edition_id: ed.id, n: (prev?.n || 0) + 1, content_json: content, meta: { locks: {}, edited: {}, mode: 'ready' }, origin: 'human', score: null, qa_json: null, is_approved: false, created_at: now(), provider: db.settings.text_provider, note: 'Texto do editor, estruturado pelo sistema' };
   const det = deterministicChecks(content, evidence, 'newsletter'); v.qa_json = { deterministic: det };
   db.newsletter_versions.push(v); app.setStatus(ed, 'newsletter_generated'); audit('newsletter.structure', 'newsletter_version', v.id, { n: v.n, words: det.wordCount }); app.save(); return v;

@@ -1,7 +1,2 @@
-ATUALIZAÇÃO v2 (linha editorial + modo Texto pronto + correções)
-1. GitHub > repositório post_vendamais > Add file > Upload files.
-2. Arraste TODO o conteúdo desta pasta (index.html, Content Engine.dc.html e a pasta engine). Confirme "Commit changes".
-   O GitHub substitui os arquivos de mesmo nome e cria engine/editorial-guide.js (novo).
-3. Aguarde o ✅ da Vercel (1 a 2 min). Abra https://post-vendamais.vercel.app com Ctrl+Shift+R.
-4. Teste: Nova edição > aba "Texto pronto" > cole a newsletter > Montar newsletter.
-Novidades: Brand Center > Linha editorial; posts derivados seguem o Guia Editorial e escolhem formato pela ideia.
+GitHub > post_vendamais > Add file > Upload files > arraste SOMENTE a pasta "engine" desta pasta > Commit changes.
+Depois: Vercel (aguarde o check verde) > site com Ctrl+Shift+R > Editor da Newsletter > Nova versao pela IA.

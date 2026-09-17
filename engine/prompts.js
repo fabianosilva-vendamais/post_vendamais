@@ -42,8 +42,11 @@ Conteúdo atual do bloco: {{block_json}}
 Contexto da newsletter: {{context}}
 Evidências: {{evidence}}
 Retorne apenas o JSON do bloco.` },
-  { id: 'newsletter_structure', name: 'Estruturar texto pronto (sem reescrever)', version: 1, active: true, prompt_text:
+  { id: 'newsletter_structure', name: 'Estruturar texto pronto (sem reescrever)', version: 3, active: true, prompt_text:
 `O editor já escreveu a newsletter. Sua tarefa é APENAS organizar o texto no JSON abaixo, preservando as palavras dele. Não reescreva, não resuma, não acrescente ideias, não mude o tom. Só pode: separar em blocos, criar rótulos (labels) curtos em caixa alta quando não houver, propor subject e preheader a partir do próprio texto se não existirem, e dividir listas em itens.
+IGNORE (não coloque em nenhum campo): nome da newsletter ('Radar VendaMais'), número/data da edição, o slogan 'Vendas para quem influencia vendas', cabeçalhos de marca, rodapé, links de cancelamento. O template já imprime isso.
+headline = o título editorial da edição (a frase-tese, normalmente a primeira frase forte ou a pergunta central), sem ponto final. intro = só os 2 a 4 primeiros parágrafos que abrem o problema. O restante vai para sections (cada subtítulo ou mudança de assunto vira uma seção com label, title e body), practical_block (ferramenta, checklist, diagnóstico), interpretation (como interpretar/ler), action (como agir, passos), common_error, meeting_questions, question_of_week, closing (último parágrafo conclusivo), cta (frase de chamada e link, se houver).
+Mantenha a ORDEM original do texto dentro de sections. Não repita o mesmo conteúdo em dois blocos. Nos títulos de itens (steps, items) NÃO inclua numeração ('1.', '2)'): o template numera. O bloco de podcast e a agenda NÃO entram em sections (o template já os imprime). O parágrafo final de assinatura ('Vendas levadas a sério', 'A VendaMais estrutura...') vai em closing.
 Se um bloco não existir no texto, deixe o array vazio ou a string vazia; nunca invente conteúdo.
 {"subject": string, "preheader": string, "headline": string, "intro": string,
 "sections": [{"label": string, "title": string, "body": string, "evidence_ids": []}],
