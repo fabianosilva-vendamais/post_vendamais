@@ -575,7 +575,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
       <sc-if value="{{ noNewsletter }}" hint-placeholder-val="{{ false }}">
         <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:32px;color:#5E6770;font-size:14px;display:flex;flex-direction:column;gap:12px;align-items:flex-start">
           <span>{{ nlEmptyMsg }}</span>
-          <button onClick="{{ generateNewsletter }}" disabled="{{ nlGenDisabled }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:12px 20px;font-weight:600">Gerar newsletter</button>
+          <button onClick="{{ generateNewsletter }}" disabled="{{ nlGenDisabled }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:12px 20px;font-weight:600">{{ nlGenLabel }}</button>
         </div>
       </sc-if>
       <sc-if value="{{ hasNewsletter }}" hint-placeholder-val="{{ false }}">
@@ -987,7 +987,7 @@ class Component extends DCLogic {
   onBriefAgenda = (e) => { this.onBrief({ target: { dataset: { field: 'agenda_enabled' }, value: e.target.checked, type: 'checkbox' } }); };
   saveEdition = () => { const b = this.state.brief; if (!b.theme.trim()) return this.toast('Informe o tema central.', 'error'); const db = this.db(); let ed = this.edition(); if (!ed) { ed = { id: this.M.store.uid('ed'), status: 'draft', created_at: this.M.store.now() }; db.editions.unshift(ed); this.M.store.audit('edition.create', 'edition', ed.id, { theme: b.theme }); } ed.brief = b; ed.title = b.title || b.theme; ed.theme = b.theme; ed.audience = b.audience; ed.objective = b.objective; ed.edition_date = b.edition_date; ed.updated_at = this.M.store.now(); this.save(); this.setState({ editionId: ed.id }, this.persistUI); this.toast(b.mode === 'ready' ? 'Edição salva. Clique em Montar newsletter.' : 'Edição salva. Agora adicione as fontes e analise.'); };
   setBriefMode = (e) => { this.onBrief({ target: { dataset: { field: 'mode' }, value: e.currentTarget.dataset.mode, type: 'text' } }); };
-  buildReady = () => { const b = this.state.brief; if (!b.theme.trim()) return this.toast('Informe o tema.', 'error'); if ((b.ready_text || '').trim().split(/\s+/).length < 80) return this.toast('Cole o texto completo da newsletter.', 'error'); if (!this.edition()) this.saveEdition(); return this.run('Organizando seu texto em blocos', async () => { await this.M.newsletter.generate(this); this.setState({ route: 'newsletter' }, this.persistUI); this.toast('Newsletter montada com o seu texto. Revise, aprove e gere os posts.'); }); };
+  buildReady = () => { const b = this.state.brief; if (!b.theme.trim()) return this.toast('Informe o tema.', 'error'); if ((b.ready_text || '').trim().split(/\s+/).length < 80) return this.toast('Cole o texto completo da newsletter.', 'error'); if (!this.edition()) this.saveEdition(); return this.run('Organizando seu texto em blocos', async () => { const st = this.M.providers.textProviderStatus(); if (!st.ok) throw new Error(`IA de texto não configurada (${st.label}). Em Configurações, escolha OpenAI.`); await this.M.newsletter.generate(this); this.setState({ route: 'newsletter' }, this.persistUI); this.toast('Newsletter montada com o seu texto. Revise, aprove e gere os posts.'); }); };
 
   // ---------- Fontes ----------
   setSourceType = (e) => this.setState({ srcDraft: { ...this.state.srcDraft, type: e.currentTarget.dataset.type, file: null } });
@@ -1110,7 +1110,7 @@ class Component extends DCLogic {
 
   newsletterVals(ed, db, fmtDT) {
     const NLm = this.M.newsletter; const S = this.state; const v = ed && NLm ? NLm.current(ed.id) : null; const an = ed ? db.analyses.find(a => a.edition_id === ed.id) : null;
-    const out = { hasNewsletter: !!v, noNewsletter: !v, nlEmptyMsg: an ? 'Nenhuma versão gerada. A newsletter será escrita a partir do briefing e das evidências analisadas.' : 'Analise as fontes antes de gerar a newsletter.', nlGenDisabled: !an || S.busy, versionRows: [], noVersions: true, compareCols: [], hasCompare: false, compareHint: '', qa: { criteria: [], blockers: [], warnings: [], aiIssues: [] }, blockRows: [], outIs: {}, outTabStyle: {}, pvModeStyle: {} };
+    const out = { hasNewsletter: !!v, noNewsletter: !v, nlEmptyMsg: ed?.brief?.mode !== 'ai' ? ((ed?.brief?.ready_text || '').trim().split(/\s+/).filter(Boolean).length >= 80 ? 'Texto pronto colado no briefing. Clique para montar a newsletter em blocos.' : 'Cole o texto da newsletter no briefing (aba Texto pronto) e clique em Montar newsletter.') : an ? 'Nenhuma versão gerada. A newsletter será escrita a partir do briefing e das evidências analisadas.' : 'Analise as fontes antes de gerar a newsletter.', nlGenDisabled: S.busy || (ed?.brief?.mode === 'ai' ? !an : (ed?.brief?.ready_text || '').trim().split(/\s+/).filter(Boolean).length < 80), nlGenLabel: ed?.brief?.mode !== 'ai' ? 'Montar newsletter' : 'Gerar newsletter', versionRows: [], noVersions: true, compareCols: [], hasCompare: false, compareHint: '', qa: { criteria: [], blockers: [], warnings: [], aiIssues: [] }, blockRows: [], outIs: {}, outTabStyle: {}, pvModeStyle: {} };
     if (!v) return out;
     const c = v.content_json; const drafts = S.drafts || {}; const val = (p) => (p in drafts ? drafts[p] : (NLm.getPath(c, p) ?? ''));
     const locks = v.meta?.locks || {}; const edited = v.meta?.edited || {};

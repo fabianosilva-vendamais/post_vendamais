@@ -5,6 +5,8 @@ export class ConfigError extends Error { constructor(m, hint) { super(m); this.n
 
 export function supabaseConfigured() { return !!(db.settings.supabase_url && db.settings.supabase_anon_key); }
 export function textProviderStatus() {
+  // Em produção (Supabase configurado) o Claude integrado não existe: força OpenAI automaticamente.
+  if (db.settings.text_provider === 'claude_builtin' && supabaseConfigured() && !(typeof window !== 'undefined' && window.claude?.complete)) { db.settings.text_provider = 'openai'; try { localStorage.setItem('vm_content_engine_db_v1', JSON.stringify(db)); } catch (e) {} }
   const p = db.settings.text_provider;
   if (p === 'claude_builtin') return { ok: typeof window !== 'undefined' && !!window.claude?.complete, label: 'Claude (integrado à plataforma)', hint: 'Disponível apenas dentro desta plataforma, sem chave.' };
   return { ok: functionsConfigured(), label: { openai: 'OpenAI', gemini: 'Gemini', anthropic: 'Anthropic' }[p] || p, hint: functionsConfigured() ? 'Chave configurada nos secrets da Edge Function text-generate.' : 'Requer Supabase configurado (URL + anon key) e Edge Function text-generate com a chave do provedor.' };
