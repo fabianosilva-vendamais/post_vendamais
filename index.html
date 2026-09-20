@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<head><script src="/config.js"></script>
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="./support.js"></script>
@@ -1140,7 +1140,7 @@ class Component extends DCLogic {
     out.previewFrameStyle = `border:0;background:#EEF1F4;width:${mode === 'mobile' ? '375px' : '100%'};max-width:100%;height:70vh;border-radius:${mode === 'mobile' ? '20px' : '4px'}`; out.outHtml = o.html; out.outText = o.text;
     const logos = this.NL().logoUrls(this); out.exportHint = (!logos.logoNegUrl ? 'Logo negativo ausente no Brand Center: o HTML sai com marcador de logo não configurado. ' : '') + (logos.logoNegUrl.startsWith('data:') ? 'Os logos estão embutidos como data URL; para envio por e-mail, hospede-os (Supabase Storage) e substitua as URLs. ' : 'Antes do envio, confirme que as URLs dos logos são públicas (Supabase Storage). ') + 'O rodapé traz {{unsubscribe_url}} para a plataforma de e-mail substituir.';
     out.nl = v; out.nlNotApproved = !v.is_approved; out.nlApprovedLabel = v.is_approved ? 'Aprovada · fonte-mãe' : 'Em edição'; out.nlApprovedChip = `display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;background:${v.is_approved ? '#DCFCE7' : '#E6E2DA'};color:${v.is_approved ? '#15803D' : '#5E6770'}`;
-    const det = v.qa_json?.deterministic || this.M.qa.deterministicChecks(c, this.evidence(ed.id), 'newsletter'); out.nlMeta = `${det.wordCount} palavras · ${v.origin === 'ai' ? 'gerada pela IA' : v.origin === 'human' ? 'salva pelo editor' : 'restaurada'} em ${fmtDT(v.created_at)} · ${Object.keys(locks).filter(k => locks[k]).length} bloco(s) fixado(s)`;
+    const det = v.qa_json?.deterministic || this.M.qa.deterministicChecks(c, this.evidence(ed.id), 'newsletter', NLm.qaOpts(v)); out.nlMeta = `${det.wordCount} palavras · ${v.origin === 'ai' ? 'gerada pela IA' : v.origin === 'human' ? 'salva pelo editor' : 'restaurada'} em ${fmtDT(v.created_at)} · ${Object.keys(locks).filter(k => locks[k]).length} bloco(s) fixado(s)`;
     out.noUndo = !this.undoStack.length; out.noRedo = !this.redoStack.length; out.regenInstruction = S.regenInstruction || '';
     const R = this.M.store.activeRules(); const ai = v.qa_json?.ai; const blockers = [...det.blockers, ...((ai?.issues || []).filter(i => i.severity === 'bloqueio').map(i => ({ where: i.where, text: i.text })))];
     const ready = v.score != null && v.score >= R.qa.threshold && blockers.length === 0;

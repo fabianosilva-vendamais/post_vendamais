@@ -16,8 +16,9 @@ export function collectClaimIds(content) {
   walk(content); return ids;
 }
 // Retorna {blockers:[], warnings:[]} para newsletter ou post (content JSON) contra as evidências.
-export function deterministicChecks(content, evidence = [], kind = 'newsletter') {
-  const R = activeRules(); const blockers = [], warnings = [];
+export function deterministicChecks(content, evidence = [], kind = 'newsletter', opts = {}) {
+  const R = activeRules(); const blockers = [], warnings = []; const human = !!opts.humanText;
+  const numSink = human ? warnings : blockers; // texto do editor: dado sem fonte é alerta para conferir, não bloqueio
   const evIds = new Set(evidence.map(e => e.id));
   const evText = evidence.map(e => e.text).join(' \n ').toLowerCase();
   const claimIds = collectClaimIds(content);
@@ -29,7 +30,7 @@ export function deterministicChecks(content, evidence = [], kind = 'newsletter')
     // 1. Grafia da marca
     for (const bad of R.brand.forbidden_spellings) if (text.includes(bad)) blockers.push({ code: 'spelling', where: path, text: `Grafia "${bad}" encontrada. Use VendaMais.` });
     // 2. Superlativo sem evidência
-    for (const s of R.voice.superlatives) { const m = new RegExp(`\\b${s}\\b`, 'i').exec(text); if (m) { const i = m.index; const window_ = text.slice(Math.max(0, i - 80), i + 120); if (!/\d/.test(window_)) blockers.push({ code: 'superlative', where: path, text: `Superlativo "${s}" sem número ao lado.` }); } }
+    for (const s of R.voice.superlatives) { const m = new RegExp(`\\b${s}\\b`, 'i').exec(text); if (m) { const i = m.index; const window_ = text.slice(Math.max(0, i - 80), i + 120); if (!/\d/.test(window_)) numSink.push({ code: 'superlative', where: path, text: `Superlativo "${s}" sem número ao lado.` }); } }
     // 3. Linguagem de BU
     if (/\bBUs?\b|pela ótica d[ae]/i.test(text)) blockers.push({ code: 'bu', where: path, text: 'Linguagem de BU exposta ao leitor.' });
     // 4. Construções proibidas
@@ -46,12 +47,13 @@ export function deterministicChecks(content, evidence = [], kind = 'newsletter')
       const raw = m[2]; const unit = m[3] || ''; const value = parseFloat(normNum(raw));
       const isData = !!m[1] || UNIT.test(unit) || /[,]/.test(raw) || /\.\d{3}\b/.test(raw) || value >= 100; // números estruturais (passos, "10 negócios", "30 dias") não são prova
       if (!isData) continue;
-      if (!numbersInEvidence.has(normNum(raw))) blockers.push({ code: 'number_no_source', where: path, text: `Dado numérico "${raw}${unit ? ' ' + unit : ''}" não consta nas evidências.` });
+      if (/^(podcast|agenda)\./.test(path)) continue;
+      if (!numbersInEvidence.has(normNum(raw))) numSink.push({ code: 'number_no_source', where: path, text: human ? `Dado "${raw}${unit ? ' ' + unit : ''}" sem fonte registrada: confirme a origem antes de enviar.` : `Dado numérico "${raw}${unit ? ' ' + unit : ''}" não consta nas evidências.` });
     }
   }
   // 9. Evidence ids inexistentes
   for (const id of claimIds) if (!evIds.has(id)) warnings.push({ code: 'bad_evidence', where: 'claims', text: `Referência ${id} não existe na análise de fontes.` });
-  if (evidence.length && claimIds.size === 0 && kind !== 'slide') blockers.push({ code: 'no_claims', where: 'claims', text: 'Nenhuma afirmação rastreada a fonte (mapa claim -> source vazio).' });
+  if (evidence.length && claimIds.size === 0 && kind !== 'slide' && !human) blockers.push({ code: 'no_claims', where: 'claims', text: 'Nenhuma afirmação rastreada a fonte (mapa claim -> source vazio).' });
   // 10. Regras de canal
   const h = content.headline || '';
   if (kind === 'post' || kind === 'slide') {

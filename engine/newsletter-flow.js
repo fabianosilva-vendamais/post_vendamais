@@ -8,6 +8,7 @@ import { renderEmail, renderPlainText } from './newsletter-render.js';
 const LENGTH_WORDS = { short: 550, standard: 950, deep: 1500 };
 export const BLOCK_LABELS = { subject: 'Assunto do e-mail', preheader: 'Preheader', headline: 'Headline principal', intro: 'Abertura', practical_block: 'Ferramenta da semana', interpretation: 'Como interpretar', action: 'Como agir', common_error: 'Erro comum', meeting_questions: 'Leve para a próxima reunião', question_of_week: 'Pergunta da semana', closing: 'Fechamento', cta: 'CTA', podcast: 'Podcast VendaMais', agenda: 'Agenda VendaMais' };
 
+export const qaOpts = (v) => ({ humanText: v?.meta?.mode === 'ready' || v?.origin === 'human' });
 export function versionsOf(editionId) { return db.newsletter_versions.filter(v => v.edition_id === editionId).sort((a, b) => a.n - b.n); }
 export function current(editionId) { const vs = versionsOf(editionId); return vs[vs.length - 1] || null; }
 export function getPath(obj, path) { return path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj); }
@@ -64,6 +65,7 @@ async function structureReady(app, ed, evidence, prev) {
   const isJunk = (s) => !s || new RegExp('^' + R.newsletter.name.replace(/\s+/g, '\\s*') + '$', 'i').test(s.trim()) || s.trim().toLowerCase() === R.newsletter.tagline.toLowerCase();
   if (isJunk(content.headline)) { const firstLine = text.split('\n').map(l => l.trim()).find(l => l.length > 20 && l.length < 140) || ''; content.headline = firstLine.replace(/[.]+$/, ''); }
   if (isJunk(content.intro)) content.intro = '';
+  if (!content.cta?.label) content.cta = { label: ed.brief.cta || 'Fale com a VendaMais', url: ed.brief.cta_url || 'https://vendamais.com.br/contato-2/', type: ed.brief.cta_type || 'conversa' };
   const stripNum = (s = '') => String(s).replace(/^\s*\d+\s*[.)-]\s*/, '');
   ['practical_block.steps', 'action.steps', 'interpretation.items'].forEach(k => { const arr = getPath(content, k); if (Array.isArray(arr)) arr.forEach(it => { it.title = stripNum(it.title); }); });
   // Seções que o template já cobre em blocos próprios (podcast, agenda, rodapé) ou que duplicam interpretação
@@ -73,7 +75,7 @@ async function structureReady(app, ed, evidence, prev) {
   if (!content.closing && content.sections.length && (content.sections[content.sections.length - 1].body || '').split(/\s+/).length < 60 && !content.sections[content.sections.length - 1].evidence_ids?.length) { const last = content.sections.pop(); content.closing = [last.title, last.body].filter(Boolean).join('\n\n'); }
   content.intro = content.intro.split('\n').filter(l => !isJunk(l)).join('\n').trim();
   const v = { id: uid('nlv'), edition_id: ed.id, n: (prev?.n || 0) + 1, content_json: content, meta: { locks: {}, edited: {}, mode: 'ready' }, origin: 'human', score: null, qa_json: null, is_approved: false, created_at: now(), provider: db.settings.text_provider, note: 'Texto do editor, estruturado pelo sistema' };
-  const det = deterministicChecks(content, evidence, 'newsletter'); v.qa_json = { deterministic: det };
+  const det = deterministicChecks(content, evidence, 'newsletter', qaOpts(v)); v.qa_json = { deterministic: det };
   db.newsletter_versions.push(v); app.setStatus(ed, 'newsletter_generated'); audit('newsletter.structure', 'newsletter_version', v.id, { n: v.n, words: det.wordCount }); app.save(); return v;
 }
 export async function generate(app) {
@@ -87,7 +89,7 @@ export async function generate(app) {
   const content = normalize(out, ed);
   if (prev?.meta?.locks) for (const path of Object.keys(prev.meta.locks)) if (prev.meta.locks[path]) setPath(content, path, JSON.parse(JSON.stringify(getPath(prev.content_json, path))));
   const v = { id: uid('nlv'), edition_id: ed.id, n: (prev?.n || 0) + 1, content_json: content, meta: { locks: { ...(prev?.meta?.locks || {}) }, edited: {} }, origin: 'ai', score: null, qa_json: null, is_approved: false, created_at: now(), provider: db.settings.text_provider };
-  const det = deterministicChecks(content, evidence, 'newsletter'); v.qa_json = { deterministic: det };
+  const det = deterministicChecks(content, evidence, 'newsletter', qaOpts(v)); v.qa_json = { deterministic: det };
   db.newsletter_versions.push(v); app.setStatus(ed, 'newsletter_generated'); audit('newsletter.generate', 'newsletter_version', v.id, { n: v.n, words: det.wordCount, blockers: det.blockers.length });
   app.save(); return v;
 }
@@ -100,13 +102,13 @@ export async function rewriteBlock(app, path, instruction) {
   let out = await textJSON({ system: prompt('editor_base'), prompt: p, purpose: `newsletter.rewrite:${path}` });
   if (typeof block === 'string') out = typeof out === 'string' ? out : (out.value ?? out[path.split('.').pop()] ?? out.text ?? out.body ?? JSON.stringify(out));
   else if (out && typeof out === 'object' && !Array.isArray(block) && out.value && typeof out.value === 'object') out = out.value;
-  snapshot(app, v); setPath(v.content_json, path, sanitize(out)); v.meta.edited[path] = 'ai'; v.qa_json = { ...(v.qa_json || {}), deterministic: deterministicChecks(v.content_json, evidence, 'newsletter'), ai: null }; v.score = null;
+  snapshot(app, v); setPath(v.content_json, path, sanitize(out)); v.meta.edited[path] = 'ai'; v.qa_json = { ...(v.qa_json || {}), deterministic: deterministicChecks(v.content_json, evidence, 'newsletter', qaOpts(v)), ai: null }; v.score = null;
   ed.updated_at = now(); audit('newsletter.rewrite_block', 'newsletter_version', v.id, { path, instruction }); app.save(); return out;
 }
 export function snapshot(app, v) { app.pushUndo(JSON.stringify(v.content_json)); }
 export function edit(app, path, value) {
   const ed = app.edition(); const v = current(ed.id); if (!v) return; if (JSON.stringify(getPath(v.content_json, path)) === JSON.stringify(value)) return;
-  snapshot(app, v); setPath(v.content_json, path, value); v.meta.edited[path] = 'human'; v.score = null; v.qa_json = { ...(v.qa_json || {}), deterministic: deterministicChecks(v.content_json, app.evidence(ed.id), 'newsletter'), ai: null }; ed.updated_at = now(); app.save('Autosave');
+  snapshot(app, v); setPath(v.content_json, path, value); v.meta.edited[path] = 'human'; v.score = null; v.qa_json = { ...(v.qa_json || {}), deterministic: deterministicChecks(v.content_json, app.evidence(ed.id), 'newsletter', qaOpts(v)), ai: null }; ed.updated_at = now(); app.save('Autosave');
 }
 export function toggleLock(app, path) { const v = current(app.edition().id); v.meta.locks = v.meta.locks || {}; v.meta.locks[path] = !v.meta.locks[path]; audit(v.meta.locks[path] ? 'newsletter.lock' : 'newsletter.unlock', 'newsletter_version', v.id, { path }); app.save(); }
 export function saveAsVersion(app, note = 'Versão salva manualmente') { const ed = app.edition(); const v = current(ed.id); const nv = { ...JSON.parse(JSON.stringify(v)), id: uid('nlv'), n: v.n + 1, origin: 'human', is_approved: false, created_at: now(), note }; db.newsletter_versions.push(nv); audit('newsletter.version.save', 'newsletter_version', nv.id, { n: nv.n, note }); app.save(); return nv; }
@@ -114,7 +116,7 @@ export function restoreVersion(app, versionId) { const ed = app.edition(); const
 
 export async function runQA(app) {
   const ed = app.edition(); const v = current(ed.id); const evidence = app.evidence(ed.id); const R = activeRules();
-  const det = deterministicChecks(v.content_json, evidence, 'newsletter');
+  const det = deterministicChecks(v.content_json, evidence, 'newsletter', qaOpts(v));
   const p = fill(prompt('qa_audit'), { channel: 'newsletter por e-mail, 700 a 1.200 palavras, nível A institucional', piece: JSON.stringify(v.content_json).slice(0, 20000), evidence: evidenceText(evidence) });
   const ai = await textJSON({ system: prompt('editor_base'), prompt: p, purpose: 'newsletter.qa' });
   const visual = 100; // e-mail: template determinístico; logo oficial verificado no export
@@ -124,7 +126,7 @@ export async function runQA(app) {
   audit('newsletter.qa', 'newsletter_version', v.id, { score, blockers: blockers.length, ready }); app.save(); return v.qa_json;
 }
 export function approve(app) {
-  const ed = app.edition(); const v = current(ed.id); const det = deterministicChecks(v.content_json, app.evidence(ed.id), 'newsletter');
+  const ed = app.edition(); const v = current(ed.id); const det = deterministicChecks(v.content_json, app.evidence(ed.id), 'newsletter', qaOpts(v));
   const blockers = [...det.blockers, ...((v.qa_json?.ai?.issues || []).filter(i => i.severity === 'bloqueio'))];
   if (blockers.length) throw new Error(`${blockers.length} bloqueio(s) impedem a aprovação. Resolva-os na Revisão VendaMais.`);
   db.newsletter_versions.filter(x => x.edition_id === ed.id).forEach(x => x.is_approved = false); v.is_approved = true; v.approved_at = now();
