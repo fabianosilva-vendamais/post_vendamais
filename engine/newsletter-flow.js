@@ -39,9 +39,13 @@ export function normalize(content, ed) {
   c.question_of_week = { label: 'PERGUNTA DA SEMANA', text: '', ...(c.question_of_week || {}) };
   c.cta = { label: '', url: '', type: b.cta_type || 'conversa', ...(c.cta || {}) };
   if (b.cta) c.cta.label = b.cta; if (b.cta_url) c.cta.url = b.cta_url; if (b.cta_type) c.cta.type = b.cta_type;
-  c.podcast = c.podcast || { enabled: !!b.podcast_title, title: b.podcast_title || '', description: '', url: b.podcast_url || '' };
-  if (b.podcast_title && !c.podcast.title) { c.podcast.title = b.podcast_title; c.podcast.url = b.podcast_url; c.podcast.enabled = true; }
-  c.agenda = c.agenda || { enabled: b.agenda_enabled !== false, items: R.newsletter.agenda.map(a => ({ ...a })) };
+  c.podcast = { enabled: false, title: '', description: '', spotify_url: '', youtube_url: '', cover_url: '', ...(c.podcast || {}) };
+  if (c.podcast.url && !c.podcast.spotify_url && !c.podcast.youtube_url) { if (/youtu/.test(c.podcast.url)) c.podcast.youtube_url = c.podcast.url; else c.podcast.spotify_url = c.podcast.url; }
+  if (b.podcast_title) { c.podcast.title = c.podcast.title || b.podcast_title; c.podcast.enabled = true; }
+  if (b.podcast_spotify) c.podcast.spotify_url = c.podcast.spotify_url || b.podcast_spotify; if (b.podcast_youtube) c.podcast.youtube_url = c.podcast.youtube_url || b.podcast_youtube; if (b.podcast_url && !c.podcast.spotify_url && !c.podcast.youtube_url) { if (/youtu/.test(b.podcast_url)) c.podcast.youtube_url = b.podcast_url; else c.podcast.spotify_url = b.podcast_url; }
+  c.events = { enabled: false, label: 'Convite VendaMais', title: '', text: '', image_url: '', url: '', cta: 'Quero participar', ...(c.events || {}) };
+  if (b.event_title || b.event_text) { c.events.enabled = true; c.events.title = c.events.title || b.event_title || ''; c.events.text = c.events.text || b.event_text || ''; c.events.url = c.events.url || b.event_url || ''; c.events.image_url = c.events.image_url || b.event_image_url || ''; }
+  delete c.agenda;
   c.claims = c.claims || []; c.sources_used = c.sources_used || [];
   ['subject', 'preheader', 'headline', 'intro', 'closing'].forEach(k => { if (typeof c[k] !== 'string') c[k] = c[k] ? String(c[k]) : ''; });
   c.headline = c.headline.replace(/[.]+$/, '');
@@ -108,7 +112,9 @@ export async function rewriteBlock(app, path, instruction) {
 export function snapshot(app, v) { app.pushUndo(JSON.stringify(v.content_json)); }
 export function edit(app, path, value) {
   const ed = app.edition(); const v = current(ed.id); if (!v) return; if (JSON.stringify(getPath(v.content_json, path)) === JSON.stringify(value)) return;
-  snapshot(app, v); setPath(v.content_json, path, value); v.meta.edited[path] = 'human'; v.score = null; v.qa_json = { ...(v.qa_json || {}), deterministic: deterministicChecks(v.content_json, app.evidence(ed.id), 'newsletter', qaOpts(v)), ai: null }; ed.updated_at = now(); app.save('Autosave');
+  snapshot(app, v); setPath(v.content_json, path, value); v.meta.edited[path] = 'human'; v.score = null;
+  if (path.startsWith('podcast.')) v.content_json.podcast.enabled = !!(v.content_json.podcast.title || '').trim();
+  if (path.startsWith('events.')) v.content_json.events.enabled = !!((v.content_json.events.title || '').trim() || (v.content_json.events.text || '').trim()); v.qa_json = { ...(v.qa_json || {}), deterministic: deterministicChecks(v.content_json, app.evidence(ed.id), 'newsletter', qaOpts(v)), ai: null }; ed.updated_at = now(); app.save('Autosave');
 }
 export function toggleLock(app, path) { const v = current(app.edition().id); v.meta.locks = v.meta.locks || {}; v.meta.locks[path] = !v.meta.locks[path]; audit(v.meta.locks[path] ? 'newsletter.lock' : 'newsletter.unlock', 'newsletter_version', v.id, { path }); app.save(); }
 export function saveAsVersion(app, note = 'Versão salva manualmente') { const ed = app.edition(); const v = current(ed.id); const nv = { ...JSON.parse(JSON.stringify(v)), id: uid('nlv'), n: v.n + 1, origin: 'human', is_approved: false, created_at: now(), note }; db.newsletter_versions.push(nv); audit('newsletter.version.save', 'newsletter_version', nv.id, { n: nv.n, note }); app.save(); return nv; }

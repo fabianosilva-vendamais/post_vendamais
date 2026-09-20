@@ -200,13 +200,31 @@ button:disabled{opacity:.5;cursor:not-allowed}
               <input data-field="cta_url" value="{{ brief.cta_url }}" onChange="{{ onBrief }}" placeholder="https://" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px"></label>
           </div>
         </sc-if>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-top:8px;border-top:1px solid #E6E2DA">
-          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Podcast da semana (título, opcional)
+        <div style="display:flex;flex-direction:column;gap:12px;padding-top:12px;border-top:1px solid #E6E2DA">
+          <span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#16263A;font-weight:700">Podcast VendaMais (opcional)</span>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Título do episódio
             <input data-field="podcast_title" value="{{ brief.podcast_title }}" onChange="{{ onBrief }}" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px"></label>
-          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Link do episódio
-            <input data-field="podcast_url" value="{{ brief.podcast_url }}" onChange="{{ onBrief }}" placeholder="https://" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px"></label>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Link do Spotify (botão Ouvir)
+              <input data-field="podcast_spotify" value="{{ brief.podcast_spotify }}" onChange="{{ onBrief }}" placeholder="https://open.spotify.com/..." style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px"></label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Link do YouTube (botão Ver + capa automática)
+              <input data-field="podcast_youtube" value="{{ brief.podcast_youtube }}" onChange="{{ onBrief }}" placeholder="https://youtu.be/..." style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px"></label>
+          </div>
         </div>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#1E1E1E"><input type="checkbox" checked="{{ brief.agenda_enabled }}" onChange="{{ onBriefAgenda }}"> Incluir bloco Agenda VendaMais (Segunda Radar, Terça E-zine do Raul, Quinta Podcast)</label>
+        <div style="display:flex;flex-direction:column;gap:12px;padding-top:12px;border-top:1px solid #E6E2DA">
+          <span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#16263A;font-weight:700">Convite para evento (opcional)</span>
+          <div style="font-size:12px;color:#5E6770;line-height:1.5">Aparece na newsletter só quando houver título ou texto. A imagem precisa ser um link público (ex.: enviada ao Brand Center → acervo, ou hospedada no site).</div>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Título do evento
+            <input data-field="event_title" value="{{ brief.event_title }}" onChange="{{ onBrief }}" placeholder="ex.: Workshop Gestão Comercial em Ação · 15/10, Curitiba" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px"></label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Texto do convite
+            <textarea data-field="event_text" value="{{ brief.event_text }}" onChange="{{ onBrief }}" rows="3" style="padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:13px;line-height:1.5;resize:vertical"></textarea></label>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Link de inscrição
+              <input data-field="event_url" value="{{ brief.event_url }}" onChange="{{ onBrief }}" placeholder="https://" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px"></label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:#5E6770">Imagem (URL pública)
+              <input data-field="event_image_url" value="{{ brief.event_image_url }}" onChange="{{ onBrief }}" placeholder="https://.../banner.jpg" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px"></label>
+          </div>
+        </div>
         <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
           <sc-if value="{{ briefIsReady }}" hint-placeholder-val="{{ true }}"><button onClick="{{ buildReady }}" disabled="{{ busy }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:12px 20px;font-weight:600">Montar newsletter</button></sc-if>
           <button onClick="{{ saveEdition }}" style="background:#16263A;color:#fff;border:0;border-radius:4px;padding:12px 20px;font-weight:600">{{ saveEditionLabel }}</button>
@@ -590,7 +608,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
             <button onClick="{{ saveVersion }}" style="background:#fff;border:1px solid #E6E2DA;border-radius:4px;padding:8px 12px;font-size:12px;font-weight:600;color:#16263A">Salvar como versão</button>
             <button onClick="{{ generateNewsletter }}" disabled="{{ busy }}" style="background:#fff;border:1px solid #E6E2DA;border-radius:4px;padding:8px 12px;font-size:12px;font-weight:600;color:#16263A">Nova versão pela IA (respeita fixados)</button>
             <button onClick="{{ runQA }}" disabled="{{ busy }}" style="background:#16263A;color:#fff;border:0;border-radius:4px;padding:8px 14px;font-size:12px;font-weight:600">Revisão VendaMais</button>
-            <sc-if value="{{ nlNotApproved }}" hint-placeholder-val="{{ true }}"><button onClick="{{ approveNewsletter }}" disabled="{{ approveDisabled }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:8px 14px;font-size:12px;font-weight:600">Aprovar como fonte-mãe</button></sc-if>
+            <sc-if value="{{ nlNotApproved }}" hint-placeholder-val="{{ true }}"><button onClick="{{ approveNewsletter }}" disabled="{{ approveDisabled }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:8px 14px;font-size:12px;font-weight:600">Aprovar newsletter e liberar posts</button></sc-if>
             <sc-if value="{{ nl.is_approved }}" hint-placeholder-val="{{ false }}"><button onClick="{{ unapproveNewsletter }}" style="background:#fff;border:1px solid #E6E2DA;border-radius:4px;padding:8px 12px;font-size:12px;font-weight:600;color:#5E6770">Reabrir edição</button></sc-if>
           </div>
         </div>
@@ -940,7 +958,7 @@ class Component extends DCLogic {
   save(label = 'Salvo') { this.M.store.save(); this.setState({ saveLabel: `${label} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` }); this.scheduleSync(); }
   toast(text, kind = 'info') { this.setState({ toast: { text, kind } }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: { text: '', kind } }), 4500); }
   async run(label, fn) { this.setState({ busy: true, busyLabel: label }); try { return await fn(); } catch (e) { console.error(e); this.toast(e.name === 'ConfigError' ? `${e.message}. ${e.hint || ''}` : `Falha: ${e.message}`, 'error'); } finally { this.setState({ busy: false, busyLabel: '' }); } }
-  emptyBrief() { const s = this.db().settings; const n = this.db().editions.length + 1; return { mode: 'ready', ready_text: '', theme: '', title: '', objective: 'Educar', audience: 'Gestor comercial', tone: s.default_tone || 'analítico', length: s.default_length || 'standard', edition_date: new Date().toISOString().slice(0, 10), number: n, cta: '', cta_type: s.default_cta_type || 'conversa', cta_url: '', notes: '', podcast_title: '', podcast_url: '', agenda_enabled: true }; }
+  emptyBrief() { const s = this.db().settings; const n = this.db().editions.length + 1; return { mode: 'ready', ready_text: '', theme: '', title: '', objective: 'Educar', audience: 'Gestor comercial', tone: s.default_tone || 'analítico', length: s.default_length || 'standard', edition_date: new Date().toISOString().slice(0, 10), number: n, cta: '', cta_type: s.default_cta_type || 'conversa', cta_url: '', notes: '', podcast_title: '', podcast_url: '', podcast_spotify: '', podcast_youtube: '', event_title: '', event_text: '', event_url: '', event_image_url: '' }; }
   edition() { return this.db().editions.find(e => e.id === this.state.editionId) || null; }
   loadBrief(id) { const e = this.db().editions.find(x => x.id === id); if (e) this.setState({ brief: { ...this.emptyBrief(), ...e.brief } }); }
   async refreshBlobUrls() {
@@ -984,7 +1002,6 @@ class Component extends DCLogic {
 
   // ---------- Briefing ----------
   onBrief = (e) => { const f = e.target.dataset.field; const brief = { ...this.state.brief, [f]: e.target.type === 'number' ? Number(e.target.value) : e.target.value }; this.setState({ brief }); const ed = this.edition(); if (ed) { ed.brief = brief; ed.title = brief.title || brief.theme; ed.theme = brief.theme; ed.audience = brief.audience; ed.objective = brief.objective; ed.edition_date = brief.edition_date; ed.updated_at = this.M.store.now(); this.save('Autosave'); } };
-  onBriefAgenda = (e) => { this.onBrief({ target: { dataset: { field: 'agenda_enabled' }, value: e.target.checked, type: 'checkbox' } }); };
   saveEdition = () => { const b = this.state.brief; if (!b.theme.trim()) return this.toast('Informe o tema central.', 'error'); const db = this.db(); let ed = this.edition(); if (!ed) { ed = { id: this.M.store.uid('ed'), status: 'draft', created_at: this.M.store.now() }; db.editions.unshift(ed); this.M.store.audit('edition.create', 'edition', ed.id, { theme: b.theme }); } ed.brief = b; ed.title = b.title || b.theme; ed.theme = b.theme; ed.audience = b.audience; ed.objective = b.objective; ed.edition_date = b.edition_date; ed.updated_at = this.M.store.now(); this.save(); this.setState({ editionId: ed.id }, this.persistUI); this.toast(b.mode === 'ready' ? 'Edição salva. Clique em Montar newsletter.' : 'Edição salva. Agora adicione as fontes e analise.'); };
   setBriefMode = (e) => { this.onBrief({ target: { dataset: { field: 'mode' }, value: e.currentTarget.dataset.mode, type: 'text' } }); };
   buildReady = () => { const b = this.state.brief; if (!b.theme.trim()) return this.toast('Informe o tema.', 'error'); if ((b.ready_text || '').trim().split(/\s+/).length < 80) return this.toast('Cole o texto completo da newsletter.', 'error'); if (!this.edition()) this.saveEdition(); return this.run('Organizando seu texto em blocos', async () => { const st = this.M.providers.textProviderStatus(); if (!st.ok) throw new Error(`IA de texto não configurada (${st.label}). Em Configurações, escolha OpenAI.`); await this.M.newsletter.generate(this); this.setState({ route: 'newsletter' }, this.persistUI); this.toast('Newsletter montada com o seu texto. Revise, aprove e gere os posts.'); }); };
@@ -1091,7 +1108,7 @@ class Component extends DCLogic {
   onRegenInstruction = (e) => this.setState({ regenInstruction: e.target.value });
   regenBlock = (e) => { const path = e.currentTarget.dataset.path; return this.run(`Regenerando ${path}`, async () => { await this.NL().rewriteBlock(this, path, this.state.regenInstruction); this.toast(`Bloco ${path} regenerado. O restante não mudou.`); this.forceUpdate(); }); };
   removeItem = (e) => { const { path, idx } = e.currentTarget.dataset; const v = this.currentNL(); const arr = this.NL().getPath(v.content_json, path); if (!Array.isArray(arr)) return; const next = arr.filter((_, i) => i !== Number(idx)); this.NL().edit(this, path, next); this.forceUpdate(); };
-  addItem = (e) => { const { path, kind } = e.currentTarget.dataset; const v = this.currentNL(); const arr = [...(this.NL().getPath(v.content_json, path) || [])]; arr.push(kind === 'question' ? 'Nova pergunta' : kind === 'agenda' ? { day: 'Dia', title: 'Título', desc: '' } : { title: 'Novo item', text: '' }); this.NL().edit(this, path, arr); this.forceUpdate(); };
+  addItem = (e) => { const { path, kind } = e.currentTarget.dataset; const v = this.currentNL(); const arr = [...(this.NL().getPath(v.content_json, path) || [])]; arr.push(kind === 'question' ? 'Nova pergunta' : { title: 'Novo item', text: '' }); this.NL().edit(this, path, arr); this.forceUpdate(); };
   addSection = () => { const v = this.currentNL(); const arr = [...(v.content_json.sections || []), { label: 'DESENVOLVIMENTO', title: 'Novo bloco', body: '', evidence_ids: [] }]; this.NL().edit(this, 'sections', arr); this.forceUpdate(); };
   applyFix = (e) => { const idx = Number(e.currentTarget.dataset.idx); return this.run('Aplicando correção', async () => { const path = await this.NL().applyFix(this, idx); this.toast('Correção aplicada em ' + this.M.qa.humanPath(path) + '. Rode a Revisão para atualizar a nota.'); this.forceUpdate(); }); };
   applyAllFixes = () => this.run('Aplicando todas as correções', async () => { const r = await this.NL().applyAllFixes(this); this.toast(r.done.length + ' correção(ões) aplicada(s)' + (r.failed.length ? '. Não consegui: ' + r.failed.join(' | ') : '') + '. Rode a Revisão para atualizar a nota.', r.failed.length ? 'error' : 'info'); this.forceUpdate(); });
@@ -1133,8 +1150,8 @@ class Component extends DCLogic {
     rows.push(mk('question_of_week', 'Pergunta da semana', [F('question_of_week.text', 'Pergunta', { rows: 2 })]));
     rows.push(mk('closing', 'Fechamento', [F('closing', 'Conclusão útil', { rows: 3 })]));
     rows.push(mk('cta', 'CTA', [F('cta.label', 'Texto do botão'), F('cta.url', 'URL'), F('cta.type', 'Tipo (conversa, diagnostico, treinamento, material, resposta)')]));
-    rows.push(mk('podcast', 'Podcast VendaMais (opcional)', [F('podcast.title', 'Título do episódio'), F('podcast.description', 'Descrição', { rows: 2 }), F('podcast.url', 'Link')], { evidence: c.podcast?.enabled ? 'ativo' : 'oculto (preencha o título no briefing para ativar)' }));
-    rows.push(mk('agenda', 'Agenda VendaMais', (c.agenda?.items || []).flatMap((a, i) => [F(`agenda.items.${i}.day`, `Dia ${i + 1}`), F(`agenda.items.${i}.title`, `Título ${i + 1}`), F(`agenda.items.${i}.desc`, `Descrição ${i + 1}`, { removePath: 'agenda.items', removeIdx: i })]), { evidence: c.agenda?.enabled ? 'ativa' : 'oculta', canAdd: true, addPath: 'agenda.items', addKind: 'agenda', addLabel: 'Adicionar dia' }));
+    rows.push(mk('podcast', 'Podcast VendaMais (opcional)', [F('podcast.title', 'Título do episódio'), F('podcast.description', 'Descrição', { rows: 2 }), F('podcast.spotify_url', 'Link do Spotify (Ouvir)'), F('podcast.youtube_url', 'Link do YouTube (Ver; a capa vem do YouTube)'), F('podcast.cover_url', 'Capa alternativa (URL pública, opcional)')], { evidence: c.podcast?.enabled ? 'ativo' : 'oculto (preencha o título para ativar)' }));
+    rows.push(mk('events', 'Convite para evento (opcional)', [F('events.label', 'Rótulo'), F('events.title', 'Título do evento'), F('events.text', 'Texto do convite', { rows: 3 }), F('events.url', 'Link de inscrição'), F('events.cta', 'Texto do botão'), F('events.image_url', 'Imagem (URL pública)')], { evidence: c.events?.enabled ? 'ativo' : 'oculto (preencha título ou texto para ativar)' }));
     out.blockRows = rows;
     const o = this.NL().renderOutputs(ed, v, this); this._previewHtml = o.preview;
     const tab = S.outTab || 'preview'; const mode = S.previewMode || 'desktop'; const tabBtn = (on) => `background:${on ? '#16263A' : '#fff'};color:${on ? '#fff' : '#16263A'};border:1px solid ${on ? '#16263A' : '#E6E2DA'};border-radius:4px;padding:7px 12px;font-size:12px;font-weight:600`;

@@ -6,12 +6,14 @@ const esc = (s = '') => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').r
 const nl = (s = '', pstyle = '') => esc(s).trim().replace(/\n{2,}/g, `</p><p style="${pstyle}">`).replace(/\n/g, '<br>');
 const pad = (n) => String(n).padStart(2, '0');
 
+const legacyPod = (pd) => { if (!pd) return pd; if (pd.url && !pd.spotify_url && !pd.youtube_url) return { ...pd, [/youtu/.test(pd.url) ? 'youtube_url' : 'spotify_url']: pd.url }; return pd; };
 export function renderEmail(n, opts = {}) {
+  n = { ...n, podcast: legacyPod(n.podcast) };
   const { logoUrl = '', logoNegUrl = '', editionNumber = 1, editionDate = '', tagline = 'Vendas para quem influencia vendas', name = 'Radar VendaMais', previewOnly = false } = opts;
   const label = (t, color = C.gray) => `<p style="margin:0 0 8px 0;font-family:${F};font-size:11px;line-height:16px;letter-spacing:1px;font-weight:700;color:${color};text-transform:uppercase;">${esc(t)}</p>`;
   const h2 = (t, color = C.navy) => `<h2 style="margin:0 0 14px 0;font-family:${F};font-size:26px;line-height:32px;font-weight:600;color:${color};">${esc(t)}</h2>`;
   const p = (t, color = C.ink, size = 15) => { const st = `margin:0 0 14px 0;font-family:${F};font-size:${size}px;line-height:${Math.round(size * 1.65)}px;color:${color};`; return `<p style="${st}">${nl(t, st)}</p>`; };
-  const small = (t, color = C.gray) => nl(t, `margin:8px 0 0 0;font-family:${F};font-size:13px;line-height:20px;color:${color};`).replace(/<br>/g, ' ');
+  const small = (t, color = C.gray) => esc(t).trim().replace(/\n{2,}/g, '\n').split('\n').map(l => l.trim()).filter(Boolean).map(l => `<span style="display:block;margin:0 0 8px 0;">${l}</span>`).join('');
   const stripNum = (s = '') => String(s).replace(/^\s*\d+\s*[.)-]\s*/, '');
   const section = (inner, extra = '') => `<tr><td style="padding:32px 36px 0 36px;${extra}">${inner}</td></tr>`;
   const card = (inner, bg = C.sand, border = C.line) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;background:${bg};border:1px solid ${border};border-radius:10px;"><tr><td style="padding:24px;">${inner}</td></tr></table>`;
@@ -28,8 +30,12 @@ export function renderEmail(n, opts = {}) {
   const qow = n.question_of_week?.text ? section(card(label(n.question_of_week.label) + `<p style="margin:0;font-family:${F};font-size:19px;line-height:27px;font-weight:600;color:${C.navy};">${esc(n.question_of_week.text)}</p>`)) : '';
   const closing = n.closing ? section(p(n.closing)) : '';
   const cta = n.cta?.label ? section(`<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:${C.orange};border-radius:4px;"><a href="${esc(n.cta.url || '#')}" style="display:inline-block;padding:14px 26px;font-family:${F};font-size:15px;font-weight:600;color:${C.white};text-decoration:none;">${esc(n.cta.label)}</a></td></tr></table>`) : '';
-  const podcast = n.podcast?.enabled && n.podcast.title ? section(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.navy};border-radius:10px;"><tr><td style="padding:26px;">${label('Podcast VendaMais', C.grayl)}${h2(n.podcast.title, C.white)}${p(n.podcast.description || '', C.grayl, 14)}${n.podcast.url ? `<a href="${esc(n.podcast.url)}" style="font-family:${F};font-size:14px;font-weight:600;color:${C.white};text-decoration:underline;">Ouvir episódio</a>` : ''}</td></tr></table>`) : '';
-  const agenda = n.agenda?.enabled && n.agenda.items?.length ? section(label('Agenda VendaMais') + h2('Conteúdo da semana') + n.agenda.items.map(a => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${C.line};border-radius:8px;margin-bottom:8px;"><tr><td style="padding:14px 16px;font-family:${F};"><span style="font-size:11px;letter-spacing:1px;font-weight:700;color:${C.gray};text-transform:uppercase;">${esc(a.day)}</span><br><strong style="font-size:15px;color:${C.navy};">${esc(a.title)}</strong>${a.desc ? `<br><span style="font-size:13px;color:${C.gray};">${esc(a.desc)}</span>` : ''}</td></tr></table>`).join('')) : '';
+  const yt = (u = '') => (String(u).match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/) || [])[1] || '';
+  const podcastCover = (n.podcast?.cover_url || (yt(n.podcast?.youtube_url) ? `https://img.youtube.com/vi/${yt(n.podcast.youtube_url)}/hqdefault.jpg` : ''));
+  const linkBtn = (href, text, filled) => `<td style="padding:0 10px 10px 0;"><a href="${esc(href)}" style="display:inline-block;padding:11px 18px;border-radius:4px;font-family:${F};font-size:14px;font-weight:600;text-decoration:none;${filled ? `background:${C.orange};color:${C.white};` : `border:1px solid ${C.grayl};color:${C.white};`}">${esc(text)}</a></td>`;
+  const podcast = n.podcast?.enabled && n.podcast.title ? section(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.navy};border-radius:10px;"><tr><td style="padding:26px;">${label('Podcast VendaMais', C.grayl)}${podcastCover ? `<a href="${esc(n.podcast.youtube_url || n.podcast.spotify_url || '#')}"><img src="${esc(podcastCover)}" alt="${esc(n.podcast.title)}" width="528" style="display:block;width:100%;max-width:528px;height:auto;border:0;border-radius:6px;margin:0 0 18px 0;"></a>` : ''}${h2(n.podcast.title, C.white)}${n.podcast.description ? p(n.podcast.description, C.grayl, 14) : ''}<table role="presentation" cellpadding="0" cellspacing="0"><tr>${n.podcast.spotify_url ? linkBtn(n.podcast.spotify_url, 'Ouvir no Spotify', true) : ''}${n.podcast.youtube_url ? linkBtn(n.podcast.youtube_url, 'Ver no YouTube', !n.podcast.spotify_url) : ''}</tr></table></td></tr></table>`) : '';
+  const ev = n.events || {}; const hasEvent = ev.enabled && (ev.title || ev.text);
+  const agenda = hasEvent ? section(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;background:${C.sand};border:1px solid ${C.line};border-radius:10px;"><tr><td style="padding:24px;">${label(ev.label || 'Convite VendaMais')}${ev.image_url ? `<a href="${esc(ev.url || '#')}"><img src="${esc(ev.image_url)}" alt="${esc(ev.title || '')}" width="528" style="display:block;width:100%;max-width:528px;height:auto;border:0;border-radius:6px;margin:0 0 16px 0;"></a>` : ''}${ev.title ? h2(ev.title) : ''}${ev.text ? p(ev.text) : ''}${ev.url ? `<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:${C.navy};border-radius:4px;"><a href="${esc(ev.url)}" style="display:inline-block;padding:12px 22px;font-family:${F};font-size:14px;font-weight:600;color:${C.white};text-decoration:none;">${esc(ev.cta || 'Quero participar')}</a></td></tr></table>` : ''}</td></tr></table>`) : '';
 
   const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><title>${esc(n.subject || name)}</title>
@@ -56,6 +62,7 @@ ${logoImg(logoUrl, 'VendaMais')}
 }
 
 export function renderPlainText(n, opts = {}) {
+  n = { ...n, podcast: legacyPod(n.podcast) };
   const { editionNumber = 1, name = 'Radar VendaMais', tagline = 'Vendas para quem influencia vendas' } = opts;
   const L = [];
   L.push(`${name.toUpperCase()} • EDIÇÃO ${pad(editionNumber)}`, '', (n.headline || '').toUpperCase(), tagline, '', n.intro || '', '');
@@ -68,8 +75,8 @@ export function renderPlainText(n, opts = {}) {
   if (n.question_of_week?.text) L.push(n.question_of_week.label, n.question_of_week.text, '');
   if (n.closing) L.push(n.closing, '');
   if (n.cta?.label) L.push(`${n.cta.label}: ${n.cta.url || ''}`, '');
-  if (n.podcast?.enabled && n.podcast.title) L.push('PODCAST VENDAMAIS', n.podcast.title, n.podcast.description || '', n.podcast.url || '', '');
-  if (n.agenda?.enabled) { L.push('AGENDA VENDAMAIS'); (n.agenda.items || []).forEach(a => L.push(`${a.day}: ${a.title}`)); L.push(''); }
+  if (n.podcast?.enabled && n.podcast.title) L.push('PODCAST VENDAMAIS', n.podcast.title, n.podcast.description || '', n.podcast.spotify_url ? `Ouvir no Spotify: ${n.podcast.spotify_url}` : '', n.podcast.youtube_url ? `Ver no YouTube: ${n.podcast.youtube_url}` : '', '');
+  if (n.events?.enabled && (n.events.title || n.events.text)) L.push((n.events.label || 'CONVITE VENDAMAIS').toUpperCase(), n.events.title || '', n.events.text || '', n.events.url ? `${n.events.cta || 'Quero participar'}: ${n.events.url}` : '', '');
   L.push(`${name} • Newsletter semanal`, tagline);
   return L.join('\n').replace(/\n{3,}/g, '\n\n');
 }
