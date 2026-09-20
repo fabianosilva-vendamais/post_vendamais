@@ -31,7 +31,7 @@ export function audit(action, entity, entity_id, metadata = {}) {
   db.audit_log.unshift({ id: uid('log'), user_id: db.user?.id || 'local', user_name: db.user?.name || 'Usuário local', action, entity, entity_id, metadata, created_at: now() });
   if (db.audit_log.length > 2000) db.audit_log.length = 2000;
 }
-export function activeRules() { return (db.brand_rules.find(r => r.active) || db.brand_rules[0]).rules_json; }
+export function activeRules() { const r = (db.brand_rules.find(r => r.active) || db.brand_rules[0]).rules_json; if (r.templates && !r.templates.some(t => t.id === 'T06')) { const t6 = BRAND_RULES_V1.templates.find(t => t.id === 'T06'); if (t6) r.templates.splice(r.templates.findIndex(t => t.id === 'T05'), 0, { ...t6 }); } return r; }
 export function assetByType(type) { return db.brand_assets.find(a => a.type === type && a.active); }
 
 // IndexedDB para imagens-base, renders e uploads

@@ -73,6 +73,24 @@ export function render(canvas, spec) {
     if (spec.image) drawCover(ctx, spec.image, W - M - 64 - 300, H - M - 64 - 200, 300, 200, spec.crop);
     drawV(ctx, spec.logoPrimary, px, H - M - 64 - 44, 44, 1);
     meta.headlineFontPx = hl.size;
+  } else if (t === 'T06') {
+    // Manchete editorial: número gigante em laranja, headline em display grande, faixa de foto diagonal, V como textura
+    ctx.fillStyle = C.white; ctx.fillRect(0, 0, W, H);
+    ctx.save(); ctx.beginPath(); ctx.moveTo(0, H - 420); ctx.lineTo(W, H - 620); ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath(); ctx.clip();
+    if (spec.image) { drawCover(ctx, spec.image, 0, H - 620, W, 620, spec.crop); ctx.fillStyle = 'rgba(22,38,58,0.72)'; ctx.fillRect(0, H - 620, W, 620); } else { ctx.fillStyle = C.navy; ctx.fillRect(0, H - 620, W, 620); }
+    ctx.restore();
+    drawV(ctx, spec.logoPrimary, W - 330, 40, 300, 0.05);
+    drawLogo(ctx, spec.logoPrimary, M, M, 200);
+    label(ctx, spec.kicker, M, M + 120, C.orange);
+    const limitY = H - 660; // a headline termina antes da faixa diagonal
+    let y = M + 170;
+    if (spec.proofNumber) { const pn = fit(ctx, spec.proofNumber, inner, { max: 260, min: 120, weight: 700, maxLines: 1, lh: 0.95 }); ctx.font = `700 ${pn.size}px ${FONT}, Arial, sans-serif`; ctx.fillStyle = C.orange; ctx.fillText(pn.lines[0] || '', M - 8, y + pn.size * 0.78); y += pn.size * 0.9; if (spec.proofLabel) { const pl = fit(ctx, spec.proofLabel, inner, { max: 30, min: 24, weight: 500, maxLines: 2, lh: 1.3 }); ctx.font = `500 ${pl.size}px ${FONT}, Arial, sans-serif`; y = drawLines(ctx, pl.lines, M, y + 8, pl.lineH, C.gray) + 24; } }
+    let hl = fit(ctx, spec.headline, inner, { max: spec.proofNumber ? 64 : 84, min: 44, weight: 700, maxLines: spec.proofNumber ? 3 : 5, lh: 1.02 });
+    while (y + hl.size * 0.9 + hl.lines.length * hl.lineH > limitY && hl.size > 40) hl = fit(ctx, spec.headline, inner, { max: hl.size - 4, min: 40, weight: 700, maxLines: 4, lh: 1.02 });
+    ctx.font = `700 ${hl.size}px ${FONT}, Arial, sans-serif`; y = drawLines(ctx, hl.lines, M, y + hl.size * 0.9, hl.lineH, C.navy);
+    if (spec.support) { const sup = fit(ctx, spec.support, inner - 200, { max: 26, min: 22, weight: 400, maxLines: 3, lh: 1.4 }); ctx.font = `400 ${sup.size}px ${FONT}, Arial, sans-serif`; drawLines(ctx, sup.lines, M, H - 300, sup.lineH, C.white); }
+    ctx.fillStyle = C.orange; ctx.fillRect(M, H - 360, 56, 6);
+    meta.headlineFontPx = hl.size;
   } else if (t === 'T05') {
     ctx.fillStyle = C.white; ctx.fillRect(0, 0, W, H);
     drawLogo(ctx, spec.logoPrimary, M, M, 200);
