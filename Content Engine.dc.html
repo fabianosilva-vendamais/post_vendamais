@@ -728,6 +728,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <sc-for list="{{ angleTabs }}" as="t" hint-placeholder-count="0"><button data-angle="{{ t.id }}" onClick="{{ setAngle }}" style="{{ t.style }}">{{ t.label }} <span style="{{ t.scoreStyle }}">{{ t.scoreLabel }}</span></button></sc-for>
           <span style="margin-left:auto;font-size:12px;color:#5E6770">{{ postMeta }}</span>
+          <button onClick="{{ generateAllImages }}" disabled="{{ busy }}" title="Gera a imagem-base dos posts que ainda não têm, com o provedor padrão. Custo por imagem conforme o provedor." style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:8px 12px;font-size:12px;font-weight:600">Gerar as 3 imagens</button>
           <button onClick="{{ derivePosts }}" disabled="{{ busy }}" style="background:#fff;border:1px solid #E6E2DA;border-radius:4px;padding:8px 12px;font-size:12px;font-weight:600;color:#16263A">Regerar os três (respeita fixados)</button>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;align-items:start">
@@ -810,7 +811,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
                 </sc-for>
               </div>
             </sc-for>
-            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:14px 16px;font-size:12px;color:#5E6770;line-height:1.6"><span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#16263A;font-weight:700">Mapa claim → fonte</span><br>{{ postClaims }}</div>
+            <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:14px 16px;font-size:12px;color:#5E6770;line-height:1.6"><span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#16263A;font-weight:700">Aderência à newsletter e fontes</span><br>{{ postClaims }}</div>
           </div>
           <div style="position:sticky;top:76px;display:flex;flex-direction:column;gap:10px">
             <div style="background:#EEF1F4;border:1px solid #E6E2DA;border-radius:12px;padding:16px;display:flex;justify-content:center">
@@ -1238,6 +1239,7 @@ class Component extends DCLogic {
   }
   async loadImgUrls(ids) { const pending = ids.filter(id => !(id in this.imgUrlCache) && !this._imgLoading?.has(id)); if (!pending.length) return; this._imgLoading = this._imgLoading || new Set(); pending.forEach(id => this._imgLoading.add(id)); for (const id of pending) { try { this.imgUrlCache[id] = (await this.M.store.blobs.get(id)) || ''; } catch (e) { this.imgUrlCache[id] = ''; } this._imgLoading.delete(id); } this.forceUpdate(); }
   setAngle = (e) => this.setState({ activeAngle: e.currentTarget.dataset.angle });
+  generateAllImages = () => { const ed = this.edition(); const pending = this.PF().postsOf(ed.id).filter(p => !p.image_id).length; if (!pending) return this.toast('Os três posts já têm imagem. Use o Image Lab para gerar alternativas.'); if (!confirm(`Gerar ${pending} imagem(ns) com ${this.M.providers.imageProviderStatus().label}? Cada imagem tem custo no provedor.`)) return; return this.run(`Gerando ${pending} imagem(ns)-base`, async () => { const r = await this.PF().generateAllImages(this, ed.id); this.toast(`${r.done.length} imagem(ns) gerada(s)` + (r.failed.length ? `. Falhou: ${r.failed.join(' | ')}` : '.'), r.failed.length ? 'error' : 'info'); this.imgUrlCache = {}; this._lastSig = ''; this.forceUpdate(); }); };
   derivePosts = () => this.run('Derivando os três posts da newsletter aprovada', async () => { await this.PF().derive(this); this.setState({ route: 'posts', activeAngle: 'training' }, this.persistUI); this.toast('Três posts gerados: Treinamento, Consultoria e Negócio.'); });
   onPostFieldInput = (e) => { const p = this.activePost(); const k = `post:${p.id}:${e.target.dataset.path}`; this.setState({ drafts: { ...(this.state.drafts || {}), [k]: e.target.value } }); };
   onPostFieldCommit = (e) => { const p = this.activePost(); const path = e.target.dataset.path; const k = `post:${p.id}:${path}`; const d = { ...(this.state.drafts || {}) }; if (!(k in d)) return; let val = d[k]; delete d[k]; if (path === 'caption.hashtags') val = val.split(/[,\s]+/).map(h => h.replace(/^#/, '').trim()).filter(Boolean); this.PF().edit(this, p, path, val); this.setState({ drafts: d }); };
@@ -1281,7 +1283,7 @@ class Component extends DCLogic {
     out.isT05 = p.template_id === 'T05'; out.postPartner = p.partner_id || ''; out.partnerOpts = R.partners.map(x => ({ id: x.id, name: x.name, role: x.role, portraitNote: portraitOf(x.id) ? '' : ' (sem retrato)' }));
     out.templateHint = R.templates.find(t => t.id === p.template_id)?.desc || ''; if (p.template_id === 'T05') out.templateHint += ' Nível B: a peça passa a ser assinada pelo sócio e exige aprovação dele.';
     out.postMeta = `${labels[angle]} · atualizado ${fmtDT(p.updated_at)} · ${Object.values(locks).filter(Boolean).length} campo(s) fixado(s)`;
-    out.postClaims = (c.source_claims || []).length ? c.source_claims.map(s => `${s.evidence_id}: ${s.text}`).join(' · ') : 'Nenhuma afirmação rastreada. Se o post traz número ou case, isso é bloqueio.';
+    out.postClaims = ((c.anchors || []).length ? `Da newsletter: ${c.anchors.join(' · ')}. ` : '') + ((c.source_claims || []).length ? c.source_claims.map(s => `${this.M.qa.humanRefs('[' + s.evidence_id + ']', this.evidence(ed.id)) || s.evidence_id} ${s.text}`).join(' · ') : 'Nenhuma afirmação rastreada. Se o post traz número ou case, isso é bloqueio.');
     const det = p.qa_json?.deterministic || this.M.qa.deterministicChecks(c, this.evidence(ed.id), 'post'); const ai = p.qa_json?.ai; const vis = p.qa_json?.visual;
     const blockers = [...det.blockers, ...((vis?.issues || []).map(i => ({ where: 'render', text: i.text }))), ...((ai?.issues || []).filter(i => i.severity === 'bloqueio'))];
     const ready = p.score != null && p.score >= R.qa.threshold && blockers.length === 0;

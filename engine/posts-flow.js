@@ -38,7 +38,7 @@ export function normalizePost(c, angle) {
   let pn = String(c.proof_number || '').trim(), pl = String(c.proof_label || '').trim();
   if (pn.length > 14) { const m = pn.match(/(\d+(?:[.,]\d+)*\s*(?:%|em cada \d+|de cada \d+|em \d+|mil|milhões|bilhões|pontos|p\.p\.)?)/i); if (m) { pl = pl || pn.replace(m[0], '').replace(/^[\s,.:;]+|[\s,.:;]+$/g, '').replace(/\s{2,}/g, ' '); pn = m[0].replace(/\s+(de|em) cada\s+/i, ' em ').trim(); } else { pl = pl || pn; pn = ''; } }
   if (pl.length > 90) pl = pl.slice(0, 87).replace(/\s\S*$/, '') ;
-  return { angle, brief: c.brief || null, format_reason: c.format_reason || '', thesis: c.thesis || '', headline: String(c.headline || '').replace(/[.]+$/, ''), support_line: c.support_line || '', proof_number: pn, proof_label: pl, visual_concept: c.visual_concept || '', image_prompt: c.image_prompt || '', negative_space: c.negative_space || 'bottom', template_id: c.template_id || '', kicker: c.kicker || R.angles[angle].kicker,
+  return { angle, anchors: Array.isArray(c.anchors) ? c.anchors : [], brief: c.brief || null, format_reason: c.format_reason || '', thesis: c.thesis || '', headline: String(c.headline || '').replace(/[.]+$/, ''), support_line: c.support_line || '', proof_number: pn, proof_label: pl, visual_concept: c.visual_concept || '', image_prompt: c.image_prompt || '', negative_space: c.negative_space || 'bottom', template_id: c.template_id || '', kicker: c.kicker || R.angles[angle].kicker,
     caption: { hook: cap.hook || '', body: cap.body || '', practical_takeaway: cap.practical_takeaway || '', cta: cap.cta || '', hashtags: Array.isArray(cap.hashtags) ? cap.hashtags.slice(0, R.voice.length.hashtags_max) : [] }, source_claims: Array.isArray(c.source_claims) ? c.source_claims : [] };
 }
 export function edit(app, p, path, value) { if (JSON.stringify(getPath(p.content_json, path)) === JSON.stringify(value)) return; p.versions = p.versions || []; p.versions.push({ content_json: JSON.parse(JSON.stringify(p.content_json)), at: now(), origin: 'autosave' }); if (p.versions.length > 40) p.versions.shift(); setPath(p.content_json, path, value); p.meta.edited[path] = 'human'; p.score = null; p.updated_at = now(); app.save('Autosave'); }
@@ -137,4 +137,10 @@ export async function exportPost(app, p, { png = true, copy = true } = {}) {
   if (copy) download(`${base}-legenda.txt`, captionText(p));
   if (p.status === 'approved') p.status = 'exported'; ed.exports = ed.exports || {}; ed.exports.posts = now(); if (postsOf(ed.id).every(x => x.status === 'exported') && ed.exports.newsletter) app.setStatus(ed, 'exported');
   audit('post.export', 'post', p.id, { png, copy }); app.save();
+}
+
+export async function generateAllImages(app, editionId, opts = {}) {
+  const done = [], failed = [];
+  for (const p of postsOf(editionId)) { if (p.image_id && !opts.force) continue; try { await generateImage(app, p, { prompt: p.content_json.image_prompt, provider: opts.provider, mode: opts.mode, references: [] }); done.push(p.angle); } catch (e) { failed.push(`${p.angle}: ${e.message}`); } }
+  return { done, failed };
 }
