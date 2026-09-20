@@ -89,10 +89,10 @@ Retorne JSON: {"slides":[{"role":"cover|point|proof|action|closing","kicker":str
 O primeiro slide é obrigatoriamente "cover" com a headline do post; o último é "closing" com o CTA.
 Post: {{post}}
 Evidências: {{evidence}}` },
-  { id: 'qa_audit', name: 'Prompt de QA', version: 1, active: true, prompt_text:
+  { id: 'qa_audit', name: 'Prompt de QA', version: 2, active: true, prompt_text:
 `Audite esta peça como revisor de marca e editor B2B. Dê nota de 0 a 100. Liste: (1) fatos sem fonte, (2) linguagem genérica, (3) clichês, (4) desalinhamentos com o DNA, (5) falhas de utilidade prática, (6) repetição, (7) CTA fraco, (8) correções exatas. Não elogie por educação. Só aprove se todos os bloqueios forem resolvidos.
 Critérios e pesos: fidelity 25 (não inventa dados, cases, nomes, números ou causalidades; todo número tem evidência), utility 20 (o que fazer e como fazer), dna 15 (vocabulário, prova antes da promessa, sobriedade), channel 10 (densidade adequada ao canal {{channel}}), unity 10 (VendaMais única, sem linguagem de BU), cta 5, language 5. O critério visual (10) é avaliado pelo sistema, não por você.
-Retorne JSON: {"scores":{"fidelity":0-100,"utility":0-100,"dna":0-100,"channel":0-100,"unity":0-100,"cta":0-100,"language":0-100},"issues":[{"category":"fonte|generico|cliche|dna|utilidade|repeticao|cta|linguistica","severity":"bloqueio|alta|media|baixa","where":string,"text":string,"fix":string}],"summary":string}
+Retorne JSON: {"scores":{"fidelity":0-100,"utility":0-100,"dna":0-100,"channel":0-100,"unity":0-100,"cta":0-100,"language":0-100},"issues":[{"category":"fonte|generico|cliche|dna|utilidade|repeticao|cta|linguistica","severity":"bloqueio|alta|media|baixa","where":string (nome do bloco em português),"path":string (caminho técnico EXATO do campo no JSON da peça, ex.: "intro", "sections.0.body", "practical_block.steps.2.text", "cta.label", "caption.body"; obrigatório),"text":string,"fix":string (a correção concreta: o texto novo ou a instrução precisa de edição)}],"summary":string}
 Peça: {{piece}}
 Evidências disponíveis: {{evidence}}` }
 ];

@@ -146,3 +146,38 @@ export function renderOutputs(ed, v, app) {
   return { html: renderEmail(v.content_json, opts), text: renderPlainText(v.content_json, opts), preview: renderEmail(v.content_json, { ...opts, previewOnly: true }) };
 }
 export function download(name, content, type = 'text/plain') { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([content], { type })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
+
+// Aplica uma correção do revisor: reescreve só o bloco indicado seguindo a instrução, marca como aplicada e recalcula o QA determinístico.
+export async function applyFix(app, issueIdx) {
+  const ed = app.edition(); const v = current(ed.id); const issue = v.qa_json?.ai?.issues?.[issueIdx]; if (!issue) throw new Error('Correção não encontrada.');
+  const path = resolvePath(v.content_json, issue.path || issue.where); if (!path) throw new Error('Não identifiquei o bloco desta correção. Aplique manualmente no editor.');
+  if (v.meta.locks?.[path]) throw new Error('Bloco fixado. Desafixe para aplicar.');
+  const instruction = `Aplique exatamente esta correção do revisor, alterando o mínimo necessário e preservando o restante do texto e o estilo do autor: ${issue.fix || issue.text}`;
+  await rewriteBlock(app, path, instruction);
+  const cur = current(ed.id); cur.qa_json = cur.qa_json || {}; cur.qa_json.applied = cur.qa_json.applied || {}; cur.qa_json.applied[issueIdx] = { at: now(), path };
+  audit('newsletter.apply_fix', 'newsletter_version', cur.id, { path, category: issue.category }); app.save(); return path;
+}
+export async function applyAllFixes(app) {
+  const ed = app.edition(); const v = current(ed.id); const issues = v.qa_json?.ai?.issues || []; const done = [], failed = [];
+  for (let i = 0; i < issues.length; i++) { if (v.qa_json?.applied?.[i]) continue; try { done.push(await applyFix(app, i)); } catch (e) { failed.push(`${issues[i].where}: ${e.message}`); } }
+  return { done, failed };
+}
+// Resolve o caminho informado pela IA (ou um "where" humano) para um caminho real do JSON.
+export function resolvePath(content, hint = '') {
+  if (!hint) return null; let h = String(hint).trim().replace(/\[(\d+)\]/g, '.$1');
+  if (getPath(content, h) !== undefined) return h;
+  const low = h.toLowerCase();
+  const map = [[/assunto|subject/, 'subject'], [/preheader/, 'preheader'], [/headline|t[ií]tulo principal/, 'headline'], [/abertura|intro/, 'intro'], [/fechamento|closing|conclus/, 'closing'], [/cta/, 'cta.label'], [/pergunta da semana|question_of_week/, 'question_of_week.text'], [/erro comum|common_error/, 'common_error.body'], [/podcast/, 'podcast.title']];
+  for (const [rx, path] of map) if (rx.test(low) && getPath(content, path) !== undefined) return path;
+  const num = (low.match(/passo\s*(\d+)|item\s*(\d+)|se[çc][aã]o\s*(\d+)|pergunta\s*(\d+)/) || []).slice(1).find(Boolean);
+  if (/ferramenta|diagn[oó]stico|practical/.test(low)) { if (num) return `practical_block.steps.${num - 1}.text`; return 'practical_block.intro'; }
+  if (/como agir|action/.test(low)) return num ? `action.steps.${num - 1}.text` : 'action.title';
+  if (/interpretar|interpretation/.test(low)) return num ? `interpretation.items.${num - 1}.text` : 'interpretation.title';
+  if (/reuni[aã]o|meeting/.test(low)) return num ? `meeting_questions.questions.${num - 1}` : 'meeting_questions.title';
+  if (/se[çc][aã]o|section/.test(low)) return `sections.${(num || 1) - 1}.body`;
+  // busca por título de passo/seção citado no where
+  const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9à-ú ]/g, '').trim();
+  for (const [k, arrPath] of [['practical_block.steps', 'text'], ['action.steps', 'text'], ['interpretation.items', 'text']]) { const arr = getPath(content, k) || []; const j = arr.findIndex(it => it.title && norm(low).includes(norm(it.title))); if (j >= 0) return `${k}.${j}.${arrPath}`; }
+  const secs = content.sections || []; const j = secs.findIndex(s => s.title && norm(low).includes(norm(s.title))); if (j >= 0) return `sections.${j}.body`;
+  return null;
+}
