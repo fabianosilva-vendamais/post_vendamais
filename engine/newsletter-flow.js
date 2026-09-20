@@ -117,7 +117,8 @@ export function restoreVersion(app, versionId) { const ed = app.edition(); const
 export async function runQA(app) {
   const ed = app.edition(); const v = current(ed.id); const evidence = app.evidence(ed.id); const R = activeRules();
   const det = deterministicChecks(v.content_json, evidence, 'newsletter', qaOpts(v));
-  const p = fill(prompt('qa_audit'), { channel: 'newsletter por e-mail, 700 a 1.200 palavras, nível A institucional', piece: JSON.stringify(v.content_json).slice(0, 20000), evidence: evidenceText(evidence) });
+  const human = qaOpts(v).humanText;
+  const p = fill(prompt('qa_audit'), { channel: 'newsletter por e-mail, 700 a 1.200 palavras, nível A institucional' + (human ? '. ATENÇÃO: este texto foi escrito pelo editor humano da VendaMais, não pela IA. Números de instrução (30 minutos, 90 dias, 10 negócios, 20% melhores) são parâmetros do método, não afirmações de prova: NÃO os marque como bloqueio. Só use severidade "bloqueio" para grafia errada da marca, superlativo sem prova, promessa sem base ou linguagem de BU. Voz em imperativo direto ao leitor é aceitável no bloco prático. Escreva "where" em português simples (ex.: "Ferramenta da semana, passo 2"), nunca em nomes de campo, e "text"/"fix" sem códigos de evidência: cite a prova pelo nome (ex.: "mais de 2.500 clientes atendidos").' : ''), piece: JSON.stringify(v.content_json).slice(0, 20000), evidence: evidenceText(evidence) });
   const ai = await textJSON({ system: prompt('editor_base'), prompt: p, purpose: 'newsletter.qa' });
   const visual = 100; // e-mail: template determinístico; logo oficial verificado no export
   const blockers = [...det.blockers, ...(ai.issues || []).filter(i => i.severity === 'bloqueio').map(i => ({ code: 'ai', where: i.where, text: i.text + (i.fix ? ` Correção: ${i.fix}` : '') }))];

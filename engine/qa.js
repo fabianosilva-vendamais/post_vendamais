@@ -95,3 +95,16 @@ export function visualChecks({ templateId, hasImage, logoAssetOk, headline, head
   if ((headline || '').length > 90 || headlineFontPx < 40) { issues.push({ code: 'legibility', text: 'Headline pequena demais para leitura em mobile.' }); score -= 25; }
   return { score: Math.max(0, score), issues };
 }
+
+// Traduz caminhos técnicos e referências de evidência para linguagem do editor.
+const BLOCK_PT = { subject: 'Assunto do e-mail', preheader: 'Preheader', headline: 'Headline', intro: 'Abertura', sections: 'Seção', practical_block: 'Ferramenta da semana', interpretation: 'Como interpretar', action: 'Como agir', common_error: 'Erro comum', meeting_questions: 'Leve para a próxima reunião', question_of_week: 'Pergunta da semana', closing: 'Fechamento', cta: 'CTA', podcast: 'Podcast', agenda: 'Agenda', caption: 'Legenda', thesis: 'Tese', support_line: 'Linha de apoio', proof_number: 'Número de prova', image_prompt: 'Prompt da imagem', kicker: 'Kicker', hook: 'Gancho', body: 'Corpo', practical_takeaway: 'Ponto aplicável', hashtags: 'Hashtags', visual_concept: 'Conceito visual', claims: 'Rastreio de fontes', render: 'Arte', steps: 'passo', items: 'item', questions: 'pergunta', title: 'título', text: 'texto', label: 'rótulo', url: 'link' };
+export function humanPath(path = '') {
+  if (!path) return '';
+  const parts = String(path).replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean);
+  const out = []; let i = 0;
+  while (i < parts.length) { const k = parts[i]; const idx = /^\d+$/.test(parts[i + 1] || '') ? Number(parts[i + 1]) + 1 : null; const name = BLOCK_PT[k] || k.replace(/_/g, ' '); out.push(idx != null ? (k === 'sections' ? `Seção ${idx}` : `${name} ${idx}`) : name); i += idx != null ? 2 : 1; }
+  return out.filter((v, j, a) => j === 0 || v !== a[j - 1]).join(' › ');
+}
+export function humanRefs(text = '', evidence = []) {
+  return String(text).replace(/\[?\b(K-[\w-]+|E\d+)\]?/g, (m, id) => { const e = evidence.find(x => x.id === id); if (!e) return ''; const short = e.text.length > 60 ? e.text.slice(0, 57).replace(/\s\S*$/, '') + '…' : e.text; return `(${short})`; }).replace(/\s{2,}/g, ' ').replace(/\s+([,.;])/g, '$1').trim();
+}
