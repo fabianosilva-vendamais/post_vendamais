@@ -7,6 +7,16 @@ const nl = (s = '', pstyle = '') => esc(s).trim().replace(/\n{2,}/g, `</p><p sty
 const pad = (n) => String(n).padStart(2, '0');
 
 const legacyPod = (pd) => { if (!pd) return pd; if (pd.url && !pd.spotify_url && !pd.youtube_url) return { ...pd, [/youtu/.test(pd.url) ? 'youtube_url' : 'spotify_url']: pd.url }; return pd; };
+export function ctaHref(n, opts = {}) {
+  const u = String(n.cta?.url || '').trim(); if (!u) return '#';
+  const mail = u.replace(/^mailto:/i, '').split('?')[0];
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) return u;
+  if (/\?subject=/i.test(u)) return u; // já veio com assunto
+  const name = opts.name || 'Radar VendaMais'; const num = opts.editionNumber ? ` · Edição ${String(opts.editionNumber).padStart(2, '0')}` : '';
+  const subject = `${name}${num} · ${n.cta?.label || 'Contato'}`;
+  const body = `Olá,\n\nLi a edição "${n.headline || ''}" do ${name} e gostaria de: ${n.cta?.label || ''}.\n\nEmpresa: \nCargo: \nMelhor horário para contato: \n`;
+  return `mailto:${mail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
 export function renderEmail(n, opts = {}) {
   n = { ...n, podcast: legacyPod(n.podcast) };
   const { logoUrl = '', logoNegUrl = '', editionNumber = 1, editionDate = '', tagline = 'Vendas para quem influencia vendas', name = 'Radar VendaMais', previewOnly = false } = opts;
@@ -29,7 +39,8 @@ export function renderEmail(n, opts = {}) {
   const mq = n.meeting_questions?.questions?.length ? section(label(n.meeting_questions.label) + h2(n.meeting_questions.title) + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${n.meeting_questions.questions.map((q, i) => `<tr><td valign="top" style="width:36px;padding:5px 0;font-family:${F};font-size:15px;font-weight:600;color:${C.orange};">${pad(i + 1)}</td><td style="padding:5px 0;font-family:${F};font-size:14px;line-height:21px;color:${C.ink};">${esc(q)}</td></tr>`).join('')}</table>`) : '';
   const qow = n.question_of_week?.text ? section(card(label(n.question_of_week.label) + `<p style="margin:0;font-family:${F};font-size:19px;line-height:27px;font-weight:600;color:${C.navy};">${esc(n.question_of_week.text)}</p>`)) : '';
   const closing = n.closing ? section(p(n.closing)) : '';
-  const cta = n.cta?.label ? section(`<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:${C.orange};border-radius:4px;"><a href="${esc(n.cta.url || '#')}" style="display:inline-block;padding:14px 26px;font-family:${F};font-size:15px;font-weight:600;color:${C.white};text-decoration:none;">${esc(n.cta.label)}</a></td></tr></table>`) : '';
+  const ctaUrl = ctaHref(n, opts); const isMail = ctaUrl.startsWith('mailto:');
+  const cta = n.cta?.label ? section(`<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:${C.orange};border-radius:4px;"><a href="${esc(ctaUrl)}" style="display:inline-block;padding:14px 26px;font-family:${F};font-size:15px;font-weight:600;color:${C.white};text-decoration:none;">${esc(n.cta.label)}</a></td></tr></table>${isMail ? `<p style="margin:12px 0 0 0;font-family:${F};font-size:13px;line-height:20px;color:${C.gray};">Ou simplesmente responda este e-mail.</p>` : ''}`) : '';
   const yt = (u = '') => (String(u).match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/|live\/)([\w-]{11})/) || [])[1] || '';
   const ytCover = (id) => id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
   const isImg = (u = '') => /^https?:\/\/\S+\.(png|jpe?g|gif|webp)(\?\S*)?$/i.test(u) || /supabase\.co\/storage|img\.youtube\.com|i\.ytimg\.com|i\.scdn\.co/i.test(u);
@@ -77,7 +88,7 @@ export function renderPlainText(n, opts = {}) {
   if (n.meeting_questions?.questions?.length) { L.push(n.meeting_questions.label, n.meeting_questions.title, ''); n.meeting_questions.questions.forEach((q, i) => L.push(`${pad(i + 1)}. ${q}`)); L.push(''); }
   if (n.question_of_week?.text) L.push(n.question_of_week.label, n.question_of_week.text, '');
   if (n.closing) L.push(n.closing, '');
-  if (n.cta?.label) L.push(`${n.cta.label}: ${n.cta.url || ''}`, '');
+  if (n.cta?.label) { const u = ctaHref(n, opts); L.push(`${n.cta.label}: ${u.startsWith('mailto:') ? u.slice(7).split('?')[0] + ' (ou responda este e-mail)' : u}`, ''); }
   if (n.podcast?.enabled && n.podcast.title) L.push('PODCAST VENDAMAIS', n.podcast.title, n.podcast.description || '', n.podcast.spotify_url ? `Ouvir no Spotify: ${n.podcast.spotify_url}` : '', n.podcast.youtube_url ? `Ver no YouTube: ${n.podcast.youtube_url}` : '', '');
   if (n.events?.enabled && (n.events.title || n.events.text)) L.push((n.events.label || 'CONVITE VENDAMAIS').toUpperCase(), n.events.title || '', n.events.text || '', n.events.url ? `${n.events.cta || 'Quero participar'}: ${n.events.url}` : '', '');
   L.push(`${name} • Newsletter semanal`, tagline);
