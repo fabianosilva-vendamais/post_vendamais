@@ -102,7 +102,7 @@ export async function rewriteBlock(app, path, instruction, { keepReview = false 
   if (v.meta.locks?.[path]) throw new Error('Bloco fixado. Desafixe para regenerar.');
   const block = getPath(v.content_json, path);
   const ctx = JSON.parse(JSON.stringify(v.content_json)); setPath(ctx, path, '[BLOCO EM REESCRITA]');
-  const p = fill(prompt('block_rewrite'), { instruction: instruction || 'melhore clareza, prova e utilidade prática, mantendo o sentido', block_path: path, block_json: JSON.stringify(block), context: JSON.stringify(ctx).slice(0, 12000), evidence: evidenceText(evidence) });
+  const p = fill(prompt('block_rewrite'), { instruction: (instruction || 'melhore clareza e fluidez mantendo o sentido, a extensão e o estilo do autor') + '. Ignore sugestões de revisão anteriores que não estejam nesta instrução.', block_path: path, block_json: JSON.stringify(block), context: JSON.stringify(ctx).slice(0, 12000), evidence: evidenceText(evidence) });
   let out = await textJSON({ system: prompt('editor_base'), prompt: p, purpose: `newsletter.rewrite:${path}` });
   if (typeof block === 'string') out = typeof out === 'string' ? out : (out.value ?? out[path.split('.').pop()] ?? out.text ?? out.body ?? JSON.stringify(out));
   else if (out && typeof out === 'object' && !Array.isArray(block) && out.value && typeof out.value === 'object') out = out.value;
