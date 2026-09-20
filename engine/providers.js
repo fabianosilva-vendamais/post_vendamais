@@ -71,7 +71,7 @@ export async function textJSON({ system, prompt, maxTokens = 8000, purpose = 'te
 // Imagem-base: somente fotografia/ilustração, sem texto ou logo. Retorna {dataUrl, provider, model}
 export async function imageGenerate({ prompt, provider = db.settings.image_provider_default, mode = db.settings.image_mode, references = [] }) {
   const model = db.settings.image_models?.[provider]?.[mode];
-  const hard = `${prompt}\nNÃO inserir texto, letras, logotipos, marcas, ícones, gráficos falsos, molduras ou watermark visual. Proporção vertical 4:5 (1080x1350).`;
+  const hard = `${prompt}\nStyle lock: editorial campaign photograph, studio-grade directional lighting, 85mm, shallow depth of field, fine film grain, desaturated deep blue-teal and warm neutral palette, cinematic contrast, photorealistic skin and fabric, no plastic or doll-like faces, no forced smiles, no posed groups, maximum two people. Vertical 4:5 (1080x1350) with clean negative space for typography. Absolutely no text, letters, logos, brands, icons, readable charts, frames or watermark.`;
   const res = await edge('image-generate', { provider, model, mode, prompt: hard, references, size: '1080x1350' });
   return { dataUrl: res.dataUrl, provider, model: res.model || model, cost_meta: res.cost_meta || null, prompt: hard };
 }
