@@ -22,7 +22,7 @@ function evidenceText(evidence) { return evidence.length ? evidence.map(e => `${
 
 // Regras de escrita aplicadas de forma determinística: sem travessão, sem ponto final em título.
 export function sanitize(obj, isTitleKey = (k) => /^(headline|title|subject|label)$/.test(k)) {
-  if (typeof obj === 'string') return obj.replace(/\s*[—–]\s*/g, ', ').replace(/,\s*,/g, ',').replace(/\s+,/g, ',').trim();
+  if (typeof obj === 'string') return obj.replace(/\s*\[(?:K-[\w-]+|E\d+)\](?:\s*\[(?:K-[\w-]+|E\d+)\])*/g, '').replace(/\s*[—–]\s*/g, ', ').replace(/,\s*,/g, ',').replace(/\s+,/g, ',').replace(/\s+\./g, '.').trim();
   if (Array.isArray(obj)) return obj.map(x => sanitize(x, isTitleKey));
   if (obj && typeof obj === 'object') { for (const k of Object.keys(obj)) { if (k === 'url' || k === 'image_prompt') continue; obj[k] = sanitize(obj[k], isTitleKey); if (typeof obj[k] === 'string' && isTitleKey(k) && k !== 'subject') obj[k] = obj[k].replace(/[.]+$/, ''); } }
   return obj;
@@ -97,7 +97,7 @@ export async function generate(app) {
   db.newsletter_versions.push(v); app.setStatus(ed, 'newsletter_generated'); audit('newsletter.generate', 'newsletter_version', v.id, { n: v.n, words: det.wordCount, blockers: det.blockers.length });
   app.save(); return v;
 }
-export async function rewriteBlock(app, path, instruction) {
+export async function rewriteBlock(app, path, instruction, { keepReview = false } = {}) {
   const ed = app.edition(); const v = current(ed.id); const evidence = app.evidence(ed.id);
   if (v.meta.locks?.[path]) throw new Error('Bloco fixado. Desafixe para regenerar.');
   const block = getPath(v.content_json, path);
@@ -106,7 +106,7 @@ export async function rewriteBlock(app, path, instruction) {
   let out = await textJSON({ system: prompt('editor_base'), prompt: p, purpose: `newsletter.rewrite:${path}` });
   if (typeof block === 'string') out = typeof out === 'string' ? out : (out.value ?? out[path.split('.').pop()] ?? out.text ?? out.body ?? JSON.stringify(out));
   else if (out && typeof out === 'object' && !Array.isArray(block) && out.value && typeof out.value === 'object') out = out.value;
-  snapshot(app, v); setPath(v.content_json, path, sanitize(out)); v.meta.edited[path] = 'ai'; v.qa_json = { ...(v.qa_json || {}), deterministic: deterministicChecks(v.content_json, evidence, 'newsletter', qaOpts(v)), ai: null }; v.score = null;
+  snapshot(app, v); setPath(v.content_json, path, sanitize(out)); v.meta.edited[path] = 'ai'; v.qa_json = { ...(v.qa_json || {}), deterministic: deterministicChecks(v.content_json, evidence, 'newsletter', qaOpts(v)), ...(keepReview ? {} : { ai: null }) }; if (!keepReview) v.score = null;
   ed.updated_at = now(); audit('newsletter.rewrite_block', 'newsletter_version', v.id, { path, instruction }); app.save(); return out;
 }
 export function snapshot(app, v) { app.pushUndo(JSON.stringify(v.content_json)); }
@@ -158,8 +158,8 @@ export async function applyFix(app, issueIdx) {
   const ed = app.edition(); const v = current(ed.id); const issue = v.qa_json?.ai?.issues?.[issueIdx]; if (!issue) throw new Error('Correção não encontrada.');
   const path = resolvePath(v.content_json, issue.path || issue.where); if (!path) throw new Error('Não identifiquei o bloco desta correção. Aplique manualmente no editor.');
   if (v.meta.locks?.[path]) throw new Error('Bloco fixado. Desafixe para aplicar.');
-  const instruction = `Aplique exatamente esta correção do revisor, alterando o mínimo necessário e preservando o restante do texto e o estilo do autor: ${issue.fix || issue.text}`;
-  await rewriteBlock(app, path, instruction);
+  const instruction = `Aplique exatamente esta correção do revisor, alterando o mínimo necessário e preservando o restante do texto e o estilo do autor. NUNCA escreva códigos de evidência como [K-P1] ou [E3] no texto: cite a prova em linguagem natural (ex.: 'mais de 2.500 clientes atendidos'). Correção: ${issue.fix || issue.text}`;
+  await rewriteBlock(app, path, instruction, { keepReview: true });
   const cur = current(ed.id); cur.qa_json = cur.qa_json || {}; cur.qa_json.applied = cur.qa_json.applied || {}; cur.qa_json.applied[issueIdx] = { at: now(), path };
   audit('newsletter.apply_fix', 'newsletter_version', cur.id, { path, category: issue.category }); app.save(); return path;
 }

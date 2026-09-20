@@ -35,8 +35,8 @@ Estrutura obrigatória, no JSON abaixo. Extensão alvo: {{length_words}} palavra
 Briefing: {{briefing}}
 Evidências disponíveis (use os ids): {{evidence}}
 {{locked}}` },
-  { id: 'block_rewrite', name: 'Regeneração local de bloco', version: 1, active: true, prompt_text:
-`Reescreva SOMENTE o bloco indicado da newsletter, mantendo coerência com o restante (fornecido como contexto, não altere). Mantenha o mesmo formato JSON do bloco. Instrução do editor: {{instruction}}
+  { id: 'block_rewrite', name: 'Regeneração local de bloco', version: 2, active: true, prompt_text:
+`Reescreva SOMENTE o bloco indicado da newsletter, mantendo coerência com o restante (fornecido como contexto, não altere). Mantenha o mesmo formato JSON do bloco. Nunca insira códigos de evidência ([K-...], [E1]) no texto publicado; se citar uma prova, escreva-a em linguagem natural. Instrução do editor: {{instruction}}
 Bloco: {{block_path}}
 Conteúdo atual do bloco: {{block_json}}
 Contexto da newsletter: {{context}}
