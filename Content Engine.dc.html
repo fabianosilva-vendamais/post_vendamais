@@ -811,6 +811,18 @@ button:disabled{opacity:.5;cursor:not-allowed}
                 </sc-for>
               </div>
             </sc-for>
+            <sc-if value="{{ hasPostVersions }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#16263A;font-weight:700">Versões anteriores deste post ({{ postVersionRows.length }})</span><span style="font-size:11px;color:#5E6770">Compare e restaure. A versão atual vai para o histórico ao restaurar.</span></div>
+                <sc-for list="{{ postVersionRows }}" as="pv" hint-placeholder-count="0">
+                  <div style="{{ pv.style }}">
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><strong style="font-size:12px;color:#16263A">{{ pv.label }}</strong><span style="font-size:11px;color:#5E6770">{{ pv.when }} · {{ pv.origin }}</span><div style="margin-left:auto;display:flex;gap:6px"><button data-idx="{{ pv.idx }}" onClick="{{ togglePostVersion }}" style="background:#fff;border:1px solid #E6E2DA;color:#16263A;border-radius:4px;padding:4px 10px;font-size:11px;font-weight:600">{{ pv.toggleLabel }}</button><button data-idx="{{ pv.idx }}" onClick="{{ restorePostVersion }}" style="background:#16263A;color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:11px;font-weight:600">Restaurar</button></div></div>
+                    <div style="font-size:13px;font-weight:600;color:#16263A;line-height:1.35">{{ pv.headline }}</div>
+                    <sc-if value="{{ pv.open }}" hint-placeholder-val="{{ false }}"><pre style="white-space:pre-wrap;font-family:Poppins,Arial,sans-serif;font-size:12px;line-height:1.55;margin:6px 0 0;color:#1E1E1E;max-height:260px;overflow:auto">{{ pv.text }}</pre></sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
             <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:14px 16px;font-size:12px;color:#5E6770;line-height:1.6"><span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#16263A;font-weight:700">Aderência à newsletter e fontes</span><br>{{ postClaims }}</div>
           </div>
           <div style="position:sticky;top:76px;display:flex;flex-direction:column;gap:10px">
@@ -1177,6 +1189,16 @@ class Component extends DCLogic {
   PF() { return this.M.posts; }
   activePost() { const ed = this.edition(); if (!ed || !this.M.posts) return null; return this.M.posts.post(ed.id, this.state.activeAngle || 'training'); }
   scheduleRender() { const p = this.activePost(); const cv = this.postCanvasRef.current; if (!p || !cv) return; const c = p.content_json; const car = this.isCarousel(p); const si = this.slideIndex(p); const sig = JSON.stringify([p.id, p.template_id, c.headline, c.support_line, c.kicker, c.proof_number, c.proof_label, c.caption?.cta, p.crop, p.image_id, p.partner_id, car, si, car ? p.carousel.slides : null, this.state.route, this.db().brand_assets.map(a => a.id + a.version + a.active).join(',')]); if (sig === this._lastSig && cv.dataset.sig === sig) return; this._lastSig = sig; cv.dataset.sig = sig; clearTimeout(this._rt); this._rt = setTimeout(() => (car && this.state.route === 'posts' ? this.PF().renderCarouselSlide(this, p, si, cv) : this.PF().renderPost(this, p, cv)).catch(err => console.error('render', err)), 60); }
+  // ---------- Versões do post ----------
+  togglePostVersion = (e) => { const i = Number(e.currentTarget.dataset.idx); const p = this.activePost(); const k = p.id + ':' + i; const set = new Set(this.state.openPostVersions || []); set.has(k) ? set.delete(k) : set.add(k); this.setState({ openPostVersions: [...set] }); };
+  restorePostVersion = (e) => { const i = Number(e.currentTarget.dataset.idx); const p = this.activePost(); const v = (p.versions || [])[i]; if (!v) return; p.versions.push({ content_json: JSON.parse(JSON.stringify(p.content_json)), at: this.M.store.now(), origin: 'antes-restaurar' }); p.content_json = JSON.parse(JSON.stringify(v.content_json)); p.versions.splice(i, 1); p.score = null; p.qa_json = null; p.status = 'draft'; p.updated_at = this.M.store.now(); this.M.store.audit('post.version.restore', 'post', p.id, { from: v.at }); this.save(); this.toast('Versão restaurada. A anterior ficou no histórico.'); this.forceUpdate(); };
+  postVersionVals(p, fmtDT) {
+    const vs = (p.versions || []).map((v, idx) => ({ v, idx })).filter(x => x.v?.content_json?.headline && x.v.origin !== 'autosave').reverse();
+    const open = new Set(this.state.openPostVersions || []);
+    const originLabel = { 'pre-regen': 'antes de regenerar', 'antes-restaurar': 'antes de restaurar', ai: 'gerado pela IA', human: 'editado' };
+    return { hasPostVersions: vs.length > 0, postVersionRows: vs.map(({ v, idx }, n) => { const c = v.content_json; const cap = c.caption || {}; const k = p.id + ':' + idx; return { idx, label: 'v' + (vs.length - n), when: fmtDT(v.at), origin: originLabel[v.origin] || v.origin || 'IA', headline: c.headline, open: open.has(k), toggleLabel: open.has(k) ? 'Fechar' : 'Ver texto', text: [c.support_line, '', cap.hook, '', cap.body, '', cap.practical_takeaway, '', cap.cta].filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n'), style: 'border:1px solid #E6E2DA;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:4px' }; }) };
+  }
+
   // ---------- Publicação (Metricool) ----------
   PUB() { return this.M.publisher; }
   loadBrands = () => this.run('Buscando marcas no Metricool', async () => { const brands = await this.PUB().listBrands(); this.setState({ brands }); this.toast(`${brands.length} marca(s) encontrada(s). Clique para escolher.`); });
@@ -1278,7 +1300,7 @@ class Component extends DCLogic {
       { label: 'Legenda', fields: [F('caption.hook', 'Gancho', { rows: 2 }), F('caption.body', 'Corpo', { rows: 5 }), F('caption.practical_takeaway', 'Ponto aplicável', { rows: 2 }), F('caption.cta', 'CTA'), F('caption.hashtags', 'Hashtags (máx. 5, separadas por vírgula)')] } ];
     const portraitOf = (id) => db.brand_assets.find(a => a.type === 'portrait' && a.partner_id === id && a.active);
     const anyPortrait = R.partners.some(x => portraitOf(x.id));
-    Object.assign(out, this.carouselVals(p), this.publisherVals(p, fmtDT));
+    Object.assign(out, this.carouselVals(p), this.publisherVals(p, fmtDT), this.postVersionVals(p, fmtDT));
     out.templateBtns = R.templates.map(t => { const on = p.template_id === t.id; const disabled = t.id === 'T05' && !anyPortrait; return { id: t.id, name: t.name, disabled, title: disabled ? 'Envie um retrato oficial no Brand Center' : t.desc, style: `background:${on ? '#16263A' : '#fff'};color:${on ? '#fff' : '#16263A'};border:1px solid ${on ? '#16263A' : '#E6E2DA'};border-radius:4px;padding:7px 10px;font-size:11px;font-weight:600` }; });
     out.isT05 = p.template_id === 'T05'; out.postPartner = p.partner_id || ''; out.partnerOpts = R.partners.map(x => ({ id: x.id, name: x.name, role: x.role, portraitNote: portraitOf(x.id) ? '' : ' (sem retrato)' }));
     out.templateHint = R.templates.find(t => t.id === p.template_id)?.desc || ''; if (p.template_id === 'T05') out.templateHint += ' Nível B: a peça passa a ser assinada pelo sócio e exige aprovação dele.';
