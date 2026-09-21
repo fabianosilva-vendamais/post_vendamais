@@ -38,9 +38,10 @@ export function renderEmail(n, opts = {}) {
   const err = n.common_error ? section(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.navy};border-radius:10px;"><tr><td style="padding:26px;">${bar}<div style="height:14px;line-height:14px;font-size:0;">&nbsp;</div>${label(n.common_error.label, C.grayl)}${h2(n.common_error.title, C.white)}${p(n.common_error.body, C.grayl, 14)}</td></tr></table>`) : '';
   const mq = n.meeting_questions?.questions?.length ? section(label(n.meeting_questions.label) + h2(n.meeting_questions.title) + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${n.meeting_questions.questions.map((q, i) => `<tr><td valign="top" style="width:36px;padding:5px 0;font-family:${F};font-size:15px;font-weight:600;color:${C.orange};">${pad(i + 1)}</td><td style="padding:5px 0;font-family:${F};font-size:14px;line-height:21px;color:${C.ink};">${esc(q)}</td></tr>`).join('')}</table>`) : '';
   const qow = n.question_of_week?.text ? section(card(label(n.question_of_week.label) + `<p style="margin:0;font-family:${F};font-size:19px;line-height:27px;font-weight:600;color:${C.navy};">${esc(n.question_of_week.text)}</p>`)) : '';
-  const closing = n.closing ? section(p(n.closing)) : '';
+  const vmNote = n.vendamais_note ? section(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:18px 0 0 0;border-top:1px solid ${C.line};font-family:${F};font-size:14px;line-height:22px;color:${C.gray};">${nl(n.vendamais_note)}</td></tr></table>`) : '';
+  const closing = n.closing ? section(`<p style="margin:0;font-family:${F};font-size:19px;line-height:28px;font-weight:600;color:${C.navy};">${esc(n.closing)}</p>`) : '';
   const ctaUrl = ctaHref(n, opts); const isMail = ctaUrl.startsWith('mailto:');
-  const cta = n.cta?.label ? section(`<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:${C.orange};border-radius:4px;"><a href="${esc(ctaUrl)}" style="display:inline-block;padding:14px 26px;font-family:${F};font-size:15px;font-weight:600;color:${C.white};text-decoration:none;">${esc(n.cta.label)}</a></td></tr></table>${isMail ? `<p style="margin:12px 0 0 0;font-family:${F};font-size:13px;line-height:20px;color:${C.gray};">Ou simplesmente responda este e-mail.</p>` : ''}`) : '';
+  const cta = n.cta?.label ? section(`${n.cta.helper ? `<p style="margin:0 0 12px 0;font-family:${F};font-size:14px;line-height:22px;color:${C.gray};">${esc(n.cta.helper)}</p>` : ''}<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:${C.orange};border-radius:4px;"><a href="${esc(ctaUrl)}" style="display:inline-block;padding:14px 26px;font-family:${F};font-size:15px;font-weight:600;color:${C.white};text-decoration:none;">${esc(n.cta.label)}</a></td></tr></table>${isMail ? `<p style="margin:12px 0 0 0;font-family:${F};font-size:13px;line-height:20px;color:${C.gray};">Ou simplesmente responda este e-mail.</p>` : ''}`) : '';
   const yt = (u = '') => (String(u).match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/|live\/)([\w-]{11})/) || [])[1] || '';
   const ytCover = (id) => id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
   const isImg = (u = '') => /^https?:\/\/\S+\.(png|jpe?g|gif|webp)(\?\S*)?$/i.test(u) || /supabase\.co\/storage|img\.youtube\.com|i\.ytimg\.com|i\.scdn\.co/i.test(u);
@@ -62,12 +63,13 @@ export function renderEmail(n, opts = {}) {
 <tr><td class="vm-p" style="background:${C.navy};padding:36px 36px 40px 36px;">
 ${logoImg(logoNegUrl, 'VendaMais')}
 <div style="height:28px;line-height:28px;font-size:0;">&nbsp;</div>${bar}<div style="height:12px;line-height:12px;font-size:0;">&nbsp;</div>
-${label(`${name} • Edição ${pad(editionNumber)}${editionDate ? ' • ' + editionDate : ''}`, C.white)}
-<h1 class="vm-h1" style="margin:14px 0 14px 0;font-family:${F};font-size:36px;line-height:42px;font-weight:600;color:${C.white};">${esc(n.headline || '')}</h1>
-<p style="margin:0 0 14px 0;font-family:${F};font-size:16px;line-height:24px;font-weight:600;color:${C.white};">${esc(tagline)}</p>
+${label(`${name} • Newsletter ${editionNumber}${editionDate ? ' • ' + editionDate : ''}`, C.white)}
+<h1 class="vm-h1" style="margin:14px 0 12px 0;font-family:${F};font-size:38px;line-height:44px;font-weight:700;color:${C.white};">${esc(n.headline || '')}</h1>
+${n.support_line ? `<p style="margin:0 0 18px 0;font-family:${F};font-size:19px;line-height:28px;font-weight:500;color:${C.white};">${esc(n.support_line)}</p>` : ''}
+<p style="margin:0 0 6px 0;font-family:${F};font-size:12px;line-height:18px;letter-spacing:1px;font-weight:700;text-transform:uppercase;color:${C.orange_light || '#F0A05A'};">${esc(tagline)}</p>
 ${p(n.intro || '', C.grayl, 15)}
 </td></tr>
-${sections}${practical}${interp}${action}${err}${mq}${qow}${closing}${cta}${podcast}${agenda}
+${sections}${practical}${interp}${action}${err}${mq}${qow}${closing}${cta}${vmNote}${podcast}${agenda}
 <tr><td class="vm-p" style="padding:32px 36px 40px 36px;border-top:1px solid ${C.line};">
 ${logoImg(logoUrl, 'VendaMais')}
 <p style="margin:16px 0 0 0;font-family:${F};font-size:12px;line-height:18px;color:${C.gray};">${esc(name)} • Newsletter semanal<br>${esc(tagline)}<br><a href="{{unsubscribe_url}}" style="color:${C.gray};">Cancelar inscrição</a></p>
@@ -79,7 +81,7 @@ export function renderPlainText(n, opts = {}) {
   n = { ...n, podcast: legacyPod(n.podcast) };
   const { editionNumber = 1, name = 'Radar VendaMais', tagline = 'Vendas para quem influencia vendas' } = opts;
   const L = [];
-  L.push(`${name.toUpperCase()} • EDIÇÃO ${pad(editionNumber)}`, '', (n.headline || '').toUpperCase(), tagline, '', n.intro || '', '');
+  L.push(`${name.toUpperCase()} • NEWSLETTER ${editionNumber}`, '', (n.headline || '').toUpperCase(), n.support_line || '', tagline, '', n.intro || '', '');
   for (const s of n.sections || []) L.push(s.label, s.title, '', s.body, '');
   if (n.practical_block) { L.push(n.practical_block.label, n.practical_block.title, ''); if (n.practical_block.intro) L.push(n.practical_block.intro, ''); (n.practical_block.steps || []).forEach((s, i) => L.push(`${pad(i + 1)}. ${s.title}`, `    ${s.text}`)); L.push(''); }
   if (n.interpretation?.items?.length) { L.push(n.interpretation.label, n.interpretation.title, ''); n.interpretation.items.forEach(it => L.push(`- ${it.title}: ${it.text}`)); L.push(''); }

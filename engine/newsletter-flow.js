@@ -47,8 +47,9 @@ export function normalize(content, ed) {
   if (b.event_title || b.event_text) { c.events.enabled = true; c.events.title = c.events.title || b.event_title || ''; c.events.text = c.events.text || b.event_text || ''; c.events.url = c.events.url || b.event_url || ''; c.events.image_url = c.events.image_url || b.event_image_url || ''; }
   delete c.agenda;
   c.claims = c.claims || []; c.sources_used = c.sources_used || [];
-  ['subject', 'preheader', 'headline', 'intro', 'closing'].forEach(k => { if (typeof c[k] !== 'string') c[k] = c[k] ? String(c[k]) : ''; });
-  c.headline = c.headline.replace(/[.]+$/, '');
+  ['subject', 'preheader', 'headline', 'support_line', 'thesis', 'vendamais_note', 'intro', 'closing'].forEach(k => { if (typeof c[k] !== 'string') c[k] = c[k] ? String(c[k]) : ''; });
+  c.headline = c.headline.replace(/[.]+$/, ''); c.thesis = c.thesis.replace(/[.]+$/, '');
+  if (!c.vendamais_note) c.vendamais_note = 'A VendaMais existe para isso: transformar operação comercial em método, rotina e resultado, do diagnóstico à execução. Vendas levadas a sério.';
   return c;
 }
 function lockedText(prev) {

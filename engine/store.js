@@ -16,7 +16,7 @@ function empty() {
       text_provider: 'openai', text_model: 'gpt-5', builtin_model: 'claude-sonnet-4-5',
       image_provider_default: 'openai', image_mode: 'premium',
       image_models: { gemini: { economy: 'gemini-3.1-flash-image', standard: 'gemini-3.1-flash-image', premium: 'gemini-3-pro-image' }, openai: { economy: 'gpt-image-2.5-flare', standard: 'gpt-image-2.5-flare', premium: 'gpt-image-2.5-sunburst' } },
-      qa_threshold: 85, supabase_url: '', supabase_anon_key: '', metricool_blog_id: '', metricool_brand_name: '', timezone: 'America/Sao_Paulo', default_length: 'standard', default_tone: 'analítico', default_cta_type: 'conversa'
+      qa_threshold: 85, last_edition_number: 0, supabase_url: '', supabase_anon_key: '', metricool_blog_id: '', metricool_brand_name: '', timezone: 'America/Sao_Paulo', default_length: 'standard', default_tone: 'analítico', default_cta_type: 'conversa'
     }
   };
 }
@@ -43,5 +43,6 @@ export const blobs = {
   async del(id) { const d = await idb(); return new Promise((res) => { const t = d.transaction('blobs', 'readwrite'); t.objectStore('blobs').delete(id); t.oncomplete = () => res(); }); }
 };
 export function sha256(text) { return crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)).then(b => Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join('')); }
+export function nextEditionNumber() { const used = db.editions.map(e => Number(e.brief?.number) || 0); return Math.max(db.settings.last_edition_number || 0, ...used, 0) + 1; }
 export const STATUS = ['draft', 'newsletter_generated', 'newsletter_approved', 'posts_generated', 'approved', 'exported'];
 export const STATUS_LABEL = { draft: 'Draft', newsletter_generated: 'Newsletter gerada', newsletter_approved: 'Newsletter aprovada', posts_generated: 'Posts gerados', approved: 'Aprovado', exported: 'Exportado' };

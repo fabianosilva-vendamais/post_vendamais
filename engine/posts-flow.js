@@ -68,14 +68,15 @@ export async function addImageFromDataUrl(app, p, dataUrl, source, label) { cons
 export function chooseImage(app, p, id) { p.image_id = id; p.updated_at = now(); audit('image.choose', 'post', p.id, { image_id: id }); app.save(); }
 
 // ---- render ----
-export async function buildSpec(app, p) {
-  const R = activeRules(); const c = p.content_json;
+export function contentFor(p, lang) { return lang === 'es' && p.content_es ? p.content_es : p.content_json; }
+export async function buildSpec(app, p, lang = 'pt') {
+  const R = activeRules(); const c = contentFor(p, lang);
   const url = (a) => a ? app.assetUrl(a) : '';
   const [logoPrimary, logoNegative, image, portrait] = await Promise.all([loadImage(url(assetByType('logo_primary'))), loadImage(url(assetByType('logo_negative'))), p.image_id ? blobs.get(p.image_id).then(loadImage) : null, p.partner_id ? loadImage(url(db.brand_assets.find(a => a.type === 'portrait' && a.partner_id === p.partner_id && a.active))) : null]);
   const partner = R.partners.find(x => x.id === p.partner_id) || null;
   return { templateId: p.template_id, headline: c.headline, support: c.support_line, kicker: c.kicker || R.angles[p.angle].kicker, proofNumber: c.proof_number, proofLabel: c.proof_label, image, crop: p.crop, logoPrimary, logoNegative, portrait, partner };
 }
-export async function renderPost(app, p, canvas) { await ensureFonts(); const spec = await buildSpec(app, p); const meta = render(canvas, spec); return { spec, meta }; }
+export async function renderPost(app, p, canvas, lang = 'pt') { await ensureFonts(); const spec = await buildSpec(app, p, lang); const meta = render(canvas, spec); return { spec, meta }; }
 
 // ---- Carrossel ----
 export function setFormat(app, p, format) { p.format = format; p.meta.edited.format = 'human'; p.updated_at = now(); audit('post.format', 'post', p.id, { format }); app.save(); }
@@ -130,11 +131,11 @@ export function approvePost(app, p) {
   p.status = 'approved'; p.approved_at = now(); audit('post.approve', 'post', p.id, { score: p.score }); const ed = app.edition();
   if (postsOf(ed.id).length === 3 && postsOf(ed.id).every(x => x.status === 'approved' || x.status === 'exported')) app.setStatus(ed, 'approved'); app.save();
 }
-export function captionText(p) { const c = p.content_json.caption || {}; return [c.hook, '', c.body, '', c.practical_takeaway, '', c.cta, '', (c.hashtags || []).map(h => h.startsWith('#') ? h : '#' + h).join(' ')].filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n').trim(); }
-export async function exportPost(app, p, { png = true, copy = true } = {}) {
-  const ed = app.edition(); const base = `radar-ed${String(ed.brief.number).padStart(2, '0')}-${p.angle}`;
-  if (png) { const canvas = document.createElement('canvas'); await renderPost(app, p, canvas); const blob = await canvasToBlob(canvas); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${base}-1080x1350.png`; a.click(); const rid = uid('render'); db.renders.push({ id: rid, post_id: p.id, template_id: p.template_id, image_id: p.image_id, dimensions: '1080x1350', created_at: now() }); }
-  if (copy) download(`${base}-legenda.txt`, captionText(p));
+export function captionText(p, lang = 'pt') { const c = contentFor(p, lang).caption || {}; return [c.hook, '', c.body, '', c.practical_takeaway, '', c.cta, '', (c.hashtags || []).map(h => h.startsWith('#') ? h : '#' + h).join(' ')].filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n').trim(); }
+export async function exportPost(app, p, { png = true, copy = true, lang = 'pt' } = {}) {
+  const ed = app.edition(); const base = `vendamais-radar-${ed.brief.number}-${p.angle}${lang === 'es' ? '-es' : ''}`;
+  if (png) { const canvas = document.createElement('canvas'); await renderPost(app, p, canvas, lang); const blob = await canvasToBlob(canvas); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${base}-1080x1350.png`; a.click(); const rid = uid('render'); db.renders.push({ id: rid, post_id: p.id, template_id: p.template_id, image_id: p.image_id, dimensions: '1080x1350', created_at: now() }); }
+  if (copy) download(`${base}-legenda.txt`, captionText(p, lang));
   if (p.status === 'approved') p.status = 'exported'; ed.exports = ed.exports || {}; ed.exports.posts = now(); if (postsOf(ed.id).every(x => x.status === 'exported') && ed.exports.newsletter) app.setStatus(ed, 'exported');
   audit('post.export', 'post', p.id, { png, copy }); app.save();
 }

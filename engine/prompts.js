@@ -18,20 +18,27 @@ Use somente as evidências fornecidas. Cada número, case ou cliente citado deve
 `Analise as fontes abaixo para uma edição da newsletter Radar VendaMais. Extraia somente o que está nas fontes.
 Retorne JSON: {"summary": string (3 a 5 frases), "facts": [{"id":"E1","kind":"fact|number|example|argument|quote","text":string,"source_id":string,"strength":"alta|média|baixa"}], "numbers": [ids de facts do tipo number], "risks": [string], "angles": [{"title":string,"thesis":string,"why":string,"evidence_ids":[string]}] (3 a 5 ângulos), "gaps": [string] (o que falta de prova para sustentar o tema)}.
 Ids das evidências devem ser sequenciais E1, E2... e cada uma aponta o source_id de origem.` },
-  { id: 'newsletter_generate', name: 'Geração da newsletter', version: 1, active: true, prompt_text:
-`Escreva a edição da newsletter "Radar VendaMais" (slogan: "Vendas para quem influencia vendas"). Nível A: a marca fala em nós, sem sócio assinando.
-Estrutura obrigatória, no JSON abaixo. Extensão alvo: {{length_words}} palavras no total.
-{"subject": string (específico, sem clickbait), "preheader": string (complementa, não repete), "headline": string (uma tese clara, sem ponto final), "intro": string (problema real ou tensão, 2 a 3 frases),
-"sections": [{"label":"O PROBLEMA DA SEMANA","title":string,"body":string,"evidence_ids":[string]}, {"label": string em caixa alta, "title":string, "body":string, "evidence_ids":[string]}] (2 a 4 seções: problema, contexto/diagnóstico, desenvolvimento),
-"practical_block": {"label":"FERRAMENTA DA SEMANA","title":string,"intro":string,"steps":[{"title":string,"text":string}] (3 a 6 itens numerados aplicáveis)},
-"interpretation": {"label":"COMO INTERPRETAR","title":string,"items":[{"title":string,"text":string}]},
-"action": {"label":"COMO AGIR","title":string,"steps":[{"title":string,"text":string}] (3 a 5 passos "o que fazer / como fazer")},
-"common_error": {"label":"ERRO COMUM","title":string,"body":string},
-"meeting_questions": {"label":"LEVE PARA A PRÓXIMA REUNIÃO","title":string,"questions":[string] (4 a 6)},
-"question_of_week": {"label":"PERGUNTA DA SEMANA","text":string},
-"closing": string (conclusão útil, sem frase motivacional),
-"cta": {"label":string,"url":string,"type":"conversa|diagnostico|treinamento|material|resposta"},
-"sources_used": [source_ids], "claims": [{"text":string,"evidence_id":string}]}
+  { id: 'newsletter_generate', name: 'Geração da newsletter', version: 2, active: true, prompt_text:
+`Escreva a próxima edição da newsletter "VendaMais Radar" (chamada editorial: "Vendas para quem influencia vendas"). A marca fala em nós, sem sócio assinando. Público: toda a base VendaMais (CEOs, diretores, gerentes comerciais, líderes de vendas, RH, T&D, DHO, marketing). Não escreva como se todos fossem vendedores.
+PASSO 1: defina a TESE CENTRAL em uma única frase afirmativa (ex.: 'Mais oportunidades não corrigem uma operação comercial ineficiente'). Toda seção desenvolve, demonstra ou ajuda a aplicar essa tese. Não misture problemas independentes.
+TÍTULO: provoca, não descreve. Afirmação forte, tensão comercial real, contradição, erro de gestão ou consequência de decisão equivocada. Proibido: pergunta genérica, 'Como melhorar suas vendas', título institucional, explicativo, promessa exagerada, fórmula apelativa. Sem ponto final.
+TOM: provocativo, direto, afirmativo, executivo, atual, prático. Frases curtas. Sem introdução genérica, sem excesso de contexto, sem parágrafos longos. Não agressivo, não arrogante, não sensacionalista. Sem travessão.
+APLICAÇÃO PRÁTICA obrigatória: diagnóstico, checklist, roteiro, exercício, perguntas ou critérios que o leitor use na semana. Newsletter puramente conceitual é reprovada.
+REGRA COMERCIAL: o CTA convida naturalmente a conversar com a VendaMais sobre o problema tratado; nunca inserido artificialmente, nunca catálogo de soluções.
+Extensão alvo: {{length_words}} palavras. Retorne o JSON:
+{"thesis": string (a tese central, uma frase, sem ponto final), "subject": string, "preheader": string (complementa, não repete), "headline": string (título provocativo), "support_line": string (linha de apoio: uma frase que sustenta o título), "intro": string (abertura curta: a tensão central em 2 a 4 parágrafos breves),
+"sections": [{"label": string em caixa alta, "title": string, "body": string, "evidence_ids": [string]}] (1 a 2 seções: o problema comercial central, apresentado como possibilidades de diagnóstico),
+"practical_block": {"label": string, "title": string, "intro": string, "steps": [{"title": string, "text": string}]} (diagnóstico ou exercício prático, 5 a 8 itens),
+"interpretation": {"label": "COMO INTERPRETAR", "title": string, "items": [{"title": string, "text": string}]} (como ler os sinais sem conclusões precipitadas),
+"action": {"label": "AÇÃO RECOMENDADA", "title": string, "steps": [{"title": string, "text": string}]} (um gargalo prioritário: ação, responsável, indicador, prazo),
+"common_error": {"label": "ERROS MAIS COMUNS", "title": string, "body": string},
+"meeting_questions": {"label": "LEVE PARA A PRÓXIMA REUNIÃO COMERCIAL", "title": string, "questions": [string]} (exatamente 6),
+"question_of_week": {"label": "PERGUNTA DA SEMANA", "text": string},
+"vendamais_note": string (inserção breve da VendaMais, 1 a 2 frases, terminando com 'Vendas levadas a sério.'; sem catálogo),
+"closing": string (encerramento em 1 ou 2 frases firmes),
+"cta": {"label": string (convite para conversa ou diagnóstico ligado ao problema), "url": string, "type": "conversa|diagnostico"},
+"sources_used": [source_ids], "claims": [{"text": string, "evidence_id": string}]}
+Não invente estatísticas, pesquisas, percentuais, cases, clientes ou resultados: só o que estiver nas evidências.
 Briefing: {{briefing}}
 Evidências disponíveis (use os ids): {{evidence}}
 {{locked}}` },
@@ -48,7 +55,7 @@ IGNORE (não coloque em nenhum campo): nome da newsletter ('Radar VendaMais'), n
 headline = o título editorial da edição (a frase-tese, normalmente a primeira frase forte ou a pergunta central), sem ponto final. intro = só os 2 a 4 primeiros parágrafos que abrem o problema. O restante vai para sections (cada subtítulo ou mudança de assunto vira uma seção com label, title e body), practical_block (ferramenta, checklist, diagnóstico), interpretation (como interpretar/ler), action (como agir, passos), common_error, meeting_questions, question_of_week, closing (último parágrafo conclusivo), cta (frase de chamada e link, se houver).
 Mantenha a ORDEM original do texto dentro de sections. Não repita o mesmo conteúdo em dois blocos. Nos títulos de itens (steps, items) NÃO inclua numeração ('1.', '2)'): o template numera. O bloco de podcast e a agenda NÃO entram em sections (o template já os imprime). O parágrafo final de assinatura ('Vendas levadas a sério', 'A VendaMais estrutura...') vai em closing.
 Se um bloco não existir no texto, deixe o array vazio ou a string vazia; nunca invente conteúdo.
-{"subject": string, "preheader": string, "headline": string, "intro": string,
+{"thesis": string (a tese central do texto em uma frase afirmativa, extraída do próprio texto), "subject": string, "preheader": string, "headline": string, "support_line": string (linha de apoio logo abaixo do título, se existir), "intro": string,
 "sections": [{"label": string, "title": string, "body": string, "evidence_ids": []}],
 "practical_block": {"label": string, "title": string, "intro": string, "steps": [{"title": string, "text": string}]},
 "interpretation": {"label": string, "title": string, "items": [{"title": string, "text": string}]},
@@ -56,7 +63,7 @@ Se um bloco não existir no texto, deixe o array vazio ou a string vazia; nunca 
 "common_error": {"label": string, "title": string, "body": string},
 "meeting_questions": {"label": string, "title": string, "questions": [string]},
 "question_of_week": {"label": string, "text": string},
-"closing": string, "cta": {"label": string, "url": string, "type": string}, "claims": []}
+"vendamais_note": string (inserção breve da VendaMais, se existir no texto), "closing": string, "cta": {"label": string, "url": string, "type": string}, "claims": []}
 TEXTO DO EDITOR:
 {{text}}` },
   { id: 'posts_derive', name: 'Derivação dos três posts', version: 5, active: true, prompt_text:
