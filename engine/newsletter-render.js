@@ -64,10 +64,14 @@ export function renderEmail(n, opts = {}) {
 ${logoImg(logoNegUrl, 'VendaMais')}
 <div style="height:28px;line-height:28px;font-size:0;">&nbsp;</div>${bar}<div style="height:12px;line-height:12px;font-size:0;">&nbsp;</div>
 ${label(`${name} • Newsletter ${editionNumber}${editionDate ? ' • ' + editionDate : ''}`, C.white)}
-<h1 class="vm-h1" style="margin:14px 0 12px 0;font-family:${F};font-size:38px;line-height:44px;font-weight:700;color:${C.white};">${esc(n.headline || '')}</h1>
-${n.support_line ? `<p style="margin:0 0 18px 0;font-family:${F};font-size:19px;line-height:28px;font-weight:500;color:${C.white};">${esc(n.support_line)}</p>` : ''}
-<p style="margin:0 0 6px 0;font-family:${F};font-size:12px;line-height:18px;letter-spacing:1px;font-weight:700;text-transform:uppercase;color:${C.orange_light || '#F0A05A'};">${esc(tagline)}</p>
-${p(n.intro || '', C.grayl, 15)}
+<p style="margin:-2px 0 0 0;font-family:${F};font-size:13px;line-height:20px;font-weight:500;color:${C.grayl};">${esc(tagline)}</p>
+<div style="height:28px;line-height:28px;font-size:0;">&nbsp;</div>
+<h1 class="vm-h1" style="margin:0;font-family:${F};font-size:38px;line-height:46px;font-weight:700;color:${C.white};">${esc(n.headline || '')}</h1>
+${n.support_line ? `<div style="height:16px;line-height:16px;font-size:0;">&nbsp;</div><p style="margin:0;font-family:${F};font-size:17px;line-height:26px;font-weight:400;color:${C.grayl};">${esc(n.support_line)}</p>` : ''}
+<div style="height:28px;line-height:28px;font-size:0;">&nbsp;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top:1px solid ${C.line_dark || '#324052'};font-size:0;line-height:0;">&nbsp;</td></tr></table>
+<div style="height:20px;line-height:20px;font-size:0;">&nbsp;</div>
+${p(n.intro || '', '#D5DEE7', 15)}
 </td></tr>
 ${sections}${practical}${interp}${action}${err}${mq}${qow}${closing}${cta}${vmNote}${podcast}${agenda}
 <tr><td class="vm-p" style="padding:32px 36px 40px 36px;border-top:1px solid ${C.line};">
@@ -81,7 +85,7 @@ export function renderPlainText(n, opts = {}) {
   n = { ...n, podcast: legacyPod(n.podcast) };
   const { editionNumber = 1, name = 'Radar VendaMais', tagline = 'Vendas para quem influencia vendas' } = opts;
   const L = [];
-  L.push(`${name.toUpperCase()} • NEWSLETTER ${editionNumber}`, '', (n.headline || '').toUpperCase(), n.support_line || '', tagline, '', n.intro || '', '');
+  L.push(`${name.toUpperCase()} • NEWSLETTER ${editionNumber}`, tagline, '', (n.headline || '').toUpperCase(), n.support_line || '', '', n.intro || '', '');
   for (const s of n.sections || []) L.push(s.label, s.title, '', s.body, '');
   if (n.practical_block) { L.push(n.practical_block.label, n.practical_block.title, ''); if (n.practical_block.intro) L.push(n.practical_block.intro, ''); (n.practical_block.steps || []).forEach((s, i) => L.push(`${pad(i + 1)}. ${s.title}`, `    ${s.text}`)); L.push(''); }
   if (n.interpretation?.items?.length) { L.push(n.interpretation.label, n.interpretation.title, ''); n.interpretation.items.forEach(it => L.push(`- ${it.title}: ${it.text}`)); L.push(''); }
