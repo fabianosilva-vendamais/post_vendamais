@@ -76,7 +76,7 @@ ${p(n.intro || '', '#D5DEE7', 15)}
 ${sections}${practical}${interp}${action}${err}${mq}${qow}${closing}${cta}${vmNote}${podcast}${agenda}
 <tr><td class="vm-p" style="padding:32px 36px 40px 36px;border-top:1px solid ${C.line};">
 ${logoImg(logoUrl, 'VendaMais')}
-<p style="margin:16px 0 0 0;font-family:${F};font-size:12px;line-height:18px;color:${C.gray};">${esc(name)} • Newsletter semanal<br>${esc(tagline)}<br><a href="{{unsubscribe_url}}" style="color:${C.gray};">Cancelar inscrição</a></p>
+<p style="margin:16px 0 0 0;font-family:${F};font-size:12px;line-height:18px;color:${C.gray};">${esc(name)} • Newsletter semanal<br>${esc(tagline)}<br><a href="#UNSUBSCRIBE_LINK#" style="color:${C.gray};">Cancelar inscrição</a></p>
 </td></tr></table></td></tr></table></body></html>`;
   return html;
 }
