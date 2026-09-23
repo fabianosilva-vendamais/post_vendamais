@@ -74,7 +74,7 @@ export async function buildSpec(app, p, lang = 'pt') {
   const url = (a) => a ? app.assetUrl(a) : '';
   const [logoPrimary, logoNegative, image, portrait] = await Promise.all([loadImage(url(assetByType('logo_primary'))), loadImage(url(assetByType('logo_negative'))), p.image_id ? blobs.get(p.image_id).then(loadImage) : null, p.partner_id ? loadImage(url(db.brand_assets.find(a => a.type === 'portrait' && a.partner_id === p.partner_id && a.active))) : null]);
   const partner = R.partners.find(x => x.id === p.partner_id) || null;
-  return { templateId: p.template_id, headline: c.headline, support: c.support_line, kicker: c.kicker || R.angles[p.angle].kicker, proofNumber: c.proof_number, proofLabel: c.proof_label, image, crop: p.crop, logoPrimary, logoNegative, portrait, partner };
+  return { templateId: p.template_id, headline: c.headline, support: c.support_line, kicker: c.kicker === '' ? '' : (c.kicker || R.angles[p.angle].kicker), proofNumber: c.proof_number, proofLabel: c.proof_label, image, crop: p.crop, logoPrimary, logoNegative, portrait, partner };
 }
 export async function renderPost(app, p, canvas, lang = 'pt') { await ensureFonts(); const spec = await buildSpec(app, p, lang); const meta = render(canvas, spec); return { spec, meta }; }
 
@@ -91,6 +91,22 @@ export async function deriveCarousel(app, p, slides = 6) {
   audit('carousel.derive', 'post', p.id, { slides: list.length }); app.save(); return p.carousel;
 }
 export function editSlide(app, p, i, field, value) { const s = p.carousel?.slides?.[i]; if (!s || s[field] === value) return; s[field] = value; p.carousel.meta.edited[`${i}.${field}`] = 'human'; p.updated_at = now(); app.save('Autosave'); }
+// Reescreve um único slide com instrução do editor, mantendo o restante do carrossel como contexto.
+export async function rewriteSlide(app, p, i, instruction) {
+  const L = p.carousel?.slides || []; const s = L[i]; if (!s) throw new Error('Slide inexistente.');
+  const evidence = app.evidence(p.edition_id); const ctx = L.map((x, k) => k === i ? { ...x, _rewriting: true } : x);
+  const pr = `Reescreva SOMENTE o slide ${i + 1} de ${L.length} deste carrossel (papel: ${s.role}). Mantenha coerência com os demais slides (contexto abaixo, não altere). Instrução do editor: ${instruction || 'deixe mais claro e direto, frases curtas, sem jargão'}.
+Regras: título até 10 palavras, sem ponto final; texto de apoio até 40 palavras, frases curtas, uma ideia por slide; sem travessão; se houver número de prova, ele deve existir nas evidências e o proof_label deve explicar o número em linguagem simples (ex.: 'das oportunidades ficam paradas mais de 30 dias').
+Slide atual: ${JSON.stringify({ kicker: s.kicker, title: s.title, body: s.body, proof_number: s.proof_number, proof_label: s.proof_label })}
+Carrossel (contexto): ${JSON.stringify(ctx.map(x => ({ role: x.role, title: x.title, body: x.body }))).slice(0, 6000)}
+Evidências: ${evidence.map(e => e.id + ' ' + e.text).join('\n').slice(0, 6000)}
+Retorne JSON: {"kicker": string, "title": string, "body": string, "proof_number": string, "proof_label": string}`;
+  const out = await textJSON({ system: prompt('editor_base'), prompt: pr, purpose: 'carousel.rewrite' });
+  const clean = sanitize({ kicker: out.kicker ?? s.kicker, title: out.title ?? s.title, body: out.body ?? s.body, proof_number: out.proof_number ?? s.proof_number, proof_label: out.proof_label ?? s.proof_label });
+  clean.title = String(clean.title || '').replace(/[.]+$/, '');
+  p.carousel.history = p.carousel.history || []; p.carousel.history.push({ i, before: { ...s }, at: now() });
+  Object.assign(s, clean); p.carousel.meta.edited[`${i}.ai`] = 'ai'; p.updated_at = now(); audit('carousel.rewrite_slide', 'post', p.id, { i, instruction }); app.save(); return s;
+}
 export function removeSlide(app, p, i) { const L = p.carousel.slides; if (L.length <= 3 || L[i].role === 'cover' || L[i].role === 'closing') return; L.splice(i, 1); app.save(); }
 export function addSlide(app, p, i) { const L = p.carousel.slides; if (L.length >= 10) return; L.splice(i + 1, 0, { role: 'point', kicker: 'PONTO', title: 'Novo slide', body: '', proof_number: '', proof_label: '', evidence_ids: [] }); app.save(); }
 export function moveSlide(app, p, i, dir) { const L = p.carousel.slides; const j = i + dir; if (j <= 0 || j >= L.length - 1 || i <= 0 || i >= L.length - 1) return; [L[i], L[j]] = [L[j], L[i]]; app.save(); }
@@ -140,8 +156,11 @@ export async function exportPost(app, p, { png = true, copy = true, lang = 'pt' 
   audit('post.export', 'post', p.id, { png, copy }); app.save();
 }
 
+// Imagem "existe" só se o arquivo estiver disponível neste navegador; referência sem arquivo conta como pendente.
+export async function hasImageFile(p) { if (!p.image_id) return false; try { return !!(await blobs.get(p.image_id)); } catch (e) { return false; } }
+export async function pendingImages(editionId) { const out = []; for (const p of postsOf(editionId)) if (!(await hasImageFile(p))) out.push(p); return out; }
 export async function generateAllImages(app, editionId, opts = {}) {
   const done = [], failed = [];
-  for (const p of postsOf(editionId)) { if (p.image_id && !opts.force) continue; try { await generateImage(app, p, { prompt: p.content_json.image_prompt, provider: opts.provider, mode: opts.mode, references: [] }); done.push(p.angle); } catch (e) { failed.push(`${p.angle}: ${e.message}`); } }
+  for (const p of postsOf(editionId)) { if (!opts.force && await hasImageFile(p)) continue; if (p.image_id && !(await hasImageFile(p))) { p.image_id = null; } try { await generateImage(app, p, { prompt: p.content_json.image_prompt, provider: opts.provider, mode: opts.mode, references: [] }); done.push(p.angle); } catch (e) { failed.push(`${p.angle}: ${e.message}`); } }
   return { done, failed };
 }
