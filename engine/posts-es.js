@@ -22,3 +22,16 @@ export async function adaptToSpanish(app, p, thesis = '') {
 export function editSpanish(app, p, path, value) { if (!p.content_es) return; const ks = path.split('.'); let o = p.content_es; for (let i = 0; i < ks.length - 1; i++) o = o[ks[i]] = o[ks[i]] || {}; if (JSON.stringify(o[ks[ks.length - 1]]) === JSON.stringify(value)) return; o[ks[ks.length - 1]] = value; p.es_edited = { ...(p.es_edited || {}), [path]: 'human' }; p.updated_at = now(); app.save('Autosave'); }
 export function setSpanishStatus(app, p, status) { p.es_status = status; p.updated_at = now(); audit('post.es.status', 'post', p.id, { status }); app.save(); }
 export const ES_STATUS = { pending_validation: 'Aguardando validação (Valcir)', validated: 'Validada', rejected: 'Reprovada' };
+
+const CAR_PROMPT = `Você é um redator comercial nativo de espanhol rioplatense/paraguaio, B2B, América Latina. Adapte este carrossel da VendaMais (aprovado em português) para espanhol. Não traduza palavra por palavra: recrie a partir do sentido, preservando a tese, a ordem e o papel de cada slide. Espanhol profissional, natural, compreensível no Paraguai, Uruguai, Argentina e região. Sem portunhol, sem travessão. Títulos sem ponto final e até 10 palavras; textos de apoio até 40 palavras. Mantenha os números de prova exatamente iguais.
+Carrossel (PT): {{slides}}
+Retorne JSON: {"slides":[{"kicker":string,"title":string,"body":string,"proof_number":string,"proof_label":string,"cta":string}]} com a mesma quantidade e ordem de slides.`;
+export async function adaptCarouselToSpanish(app, p) {
+  const L = p.carousel?.slides || []; if (!L.length) return null;
+  const src = L.map(s => ({ role: s.role, kicker: s.kicker, title: s.title, body: s.body, proof_number: s.proof_number, proof_label: s.proof_label, cta: s.cta }));
+  const out = await textJSON({ system: 'Retorne apenas JSON válido; dentro das strings use aspas simples para citações.', prompt: CAR_PROMPT.replace('{{slides}}', JSON.stringify(src)), purpose: 'carousel.es' });
+  const list = Array.isArray(out.slides) ? out.slides : [];
+  const slides = L.map((s, i) => { const o = list[i] || {}; const c = sanitize({ kicker: o.kicker ?? s.kicker, title: o.title ?? s.title, body: o.body ?? s.body, proof_label: o.proof_label ?? s.proof_label, cta: o.cta ?? s.cta }); return { ...s, ...c, title: String(c.title || '').replace(/[.]+$/, ''), proof_number: s.proof_number }; });
+  p.carousel_es = { slides, at: now() }; p.updated_at = now(); audit('carousel.es.generate', 'post', p.id, { slides: slides.length }); app.save(); return p.carousel_es;
+}
+export function editSpanishSlide(app, p, i, field, value) { const s = p.carousel_es?.slides?.[i]; if (!s || JSON.stringify(s[field]) === JSON.stringify(value)) return; s[field] = value; p.updated_at = now(); app.save('Autosave'); }
