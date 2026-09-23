@@ -130,13 +130,17 @@ export function renderSlide(canvas, spec) {
     ctx.font = `500 26px ${FONT}, Arial, sans-serif`; ctx.fillStyle = C.grayl; ctx.fillText(spec.tagline || '', M, H - M + 8); pager('rgba(255,255,255,0.7)'); meta.headlineFontPx = hl.size; return meta;
   }
   // point / proof / action: alterna areia e branco; barra laranja vertical como fio condutor
-  const sand = s.index % 2 === 1; ctx.fillStyle = sand ? C.sand : C.white; ctx.fillRect(0, 0, W, H);
-  drawV(ctx, spec.logoPrimary, M, M, 44, 1); // só o símbolo, discreto
+  // Fundo por slide: s.style = 'navy' | 'white' | 'sand' | 'photo' (vazio = alterna areia/branco)
+  const st = s.style || (s.index % 2 === 1 ? 'sand' : 'white'); const dark = st === 'navy' || st === 'photo';
+  ctx.fillStyle = dark ? C.navy : st === 'sand' ? C.sand : C.white; ctx.fillRect(0, 0, W, H);
+  if (st === 'photo' && spec.image) { drawCover(ctx, spec.image, 0, 0, W, H, spec.crop); ctx.fillStyle = 'rgba(22,38,58,0.74)'; ctx.fillRect(0, 0, W, H); }
+  drawV(ctx, dark ? spec.logoNegative : spec.logoPrimary, M, M, 44, 1); // só o símbolo, discreto
+  const inkC = dark ? C.white : C.navy, bodyC = dark ? 'rgba(255,255,255,0.88)' : C.ink, grayC = dark ? C.grayl : C.gray;
   ctx.fillStyle = C.orange; ctx.fillRect(M, 300, 5, s.role === 'proof' ? 420 : 300);
-  const x = M + 40, w = inner - 40; label(ctx, s.kicker || '', x, 300 + 22, C.gray); let y = 300 + 22;
-  if (s.role === 'proof' && s.proof_number) { const pn = fit(ctx, s.proof_number, w, { max: 190, min: 96, weight: 700, maxLines: 1, lh: 1 }); ctx.font = `700 ${pn.size}px ${FONT}, Arial, sans-serif`; ctx.fillStyle = C.orange; ctx.fillText(pn.lines[0] || '', x, y + pn.size * 0.9 + 24); y += pn.size + 40; if (s.proof_label) { const pl = fit(ctx, s.proof_label, w, { max: 36, min: 30, weight: 500, maxLines: 2, lh: 1.35 }); ctx.font = `500 ${pl.size}px ${FONT}, Arial, sans-serif`; y = drawLines(ctx, pl.lines, x, y + 20, pl.lineH, C.gray); y += 24; } }
-  const hl = fit(ctx, s.title, w, { max: s.role === 'proof' ? 52 : 64, min: 40, weight: 600, maxLines: 4, lh: 1.12 }); ctx.font = `600 ${hl.size}px ${FONT}, Arial, sans-serif`; y = drawLines(ctx, hl.lines, x, y + hl.size + 16, hl.lineH, C.navy);
-  if (s.body) { const b = fit(ctx, s.body, w, { max: 38, min: 32, weight: 400, maxLines: 8, lh: 1.42 }); ctx.font = `400 ${b.size}px ${FONT}, Arial, sans-serif`; drawLines(ctx, b.lines, x, y + 28, b.lineH, C.ink); }
-  pager(C.gray); arrow(C.navy); meta.headlineFontPx = hl.size; return meta;
+  const x = M + 40, w = inner - 40; label(ctx, s.kicker || '', x, 300 + 22, grayC); let y = 300 + 22;
+  if (s.role === 'proof' && s.proof_number) { const pn = fit(ctx, s.proof_number, w, { max: 190, min: 96, weight: 700, maxLines: 1, lh: 1 }); ctx.font = `700 ${pn.size}px ${FONT}, Arial, sans-serif`; ctx.fillStyle = C.orange; ctx.fillText(pn.lines[0] || '', x, y + pn.size * 0.9 + 24); y += pn.size + 40; if (s.proof_label) { const pl = fit(ctx, s.proof_label, w, { max: 36, min: 30, weight: 500, maxLines: 2, lh: 1.35 }); ctx.font = `500 ${pl.size}px ${FONT}, Arial, sans-serif`; y = drawLines(ctx, pl.lines, x, y + 20, pl.lineH, grayC); y += 24; } }
+  const hl = fit(ctx, s.title, w, { max: s.role === 'proof' ? 52 : 64, min: 40, weight: 600, maxLines: 4, lh: 1.12 }); ctx.font = `600 ${hl.size}px ${FONT}, Arial, sans-serif`; y = drawLines(ctx, hl.lines, x, y + hl.size + 16, hl.lineH, inkC);
+  if (s.body) { const b = fit(ctx, s.body, w, { max: 38, min: 32, weight: 400, maxLines: 8, lh: 1.42 }); ctx.font = `400 ${b.size}px ${FONT}, Arial, sans-serif`; drawLines(ctx, b.lines, x, y + 28, b.lineH, bodyC); }
+  pager(dark ? 'rgba(255,255,255,0.7)' : C.gray); arrow(inkC); meta.headlineFontPx = hl.size; return meta;
 }
 export const SIZE = { W, H };
