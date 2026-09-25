@@ -3,7 +3,7 @@
 export const BRAND_RULES_V1 = {
   version: 1,
   brand: { name: 'VendaMais', spelling: 'VendaMais', forbidden_spellings: ['Venda Mais', 'VENDAMAIS', 'Venda-Mais'], thesis: 'Vendas levadas a sério', principle: 'A prova antes da promessa', default_signature_level: 'A' },
-  newsletter: { name: 'Radar VendaMais', tagline: 'Vendas para quem influencia vendas', signature_level: 'A', agenda: [
+  newsletter: { name: 'Radar VendaMais', tagline: 'Vendas para quem influencia vendas', tagline_es: 'Ventas para quienes influyen en las ventas', signature_level: 'A', agenda: [
     { day: 'Segunda', title: 'Radar VendaMais', desc: 'Newsletter semanal para quem influencia vendas' },
     { day: 'Terça', title: 'E-zine do Raul', desc: 'Conteúdo autoral sobre vendas e gestão' },
     { day: 'Quinta', title: 'Podcast VendaMais', desc: 'Conversa entre sócios e convidados sobre operação comercial' } ] },
