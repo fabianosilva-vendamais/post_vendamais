@@ -166,3 +166,25 @@ export async function generateAllImages(app, editionId, opts = {}) {
   for (const p of postsOf(editionId)) { if (!opts.force && await hasImageFile(p)) continue; if (p.image_id && !(await hasImageFile(p))) { p.image_id = null; } try { await generateImage(app, p, { prompt: p.content_json.image_prompt, provider: opts.provider, mode: opts.mode, references: [] }); done.push(p.angle); } catch (e) { failed.push(`${p.angle}: ${e.message}`); } }
   return { done, failed };
 }
+
+// PDF do carrossel (LinkedIn documento): um slide por página, JPEG embutido. Escrito sem biblioteca externa.
+export async function exportCarouselPdf(app, p, lang = 'pt') {
+  const L = ((lang === 'es' && p.carousel_es?.slides?.length) ? p.carousel_es.slides : p.carousel?.slides) || []; if (!L.length) throw new Error('Carrossel vazio.');
+  const jpegs = [];
+  for (let i = 0; i < L.length; i++) { const cv = document.createElement('canvas'); await renderCarouselSlide(app, p, i, cv, lang); const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.92)); jpegs.push(new Uint8Array(await blob.arrayBuffer())); }
+  const W = 1080, H = 1350; const enc = new TextEncoder(); const parts = []; const offsets = []; let pos = 0;
+  const push = (s) => { const b = typeof s === 'string' ? enc.encode(s) : s; parts.push(b); pos += b.length; };
+  const obj = (n, body) => { offsets[n] = pos; push(n + ' 0 obj\n'); push(body); push('\nendobj\n'); };
+  push('%PDF-1.4\n');
+  const N = jpegs.length; const pageIds = jpegs.map((_, i) => 3 + i * 3);
+  obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+  obj(2, '<< /Type /Pages /Kids [' + pageIds.map(id => id + ' 0 R').join(' ') + '] /Count ' + N + ' >>');
+  jpegs.forEach((jpg, i) => { const pid = 3 + i * 3, cid = pid + 1, iid = pid + 2; const content = 'q ' + W + ' 0 0 ' + H + ' 0 0 cm /Im0 Do Q';
+    obj(pid, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + W + ' ' + H + '] /Contents ' + cid + ' 0 R /Resources << /XObject << /Im0 ' + iid + ' 0 R >> >> >>');
+    obj(cid, '<< /Length ' + content.length + ' >>\nstream\n' + content + '\nendstream');
+    offsets[iid] = pos; push(iid + ' 0 obj\n<< /Type /XObject /Subtype /Image /Width ' + W + ' /Height ' + H + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + jpg.length + ' >>\nstream\n'); push(jpg); push('\nendstream\nendobj\n'); });
+  const total = 3 + N * 3; const xref = pos; push('xref\n0 ' + total + '\n0000000000 65535 f \n'); for (let i = 1; i < total; i++) push(String(offsets[i]).padStart(10, '0') + ' 00000 n \n');
+  push('trailer\n<< /Size ' + total + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF');
+  const blob = new Blob(parts, { type: 'application/pdf' }); const ed = app.edition(); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'vendamais-radar-' + ed.brief.number + '-' + p.angle + (lang === 'es' ? '-es' : '') + '-carrossel.pdf'; a.click();
+  audit('carousel.export_pdf', 'post', p.id, { slides: N, lang }); return N;
+}

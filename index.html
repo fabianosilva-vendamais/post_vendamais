@@ -857,7 +857,8 @@ button:disabled{opacity:.5;cursor:not-allowed}
               <sc-if value="{{ hasCarousel }}" hint-placeholder-val="{{ false }}">
                 <button onClick="{{ exportSlidePng }}" style="background:#fff;border:1px solid #16263A;color:#16263A;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Baixar este slide</button>
                 <button onClick="{{ copyCaption }}" style="background:#fff;border:1px solid #E6E2DA;color:#16263A;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Copiar legenda</button>
-                <button onClick="{{ exportCarousel }}" disabled="{{ busy }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Exportar carrossel (ZIP)</button>
+                <button onClick="{{ exportCarouselPdf }}" disabled="{{ busy }}" style="background:#16263A;color:#fff;border:0;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Baixar PDF (LinkedIn)</button>
+              <button onClick="{{ exportCarousel }}" disabled="{{ busy }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Exportar carrossel (ZIP)</button>
               </sc-if>
             </div>
             <div style="{{ pubPanelStyle }}">
@@ -1288,6 +1289,7 @@ class Component extends DCLogic {
   onSlideInput = (e) => { const p = this.activePost(); const k = `slide:${p.id}:${this.slideIndex(p)}:${e.target.dataset.field}`; this.setState({ drafts: { ...(this.state.drafts || {}), [k]: e.target.value } }); };
   onSlideCommit = (e) => { const p = this.activePost(); const i = this.slideIndex(p); const f = e.target.dataset.field; const k = `slide:${p.id}:${i}:${f}`; const d = { ...(this.state.drafts || {}) }; if (!(k in d)) return; let v = d[k]; delete d[k]; if (f === 'evidence_ids') v = v.split(/[,\s]+/).filter(Boolean); if (this.lang() === 'es' && p.carousel_es) this.M.es.editSpanishSlide(this, p, i, f, v); else this.PF().editSlide(this, p, i, f, v); this.setState({ drafts: d }); };
   exportSlidePng = () => this.run('Renderizando slide', async () => { const p = this.activePost(); const i = this.slideIndex(p); const cv = document.createElement('canvas'); await this.PF().renderCarouselSlide(this, p, i, cv, this.lang()); const blob = await new Promise(r => cv.toBlob(r, 'image/png')); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `radar-ed${String(this.edition().brief.number).padStart(2, '0')}-${p.angle}-slide${String(i + 1).padStart(2, '0')}.png`; a.click(); });
+  exportCarouselPdf = () => this.run('Gerando PDF do carrossel', async () => { const n = await this.PF().exportCarouselPdf(this, this.activePost(), this.lang()); this.toast(`PDF com ${n} páginas gerado. No LinkedIn, publique como Documento.`); });
   exportCarousel = () => this.run('Exportando carrossel', async () => { await this.PF().exportCarousel(this, this.activePost(), this.lang()); this.toast('ZIP com os slides e a legenda baixado.'); this.forceUpdate(); });
   setSlideRole = (e) => { const p = this.activePost(); this.PF().setSlideRole(this, p, this.slideIndex(p), e.currentTarget.dataset.role); this.forceUpdate(); };
   setSlideStyle = (e) => { const p = this.activePost(); this.PF().setSlideStyle(this, p, this.slideIndex(p), e.currentTarget.dataset.style); this.forceUpdate(); };
