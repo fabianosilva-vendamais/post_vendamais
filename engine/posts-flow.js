@@ -116,9 +116,9 @@ export async function renderCarouselSlide(app, p, i, canvas, lang = 'pt') { awai
 export function carouselChecks(p, evidence) { const issues = []; const L = p.carousel?.slides || []; for (let i = 0; i < L.length; i++) { const d = deterministicChecks({ headline: L[i].title, body: L[i].body, proof_label: L[i].proof_label, proof_number: L[i].proof_number, evidence_ids: L[i].evidence_ids }, evidence, 'slide'); d.blockers.forEach(b => issues.push({ kind: 'Bloqueio', where: `slide ${i + 1}`, text: b.text })); d.warnings.forEach(w => issues.push({ kind: 'Alerta', where: `slide ${i + 1}`, text: w.text })); if (L[i].title.split(/\s+/).length > 12) issues.push({ kind: 'Alerta', where: `slide ${i + 1}`, text: 'Título com mais de 12 palavras.' }); } return issues; }
 // Exporta todos os slides em ZIP (PNG numerados + legenda). ZIP "store" sem compressão, escrito à mão.
 export async function exportCarousel(app, p, lang = 'pt') {
-  const ed = app.edition(); const base = `radar-ed${String(ed.brief.number).padStart(2, '0')}-${p.angle}-carrossel`; const files = [];
+  const ed = app.edition(); const base = `vendamais-radar-${ed.brief.number}-${p.angle}${lang === 'es' ? '-es' : ''}-carrossel`; const files = [];
   for (let i = 0; i < p.carousel.slides.length; i++) { const cv = document.createElement('canvas'); await renderCarouselSlide(app, p, i, cv, lang); const blob = await canvasToBlob(cv); files.push({ name: `${base}/${String(i + 1).padStart(2, '0')}.png`, data: new Uint8Array(await blob.arrayBuffer()) }); }
-  files.push({ name: `${base}/legenda.txt`, data: new TextEncoder().encode(captionText(p)) });
+  files.push({ name: `${base}/legenda.txt`, data: new TextEncoder().encode(captionText(p, lang)) });
   const zip = buildZip(files); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([zip], { type: 'application/zip' })); a.download = `${base}.zip`; a.click();
   db.renders.push({ id: uid('render'), post_id: p.id, template_id: 'carousel', image_id: p.image_id, dimensions: `1080x1350 x${p.carousel.slides.length}`, created_at: now() });
   if (p.status === 'approved') p.status = 'exported'; ed.exports = ed.exports || {}; ed.exports.posts = now(); audit('carousel.export', 'post', p.id, { slides: p.carousel.slides.length }); app.save();
