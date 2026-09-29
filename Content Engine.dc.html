@@ -1187,7 +1187,7 @@ class Component extends DCLogic {
       rows.push(mk('headline', 'Título', [F('headline', 'Título'), F('support_line', 'Linha de apoio', { rows: 2 })]));
       c.free_blocks.forEach((b, i) => rows.push(mk(`free_blocks.${i}`, b.label || b.title || `Bloco ${i + 1}`, [F(`free_blocks.${i}.label`, 'Rótulo (## no texto)'), F(`free_blocks.${i}.title`, 'Título (###)'), F(`free_blocks.${i}.md`, 'Texto (aceita **negrito**, listas, tabelas e [Botão])', { rows: 8 })])));
       rows.push(mk('cta', 'Link dos botões [Vamos conversar?]', [F('cta.url', 'URL ou e-mail')]));
-      rows.push(mk('podcast', 'Links do podcast', [F('podcast.spotify_url', 'Link do Spotify'), F('podcast.youtube_url', 'Link do YouTube (episódio: a capa aparece)')]));
+      rows.push(mk('podcast', 'Podcast da semana', [F('podcast.title', 'Título do episódio (opcional)'), F('podcast.description', 'Descrição curta do episódio (opcional)', { rows: 2 }), F('podcast.youtube_url', 'Link do episódio no YouTube (a capa vem daqui)'), F('podcast.spotify_url', 'Link do episódio no Spotify'), F('podcast.cover_url', 'Imagem de capa (opcional: substitui a do YouTube)')]));
     } else {
     rows.push(mk('subject', 'Assunto do e-mail', [F('subject', 'Assunto')]));
     rows.push(mk('preheader', 'Preheader', [F('preheader', 'Preheader')]));
