@@ -1181,6 +1181,14 @@ class Component extends DCLogic {
     const mk = (path, label, fields, extra = {}) => { const [ol, os] = origin(path); const locked = !!locks[path]; return { path, label, fields, originLabel: ol, originStyle: `font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;background:${os}`, lockLabel: locked ? 'Fixado' : 'Fixar', lockStyle: `border-radius:4px;padding:5px 10px;font-size:11px;font-weight:600;border:1px solid ${locked ? '#E2742B' : '#E6E2DA'};background:${locked ? '#E2742B' : '#fff'};color:${locked ? '#fff' : '#5E6770'}`, regenDisabled: locked || S.busy, cardStyle: `background:#fff;border:1px solid ${locked ? '#E2742B' : '#E6E2DA'};border-radius:12px;padding:14px 16px`, evidence: '', removable: false, canAdd: false, ...extra }; };
     const F = (path, label, o = {}) => ({ path, label, value: val(path), textarea: !!o.rows, input: !o.rows, rows: o.rows || 2, removable: !!o.removePath, removePath: o.removePath || '', removeIdx: o.removeIdx ?? -1 });
     const rows = [];
+    if (c.free_blocks) {
+      rows.push(mk('subject', 'Assunto do e-mail', [F('subject', 'Assunto')]));
+      rows.push(mk('preheader', 'Preheader', [F('preheader', 'Preheader')]));
+      rows.push(mk('headline', 'Título', [F('headline', 'Título'), F('support_line', 'Linha de apoio', { rows: 2 })]));
+      c.free_blocks.forEach((b, i) => rows.push(mk(`free_blocks.${i}`, b.label || b.title || `Bloco ${i + 1}`, [F(`free_blocks.${i}.label`, 'Rótulo (## no texto)'), F(`free_blocks.${i}.title`, 'Título (###)'), F(`free_blocks.${i}.md`, 'Texto (aceita **negrito**, listas, tabelas e [Botão])', { rows: 8 })])));
+      rows.push(mk('cta', 'Link dos botões [Vamos conversar?]', [F('cta.url', 'URL ou e-mail')]));
+      rows.push(mk('podcast', 'Links do podcast', [F('podcast.spotify_url', 'Link do Spotify'), F('podcast.youtube_url', 'Link do YouTube (episódio: a capa aparece)')]));
+    } else {
     rows.push(mk('subject', 'Assunto do e-mail', [F('subject', 'Assunto')]));
     rows.push(mk('preheader', 'Preheader', [F('preheader', 'Preheader')]));
     rows.push(mk('thesis', 'Tese central', [F('thesis', 'Uma frase afirmativa que toda a edição sustenta')]));
@@ -1198,6 +1206,7 @@ class Component extends DCLogic {
     rows.push(mk('cta', 'CTA comercial', [F('cta.label', 'Texto do botão'), F('cta.helper', 'Frase acima do botão (opcional)', { rows: 2 }), F('cta.url', 'URL ou e-mail (ex.: fabiano.silva@vendamais.com.br → botão abre e-mail com assunto e edição preenchidos)'), F('cta.type', 'Tipo (conversa, diagnostico, treinamento, material, resposta)')]));
     rows.push(mk('podcast', 'Podcast VendaMais (opcional)', [F('podcast.title', 'Título do episódio'), F('podcast.description', 'Descrição', { rows: 2 }), F('podcast.spotify_url', 'Link do Spotify (Ouvir)'), F('podcast.youtube_url', (c.podcast?.youtube_url && !/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/|live\/)([\w-]{11})/.test(c.podcast.youtube_url)) ? 'Link do YouTube · este é um link de canal ou playlist: use o link do episódio para a capa aparecer' : 'Link do YouTube do episódio (botão Ver + capa automática)'), F('podcast.cover_url', 'Capa alternativa (deixe vazio: a capa vem do YouTube automaticamente)')], { evidence: c.podcast?.enabled ? 'ativo' : 'oculto (preencha o título para ativar)' }));
     rows.push(mk('events', 'Convite para evento (opcional)', [F('events.label', 'Rótulo'), F('events.title', 'Título do evento'), F('events.text', 'Texto do convite', { rows: 3 }), F('events.url', 'Link de inscrição'), F('events.cta', 'Texto do botão'), F('events.image_url', 'Imagem (URL pública)')], { evidence: c.events?.enabled ? 'ativo' : 'oculto (preencha título ou texto para ativar)' }));
+    }
     out.blockRows = rows;
     const o = this.NL().renderOutputs(ed, v, this); this._previewHtml = o.preview;
     const tab = S.outTab || 'preview'; const mode = S.previewMode || 'desktop'; const tabBtn = (on) => `background:${on ? '#16263A' : '#fff'};color:${on ? '#fff' : '#16263A'};border:1px solid ${on ? '#16263A' : '#E6E2DA'};border-radius:4px;padding:7px 12px;font-size:12px;font-weight:600`;

@@ -1,3 +1,4 @@
+import { isMarkdown, parseMarkdownNewsletter } from './markdown-newsletter.js';
 // Fluxo da newsletter: geração, regeneração local de bloco, QA, aprovação, exportação.
 import { db, uid, now, audit, activeRules, assetByType } from './store.js';
 import { textJSON } from './providers.js';
@@ -61,6 +62,17 @@ function prompt(id) { return db.prompt_templates.find(p => p.id === id && p.acti
 // Modo "texto pronto": o editor traz a newsletter escrita; a IA só estrutura em blocos, sem reescrever.
 async function structureReady(app, ed, evidence, prev) {
   const R = activeRules();
+  // Markdown do autor: estrutura preservada exatamente, sem IA.
+  if (isMarkdown(ed.brief.ready_text || '')) {
+    const md = parseMarkdownNewsletter(ed.brief.ready_text);
+    if (!md.blocks.length) throw new Error('Não encontrei blocos no texto. Use ## para os rótulos das seções.');
+    const pp = prev?.content_json?.podcast || {};
+    const content = normalize({ headline: md.headline, support_line: md.support_line, subject: md.headline, preheader: md.support_line, free_blocks: md.blocks, cta: { label: ed.brief.cta || 'Vamos conversar?', url: ed.brief.cta_url || prev?.content_json?.cta?.url || '', type: ed.brief.cta_type || 'conversa' }, podcast: { enabled: true, title: pp.title || ed.brief.podcast_title || '', youtube_url: pp.youtube_url || pp.url || ed.brief.podcast_url || '', spotify_url: pp.spotify_url || '', cover_url: pp.cover_url || '' } }, ed);
+    content.free_blocks = md.blocks; delete content.vendamais_note;
+    const v = { id: uid('nlv'), edition_id: ed.id, n: (prev?.n || 0) + 1, content_json: content, meta: { locks: {}, edited: {}, mode: 'markdown' }, origin: 'human', score: null, qa_json: null, is_approved: false, created_at: now(), note: 'Texto do editor (Markdown), estrutura preservada' };
+    const det = deterministicChecks(content, evidence, 'newsletter'); v.qa_json = { deterministic: det };
+    db.newsletter_versions.push(v); app.setStatus(ed, 'newsletter_generated'); audit('newsletter.markdown', 'newsletter_version', v.id, { n: v.n, blocks: md.blocks.length }); app.save(); return v;
+  }
   // Limpeza determinística: remove cabeçalho/slogan/rodapé que o template já imprime.
   const junk = [new RegExp('^\\s*' + R.newsletter.name.replace(/\s+/g, '\\s*') + '\\s*([•·|-].*)?$', 'i'), new RegExp('^\\s*' + R.newsletter.tagline + '\\s*$', 'i'), /^\s*edi[çc][aã]o\s*(piloto|n?º?\s*\d+).*$/i, /^\s*(cancelar inscri[çc][aã]o|unsubscribe|newsletter semanal).*$/i];
   const text = (ed.brief.ready_text || '').split('\n').filter(l => !junk.some(rx => rx.test(l))).join('\n').trim();

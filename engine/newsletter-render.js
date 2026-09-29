@@ -1,9 +1,10 @@
+import { mdToEmail, mdToPlain } from './markdown-newsletter.js';
 // Render determinístico da newsletter: JSON -> HTML de e-mail (tabelas, 600px, inline, sem JS) + plain text.
 // Baseado no piloto Radar VendaMais v2. Fonte Poppins com fallback Arial (Outlook).
 const C = { navy: '#16263A', orange: '#E2742B', white: '#FFFFFF', sand: '#FAF7F2', line: '#E6E2DA', ink: '#1E1E1E', gray: '#5E6770', grayl: '#9FB3C2', bg: '#EEF1F4' };
 const F = "Poppins, Arial, Helvetica, sans-serif";
 const escRaw = (s = '') => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const esc = (s = '') => escRaw(s).replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>').replace(/\*\*/g, '');
+const esc = (s = '') => escRaw(s).replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>').replace(/\*\*/g, '').replace(/(^|[^*\w])\*([^*\n]+?)\*(?![*\w])/g, '$1<em>$2</em>');
 const plainMd = (s = '') => String(s).replace(/\*\*/g, '');
 // Remove seções que repetem a abertura (ex.: 'ABERTURA / A abertura' com o mesmo texto do intro)
 const normTxt = (s = '') => String(s).toLowerCase().replace(/\*\*/g, '').replace(/[^a-zà-ÿ0-9]+/g, ' ').trim();
@@ -57,6 +58,16 @@ export function renderEmail(n, opts = {}) {
   const ev = n.events || {}; const hasEvent = ev.enabled && (ev.title || ev.text);
   const agenda = hasEvent ? section(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;background:${C.sand};border:1px solid ${C.line};border-radius:10px;"><tr><td style="padding:24px;">${label(ev.label || 'Convite VendaMais')}${ev.image_url ? `<a href="${esc(ev.url || '#')}"><img src="${esc(ev.image_url)}" alt="${esc(ev.title || '')}" width="528" style="display:block;width:100%;max-width:528px;height:auto;border:0;border-radius:6px;margin:0 0 16px 0;"></a>` : ''}${ev.title ? h2(ev.title) : ''}${ev.text ? p(ev.text) : ''}${ev.url ? `<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:${C.navy};border-radius:4px;"><a href="${esc(ev.url)}" style="display:inline-block;padding:12px 22px;font-family:${F};font-size:14px;font-weight:600;color:${C.white};text-decoration:none;">${esc(ev.cta || 'Quero participar')}</a></td></tr></table>` : ''}</td></tr></table>`) : '';
 
+  // Modo livre (Markdown do autor): blocos na ordem escrita, com o visual do Radar.
+  const freeHtml = (n) => { const ctaUrl = n.cta?.url || '#'; const pod = n.podcast || {};
+    const button = (lbl) => `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 14px 0;"><tr><td style="background:${C.orange};border-radius:4px;"><a href="${escRaw(ctaUrl)}" style="display:inline-block;padding:14px 26px;font-family:${F};font-size:15px;font-weight:600;color:${C.white};text-decoration:none;">${esc(lbl)}</a></td></tr></table>`;
+    const podcastButtons = () => { const bs = [pod.spotify_url && ['Ouvir no Spotify', pod.spotify_url], pod.youtube_url && ['Assistir no YouTube', pod.youtube_url]].filter(Boolean); if (!bs.length) return ''; return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 14px 0;"><tr>${bs.map(([l, u]) => `<td style="padding-right:10px;"><a href="${escRaw(u)}" style="display:inline-block;padding:12px 20px;border:1px solid ${C.navy};border-radius:4px;font-family:${F};font-size:14px;font-weight:600;color:${C.navy};text-decoration:none;">${l}</a></td>`).join('')}</tr></table>`; };
+    return (n.free_blocks || []).map(b => { const isPodcast = /podcast/i.test(b.label + ' ' + b.title); const caps = b.label && b.label === b.label.toUpperCase();
+      const head = (caps ? label(b.label) : (b.label ? h2(b.label) : '')) + (b.title ? h2(b.title) : '');
+      const cover = isPodcast && pod.cover_url ? `<img src="${escRaw(pod.cover_url)}" alt="" width="528" style="display:block;width:100%;max-width:528px;height:auto;border:0;border-radius:8px;margin:0 0 14px 0;">` : '';
+      const body = cover + mdToEmail(b.md, { esc, F, C, button, podcastButtons, isPodcast });
+      const inner = /pergunta da semana/i.test(b.label) ? card(head + body) : head + body;
+      return section(inner); }).join(''); };
   const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><title>${escRaw(plainMd(n.subject || name))}</title>
 <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
@@ -78,7 +89,7 @@ ${n.support_line ? `<div style="height:16px;line-height:16px;font-size:0;">&nbsp
 <div style="height:20px;line-height:20px;font-size:0;">&nbsp;</div>
 ${p(n.intro || '', '#D5DEE7', 15)}
 </td></tr>
-${sections}${practical}${interp}${action}${err}${mq}${qow}${closing}${cta}${vmNote}${podcast}${agenda}
+${n.free_blocks ? freeHtml(n) : `${sections}${practical}${interp}${action}${err}${mq}${qow}${closing}${cta}${vmNote}${podcast}`}${agenda}
 <tr><td class="vm-p" style="padding:32px 36px 40px 36px;border-top:1px solid ${C.line};">
 ${logoImg(logoUrl, 'VendaMais')}
 <p style="margin:16px 0 0 0;font-family:${F};font-size:12px;line-height:18px;color:${C.gray};">${esc(name)} • Newsletter semanal<br>${esc(tagline)}<br><a href="#UNSUBSCRIBE_LINK#" style="color:${C.gray};">Cancelar inscrição</a></p>
@@ -88,6 +99,7 @@ ${logoImg(logoUrl, 'VendaMais')}
 
 export function renderPlainText(n, opts = {}) {
   n = dropIntroDupes({ ...n, podcast: legacyPod(n.podcast) });
+  if (n.free_blocks) { const { editionNumber = 1, name = 'VendaMais Radar', tagline = 'Vendas para quem influencia vendas' } = opts; const L = [`${name.toUpperCase()} • NEWSLETTER ${editionNumber}`, tagline, '', (n.headline || '').toUpperCase(), plainMd(n.support_line || ''), '']; for (const b of n.free_blocks) { if (b.label) L.push(b.label); if (b.title) L.push(b.title); L.push('', mdToPlain(b.md), ''); } if (n.cta?.url) L.push(`Contato: ${n.cta.url}`, ''); L.push(`${name} • Newsletter semanal`, tagline); return L.join('\n').replace(/\n{3,}/g, '\n\n'); }
   const { editionNumber = 1, name = 'Radar VendaMais', tagline = 'Vendas para quem influencia vendas' } = opts;
   const L = [];
   L.push(`${name.toUpperCase()} • NEWSLETTER ${editionNumber}`, tagline, '', (n.headline || '').toUpperCase(), n.support_line || '', '', n.intro || '', '');

@@ -70,8 +70,8 @@ export function deterministicChecks(content, evidence = [], kind = 'newsletter',
   }
   if (kind === 'newsletter') {
     const words = flatText(content).map(t => t.text).join(' ').split(/\s+/).length;
-    if (!content.practical_block?.steps?.length || !content.action?.steps?.length) blockers.push({ code: 'no_practical', where: 'practical_block', text: 'Falta bloco de aplicação prática (o que fazer / como fazer).' });
-    if (!content.cta?.label) blockers.push({ code: 'no_cta', where: 'cta', text: 'CTA ausente.' });
+    if (!content.free_blocks && (!content.practical_block?.steps?.length || !content.action?.steps?.length)) blockers.push({ code: 'no_practical', where: 'practical_block', text: 'Falta bloco de aplicação prática (o que fazer / como fazer).' });
+    if (!content.free_blocks && !content.cta?.label) blockers.push({ code: 'no_cta', where: 'cta', text: 'CTA ausente.' });
     if (words < 350) warnings.push({ code: 'short', where: 'newsletter', text: `Newsletter com ${words} palavras, abaixo do mínimo.` });
     if (content.preheader && content.subject && content.preheader.trim() === content.subject.trim()) warnings.push({ code: 'preheader', where: 'preheader', text: 'Preheader repete o assunto.' });
   }
