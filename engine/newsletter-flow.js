@@ -3,7 +3,7 @@ import { isMarkdown, parseMarkdownNewsletter } from './markdown-newsletter.js';
 import { db, uid, now, audit, activeRules, assetByType } from './store.js';
 import { textJSON } from './providers.js';
 import { fill } from './prompts.js';
-import { deterministicChecks, combineScore } from './qa.js';
+import { deterministicChecks, combineScore, aiBlockers } from './qa.js';
 import { renderEmail, renderPlainText } from './newsletter-render.js';
 
 const LENGTH_WORDS = { short: 550, standard: 950, deep: 1500 };
@@ -142,14 +142,14 @@ export async function runQA(app) {
   const p = fill(prompt('qa_audit'), { channel: 'newsletter por e-mail, 700 a 1.200 palavras, nível A institucional' + (human ? '. ATENÇÃO: este texto foi escrito pelo editor humano da VendaMais, não pela IA. Números de instrução (30 minutos, 90 dias, 10 negócios, 20% melhores) são parâmetros do método, não afirmações de prova: NÃO os marque como bloqueio. Só use severidade "bloqueio" para grafia errada da marca, superlativo sem prova, promessa sem base ou linguagem de BU. Voz em imperativo direto ao leitor é aceitável no bloco prático. Escreva "where" em português simples (ex.: "Ferramenta da semana, passo 2"), nunca em nomes de campo, e "text"/"fix" sem códigos de evidência: cite a prova pelo nome (ex.: "mais de 2.500 clientes atendidos").' : '') + memory, piece: JSON.stringify(v.content_json).slice(0, 20000), evidence: evidenceText(evidence) });
   const ai = await textJSON({ system: prompt('editor_base'), prompt: p, purpose: 'newsletter.qa' });
   const visual = 100; // e-mail: template determinístico; logo oficial verificado no export
-  const blockers = [...det.blockers, ...(ai.issues || []).filter(i => i.severity === 'bloqueio').map(i => ({ code: 'ai', where: i.where, text: i.text + (i.fix ? ` Correção: ${i.fix}` : '') }))];
+  const blockers = [...det.blockers, ...aiBlockers(v.content_json, ai).map(i => ({ code: 'ai', where: i.where, text: i.text + (i.fix ? ` Correção: ${i.fix}` : '') }))];
   const { score, ready } = combineScore(ai.scores || {}, visual, blockers);
   v.score = score; v.qa_json = { deterministic: det, ai, blockers, ready, threshold: R.qa.threshold, at: now(), applied: {}, applied_history: [...(v.qa_json?.applied_history || []), ...applied.map(i => ({ where: i.where, fix: i.fix || i.text }))] };
   audit('newsletter.qa', 'newsletter_version', v.id, { score, blockers: blockers.length, ready }); app.save(); return v.qa_json;
 }
 export function approve(app) {
   const ed = app.edition(); const v = current(ed.id); const det = deterministicChecks(v.content_json, app.evidence(ed.id), 'newsletter', qaOpts(v));
-  const blockers = [...det.blockers, ...((v.qa_json?.ai?.issues || []).filter(i => i.severity === 'bloqueio'))];
+  const blockers = [...det.blockers, ...aiBlockers(v.content_json, v.qa_json?.ai)];
   if (blockers.length) throw new Error(`${blockers.length} bloqueio(s) impedem a aprovação. Resolva-os na Revisão VendaMais.`);
   db.newsletter_versions.filter(x => x.edition_id === ed.id).forEach(x => x.is_approved = false); v.is_approved = true; v.approved_at = now();
   const rendered = renderOutputs(ed, v, app); v.html = rendered.html; v.plain = rendered.text;

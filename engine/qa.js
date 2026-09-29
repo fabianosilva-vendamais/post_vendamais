@@ -28,7 +28,7 @@ export function deterministicChecks(content, evidence = [], kind = 'newsletter',
   const UNIT = /^(%|por cento|mil\b|milh|bilh|pontos?|p\.p\.|clientes|projetos|empresas|equipes|diagn|vendedores|opera|reais|lojas|unidades|colaboradores|pessoas|leads|neg[óo]cios fechados)/i; // prazos ("30 dias", "24 horas") são instrução, não prova
   for (const { path, text } of texts) {
     // 1. Grafia da marca
-    for (const bad of R.brand.forbidden_spellings) if (text.includes(bad)) blockers.push({ code: 'spelling', where: path, text: `Grafia "${bad}" encontrada. Use VendaMais.` });
+    for (const bad of R.brand.forbidden_spellings) if (text.includes(bad) && !(bad === bad.toUpperCase() && (/(^|\.)(label|kicker)$/.test(path) || text === text.toUpperCase()))) blockers.push({ code: 'spelling', where: path, text: `Grafia "${bad}" encontrada. Use VendaMais.` });
     // 2. Superlativo sem evidência
     for (const s of R.voice.superlatives) { const m = new RegExp(`\\b${s}\\b`, 'i').exec(text); if (m) { const i = m.index; const window_ = text.slice(Math.max(0, i - 80), i + 120); if (!/\d/.test(window_)) numSink.push({ code: 'superlative', where: path, text: `Superlativo "${s}" sem número ao lado.` }); } }
     // 3. Linguagem de BU
@@ -102,9 +102,11 @@ export function humanPath(path = '') {
   if (!path) return '';
   const parts = String(path).replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean);
   const out = []; let i = 0;
-  while (i < parts.length) { const k = parts[i]; const idx = /^\d+$/.test(parts[i + 1] || '') ? Number(parts[i + 1]) + 1 : null; const name = BLOCK_PT[k] || k.replace(/_/g, ' '); out.push(idx != null ? (k === 'sections' ? `Seção ${idx}` : `${name} ${idx}`) : name); i += idx != null ? 2 : 1; }
+  while (i < parts.length) { const k = parts[i]; const idx = /^\d+$/.test(parts[i + 1] || '') ? Number(parts[i + 1]) + 1 : null; const name = BLOCK_PT[k] || k.replace(/_/g, ' '); out.push(idx != null ? (k === 'sections' ? `Seção ${idx}` : k === 'free_blocks' ? `Bloco ${idx}` : `${name} ${idx}`) : name); i += idx != null ? 2 : 1; }
   return out.filter((v, j, a) => j === 0 || v !== a[j - 1]).join(' › ');
 }
 export function humanRefs(text = '', evidence = []) {
   return String(text).replace(/\[?\b(K-[\w-]+|E\d+)\]?/g, (m, id) => { const e = evidence.find(x => x.id === id); if (!e) return ''; const short = e.text.length > 60 ? e.text.slice(0, 57).replace(/\s\S*$/, '') + '…' : e.text; return `(${short})`; }).replace(/\s{2,}/g, ' ').replace(/\s+([,.;])/g, '$1').trim();
 }
+
+export function aiBlockers(content, ai) { if (content?.free_blocks) return []; return (ai?.issues || []).filter(i => i.severity === 'bloqueio'); }
