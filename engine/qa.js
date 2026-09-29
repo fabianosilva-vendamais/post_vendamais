@@ -17,7 +17,7 @@ export function collectClaimIds(content) {
 }
 // Retorna {blockers:[], warnings:[]} para newsletter ou post (content JSON) contra as evidências.
 export function deterministicChecks(content, evidence = [], kind = 'newsletter', opts = {}) {
-  const R = activeRules(); const blockers = [], warnings = []; const human = !!opts.humanText;
+  const R = activeRules(); const blockers = [], warnings = []; const human = !!opts.humanText || !!content?.free_blocks || content?.meta_mode === 'ready'; // texto do autor: sem mapa de afirmações gerado por IA
   const numSink = human ? warnings : blockers; // texto do editor: dado sem fonte é alerta para conferir, não bloqueio
   const evIds = new Set(evidence.map(e => e.id));
   const evText = evidence.map(e => e.text).join(' \n ').toLowerCase();
