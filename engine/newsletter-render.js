@@ -2,7 +2,12 @@
 // Baseado no piloto Radar VendaMais v2. Fonte Poppins com fallback Arial (Outlook).
 const C = { navy: '#16263A', orange: '#E2742B', white: '#FFFFFF', sand: '#FAF7F2', line: '#E6E2DA', ink: '#1E1E1E', gray: '#5E6770', grayl: '#9FB3C2', bg: '#EEF1F4' };
 const F = "Poppins, Arial, Helvetica, sans-serif";
-const esc = (s = '') => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const escRaw = (s = '') => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const esc = (s = '') => escRaw(s).replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>').replace(/\*\*/g, '');
+const plainMd = (s = '') => String(s).replace(/\*\*/g, '');
+// Remove seções que repetem a abertura (ex.: 'ABERTURA / A abertura' com o mesmo texto do intro)
+const normTxt = (s = '') => String(s).toLowerCase().replace(/\*\*/g, '').replace(/[^a-zà-ÿ0-9]+/g, ' ').trim();
+function dropIntroDupes(n) { const intro = normTxt(n.intro); if (!intro || !Array.isArray(n.sections)) return n; const secs = n.sections.filter(s => { const b = normTxt(s.body); const isOpen = /abertura|introdu/.test(normTxt((s.label || '') + ' ' + (s.title || ''))); if (!b) return !isOpen; const head = b.slice(0, 120); return !(intro.includes(head) || (isOpen && b.split(' ').filter(w => intro.includes(w)).length / b.split(' ').length > 0.7)); }); return { ...n, sections: secs }; }
 const nl = (s = '', pstyle = '') => esc(s).trim().replace(/\n{2,}/g, `</p><p style="${pstyle}">`).replace(/\n/g, '<br>');
 const pad = (n) => String(n).padStart(2, '0');
 
@@ -18,7 +23,7 @@ export function ctaHref(n, opts = {}) {
   return `mailto:${mail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 export function renderEmail(n, opts = {}) {
-  n = { ...n, podcast: legacyPod(n.podcast) };
+  n = dropIntroDupes({ ...n, podcast: legacyPod(n.podcast) });
   const { logoUrl = '', logoNegUrl = '', editionNumber = 1, editionDate = '', tagline = 'Vendas para quem influencia vendas', name = 'Radar VendaMais', previewOnly = false } = opts;
   const label = (t, color = C.gray) => `<p style="margin:0 0 8px 0;font-family:${F};font-size:11px;line-height:16px;letter-spacing:1px;font-weight:700;color:${color};text-transform:uppercase;">${esc(t)}</p>`;
   const h2 = (t, color = C.navy) => `<h2 style="margin:0 0 14px 0;font-family:${F};font-size:26px;line-height:32px;font-weight:600;color:${color};">${esc(t)}</h2>`;
@@ -53,7 +58,7 @@ export function renderEmail(n, opts = {}) {
   const agenda = hasEvent ? section(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;background:${C.sand};border:1px solid ${C.line};border-radius:10px;"><tr><td style="padding:24px;">${label(ev.label || 'Convite VendaMais')}${ev.image_url ? `<a href="${esc(ev.url || '#')}"><img src="${esc(ev.image_url)}" alt="${esc(ev.title || '')}" width="528" style="display:block;width:100%;max-width:528px;height:auto;border:0;border-radius:6px;margin:0 0 16px 0;"></a>` : ''}${ev.title ? h2(ev.title) : ''}${ev.text ? p(ev.text) : ''}${ev.url ? `<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:${C.navy};border-radius:4px;"><a href="${esc(ev.url)}" style="display:inline-block;padding:12px 22px;font-family:${F};font-size:14px;font-weight:600;color:${C.white};text-decoration:none;">${esc(ev.cta || 'Quero participar')}</a></td></tr></table>` : ''}</td></tr></table>`) : '';
 
   const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><title>${esc(n.subject || name)}</title>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><title>${escRaw(plainMd(n.subject || name))}</title>
 <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
 <style type="text/css">@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap'); body{margin:0;padding:0;} table{border-collapse:collapse;} img{border:0;line-height:100%;outline:none;text-decoration:none;} @media only screen and (max-width:620px){ .vm-w{width:100% !important;max-width:100% !important;} .vm-p{padding-left:20px !important;padding-right:20px !important;} .vm-h1{font-size:30px !important;line-height:36px !important;} }</style></head>
 <body style="margin:0;padding:0;background:${C.bg};">
@@ -82,7 +87,7 @@ ${logoImg(logoUrl, 'VendaMais')}
 }
 
 export function renderPlainText(n, opts = {}) {
-  n = { ...n, podcast: legacyPod(n.podcast) };
+  n = dropIntroDupes({ ...n, podcast: legacyPod(n.podcast) });
   const { editionNumber = 1, name = 'Radar VendaMais', tagline = 'Vendas para quem influencia vendas' } = opts;
   const L = [];
   L.push(`${name.toUpperCase()} • NEWSLETTER ${editionNumber}`, tagline, '', (n.headline || '').toUpperCase(), n.support_line || '', '', n.intro || '', '');
@@ -98,5 +103,5 @@ export function renderPlainText(n, opts = {}) {
   if (n.podcast?.enabled && n.podcast.title) L.push('PODCAST VENDAMAIS', n.podcast.title, n.podcast.description || '', n.podcast.spotify_url ? `Ouvir no Spotify: ${n.podcast.spotify_url}` : '', n.podcast.youtube_url ? `Ver no YouTube: ${n.podcast.youtube_url}` : '', '');
   if (n.events?.enabled && (n.events.title || n.events.text)) L.push((n.events.label || 'CONVITE VENDAMAIS').toUpperCase(), n.events.title || '', n.events.text || '', n.events.url ? `${n.events.cta || 'Quero participar'}: ${n.events.url}` : '', '');
   L.push(`${name} • Newsletter semanal`, tagline);
-  return L.join('\n').replace(/\n{3,}/g, '\n\n');
+  return plainMd(L.join('\n')).replace(/\n{3,}/g, '\n\n');
 }
