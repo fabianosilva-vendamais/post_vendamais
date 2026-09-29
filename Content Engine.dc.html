@@ -1151,7 +1151,7 @@ class Component extends DCLogic {
   // Antes de exportar: toda imagem precisa de URL pública (Bitrix, Gmail, RD). Sobe data URLs e assets locais para o bucket público 'brand' do Supabase.
   async publicHtml(html) {
     const SB = this.M.supabase; if (!SB?.signedIn()) { if (/src="data:/.test(html)) this.toast('Há imagens locais no e-mail. Faça login no Supabase para que sejam hospedadas; sem isso, o Bitrix não as exibe.', 'error'); return html; }
-    const ed = this.edition(); const seen = new Map(); let n = 0;
+    const ed = this.edition(); const seen = new Map(); let n = 0; let failed = 0;
     const srcs = [...html.matchAll(/src="([^"]+)"/g)].map(m => m[1]).filter((s, i, a) => a.indexOf(s) === i);
     for (const src of srcs) {
       let dataUrl = null, ext = 'png';
@@ -1159,15 +1159,15 @@ class Component extends DCLogic {
       else if (!/^https?:\/\//.test(src) || src.includes(location.host)) { try { const b = await (await fetch(src)).blob(); ext = (b.type.split('/')[1] || 'png').replace('jpeg', 'jpg'); dataUrl = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); }); } catch (e) { continue; } }
       if (!dataUrl) continue;
       const hash = (await this.M.store.sha256(dataUrl.slice(0, 5000) + dataUrl.length)).slice(0, 12);
-      const url = await SB.upload('brand', `email/${ed ? 'n' + ed.brief.number : 'x'}/${hash}.${ext}`, dataUrl); seen.set(src, url); n++;
+      try { const url = await SB.upload('brand', `email/${ed ? 'n' + ed.brief.number : 'x'}/${hash}.${ext}`, dataUrl); seen.set(src, url); n++; } catch (err) { console.warn('upload imagem e-mail', err); failed = (failed || 0) + 1; }
     }
     for (const [a, b] of seen) html = html.split(`src="${a}"`).join(`src="${b}"`);
-    if (n) this.toast(`${n} imagem(ns) hospedada(s) com URL pública. O HTML está pronto para o Bitrix.`);
+    if (failed) this.toast(`${failed} imagem(ns) não puderam ser hospedadas; o HTML foi gerado mesmo assim. Verifique se o bucket 'brand' existe no Supabase.`, 'error'); else if (n) this.toast(`${n} imagem(ns) hospedada(s) com URL pública. O HTML está pronto para o Bitrix.`);
     return html;
   }
-  copyHtml = async () => { const o = this.outputs(); o.html = await this.publicHtml(o.html); await navigator.clipboard.writeText(o.html); this.M.store.audit('newsletter.export.copy_html', 'edition', this.edition().id, {}); this.markExported(); this.toast('HTML copiado.'); };
+  copyHtml = () => this.run('Preparando o HTML', async () => { const o = this.outputs(); o.html = await this.publicHtml(o.html); await navigator.clipboard.writeText(o.html); this.M.store.audit('newsletter.export.copy_html', 'edition', this.edition().id, {}); this.markExported(); this.toast('HTML copiado.'); });
   copyText = async () => { const o = this.outputs(); await navigator.clipboard.writeText(o.text); this.toast('Texto simples copiado.'); };
-  downloadHtml = async () => { const o = this.outputs(); o.html = await this.publicHtml(o.html); const ed = this.edition(); this.NL().download(`radar-vendamais-ed${String(ed.brief.number).padStart(2, '0')}.html`, o.html, 'text/html'); this.M.store.audit('newsletter.export.html', 'edition', ed.id, {}); this.markExported(); };
+  downloadHtml = () => this.run('Preparando o HTML', async () => { const o = this.outputs(); o.html = await this.publicHtml(o.html); const ed = this.edition(); this.NL().download(`radar-vendamais-ed${String(ed.brief.number).padStart(2, '0')}.html`, o.html, 'text/html'); this.M.store.audit('newsletter.export.html', 'edition', ed.id, {}); this.markExported(); });
   downloadTxt = () => { const o = this.outputs(); const ed = this.edition(); this.NL().download(`radar-vendamais-ed${String(ed.brief.number).padStart(2, '0')}.txt`, o.text); this.M.store.audit('newsletter.export.txt', 'edition', ed.id, {}); };
   markExported() { const ed = this.edition(); ed.exports = ed.exports || {}; ed.exports.newsletter = this.M.store.now(); if (ed.status === 'approved' || (ed.status === 'newsletter_approved' && ed.exports.posts)) this.setStatus(ed, 'exported'); this.save(); }
 
