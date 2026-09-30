@@ -125,13 +125,22 @@ export function renderSlide(canvas, spec) {
     return meta;
   }
   if (s.role === 'closing') {
-    ctx.fillStyle = C.navy; ctx.fillRect(0, 0, W, H); drawV(ctx, spec.logoNegative, W - 520, H - 560, 560, 0.08);
-    drawLogo(ctx, spec.logoNegative, M, M, 220);
-    ctx.fillStyle = C.orange; ctx.fillRect(M, 520, 56, 6); label(ctx, s.kicker ?? 'PRÓXIMO PASSO', M, 570, C.grayl);
-    const hl = fit(ctx, s.title, inner, { max: 64, min: 44, weight: 600, maxLines: 4, lh: 1.12 }); ctx.font = `600 ${hl.size}px ${FONT}, Arial, sans-serif`; let y = drawLines(ctx, hl.lines, M, 570 + hl.size + 16, hl.lineH, C.white);
-    if (s.body) { const b = fit(ctx, s.body, inner, { max: 34, min: 30, weight: 400, maxLines: 5, lh: 1.42 }); ctx.font = `400 ${b.size}px ${FONT}, Arial, sans-serif`; y = drawLines(ctx, b.lines, M, y + 20, b.lineH, C.grayl); }
-    if (spec.cta) { const ct = fit(ctx, spec.cta, inner - 64, { max: 32, min: 28, weight: 600, maxLines: 3, lh: 1.3 }); ctx.font = `600 ${ct.size}px ${FONT}, Arial, sans-serif`; const tw = Math.max(...ct.lines.map(l => ctx.measureText(l).width)); const bw = Math.min(inner, tw + 64), bh = ct.lines.length * ct.lineH + 40; const by = Math.min(H - M - 80 - bh, y + 48); rrect(ctx, M, by, bw, bh, 4); ctx.fillStyle = C.white; ctx.fill(); drawLines(ctx, ct.lines, M + 32, by + 20 + ct.size * 0.85, ct.lineH, C.navy); }
-    ctx.font = `500 26px ${FONT}, Arial, sans-serif`; ctx.fillStyle = C.grayl; ctx.fillText(spec.tagline || '', M, H - M + 8); pager('rgba(255,255,255,0.7)'); meta.headlineFontPx = hl.size; return meta;
+    // Fechamento com fundo escolhível (navy padrão, areia, branco, foto). CTA como frase com seta laranja, sem caixa.
+    const st = s.style || 'navy'; const dark = st === 'navy' || st === 'photo';
+    ctx.fillStyle = dark ? C.navy : st === 'sand' ? C.sand : C.white; ctx.fillRect(0, 0, W, H);
+    if (st === 'photo' && spec.image) { drawCover(ctx, spec.image, 0, 0, W, H, spec.crop); ctx.fillStyle = 'rgba(22,38,58,0.74)'; ctx.fillRect(0, 0, W, H); }
+    drawV(ctx, dark ? spec.logoNegative : spec.logoPrimary, W - 520, H - 560, 560, dark ? 0.08 : 0.05);
+    drawLogo(ctx, dark ? spec.logoNegative : spec.logoPrimary, M, M, 220);
+    const ink = dark ? C.white : C.navy, soft = dark ? C.grayl : C.gray;
+    ctx.fillStyle = C.orange; ctx.fillRect(M, 520, 56, 6); label(ctx, s.kicker ?? '', M, 570, soft);
+    const hl = fit(ctx, s.title, inner, { max: 64, min: 44, weight: 600, maxLines: 4, lh: 1.12 }); ctx.font = `600 ${hl.size}px ${FONT}, Arial, sans-serif`; let y = drawLines(ctx, hl.lines, M, 570 + hl.size + 16, hl.lineH, ink);
+    if (s.body) { const b = fit(ctx, s.body, inner, { max: 34, min: 30, weight: 400, maxLines: 5, lh: 1.42 }); ctx.font = `400 ${b.size}px ${FONT}, Arial, sans-serif`; y = drawLines(ctx, b.lines, M, y + 20, b.lineH, soft); }
+    if (spec.cta) { const ct = fit(ctx, spec.cta, inner - 80, { max: 34, min: 28, weight: 600, maxLines: 3, lh: 1.3 }); const top = Math.min(H - M - 110 - ct.lines.length * ct.lineH, y + 56);
+      ctx.fillStyle = dark ? 'rgba(255,255,255,0.18)' : C.line; ctx.fillRect(M, top, inner, 2);
+      ctx.font = `600 ${ct.size}px ${FONT}, Arial, sans-serif`; const ly = drawLines(ctx, ct.lines, M, top + 36 + ct.size * 0.85, ct.lineH, ink);
+      const lastW = ctx.measureText(ct.lines[ct.lines.length - 1] || '').width; const ax = Math.min(M + lastW + 24, W - M - 44), ay = ly - ct.lineH + ct.size * 0.85 - ct.size * 0.32;
+      ctx.strokeStyle = C.orange; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax + 40, ay); ctx.moveTo(ax + 24, ay - 16); ctx.lineTo(ax + 40, ay); ctx.lineTo(ax + 24, ay + 16); ctx.stroke(); }
+    ctx.font = `500 26px ${FONT}, Arial, sans-serif`; ctx.fillStyle = soft; ctx.fillText(spec.tagline || '', M, H - M + 8); pager(dark ? 'rgba(255,255,255,0.7)' : C.gray); meta.headlineFontPx = hl.size; return meta;
   }
   // point / proof / action: alterna areia e branco; barra laranja vertical como fio condutor
   // Fundo por slide: s.style = 'navy' | 'white' | 'sand' | 'photo' (vazio = alterna areia/branco)
