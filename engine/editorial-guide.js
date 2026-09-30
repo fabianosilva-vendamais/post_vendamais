@@ -41,5 +41,30 @@ FORMATO nasce da ideia: ${Object.values(g.visual.formats).join('; ')}. ${g.visua
 ARTE: ${g.art_text}
 VISUAL, evitar: ${g.visual.avoid.join('; ')}. Buscar: ${g.visual.seek.join('; ')}. Sensação: ${g.visual.feeling}
 AUTOCRÍTICA antes de responder: ${g.self_critique.join(' ')} Reprove e reescreva se: ${g.quality_gate.join('; ')}.
-ASSINATURA: ${g.signature}`;
+ASSINATURA: ${g.signature}${humanVoiceForPrompt()}`;
+}
+
+// v2 (30/09/2026): voz humana e emocional validada na Newsletter 22. Vale para todas as edições e se soma à linha editorial salva no Brand Center.
+export const HUMAN_VOICE_V2 = {
+  shift: 'Escreva como alguém que já esteve do outro lado da mesa, não como professor. Parta de uma cena que o gestor reconhece, nomeie a frustração em voz alta, mostre empatia com o esforço de quem tentou e só então leve à ação. Firme sem ser duro; humano sem ser motivacional.',
+  do: ['Abrir com cena concreta e reconhecível (a sala cheia, a agenda lotada, o fim de expediente).', 'Nomear o sentimento real: frustração, cansaço, dúvida ("Frustrante, né?", "Se isso já aconteceu com você, você não está sozinho").', 'Tirar a culpa da pessoa e colocar no sistema ("Não por falta de vontade. Por falta de apoio.").', 'Falar em "a gente" quando a VendaMais relata o que vê no campo.', 'Ponto aplicável como gesto pequeno e humano para esta semana (uma pergunta, uma conversa), não como checklist.', 'CTA como convite: "Vamos conversar?", "Quer que o próximo treinamento fique de verdade?".'],
+  avoid: ['tom de aula ou de manual ("é fundamental", "é necessário", "deve-se")', 'frases taxativas em sequência sem respiro', 'julgar o leitor ou a equipe', 'motivacional vazio, superlativo, promessa'],
+  formats: 'Sequência, passo a passo ou antes/durante/depois: carrossel. Uma ideia forte que cabe numa frase: post único. Evite dois carrosséis na mesma edição; o terceiro post é único quando outro já for carrossel.',
+  carousel: 'Carrossel de 6 a 7 slides: 1 capa (título da tese + apoio empático) > 2 A CENA (o que todo mundo viveu) > 3 E DEPOIS (o que deu errado, sem culpar pessoas) > 4 a 6 ação em etapas (ANTES / DURANTE / NOS 30 DIAS SEGUINTES), cada uma com título curto e texto de até 40 palavras > último: fechamento com a frase-assinatura da edição e CTA convite. Alterne fundos (navy, areia, branco). Kicker curto e em caixa alta por slide.',
+  image: 'Imagem-base: fotografia editorial de estúdio, vertical 4:5, pessoas brasileiras naturais com expressão coerente com a emoção da cena (reflexiva, cansada, atenta; sorriso só quando a cena é de apoio), luz lateral quente contra sombras em azul-marinho, profundidade rasa, espaço limpo e escuro para o texto na área indicada, sem pose de banco de imagens.',
+  examples: [
+    { angle: 'training', headline: 'O treinamento acabou. E tudo voltou a ser como antes', hook: 'Você investiu, a equipe gostou e, semanas depois, parece que nada aconteceu. Frustrante, né?', body: 'A gente vê isso toda semana. E quase nunca é culpa do conteúdo ou da equipe. É que aprender é só o começo. Mudar um hábito leva tempo, prática e alguém por perto dizendo "continua, está funcionando".', takeaway: 'Nesta semana, escolha uma coisa que o time aprendeu e pergunte, em cada conversa: "Onde você conseguiu aplicar isso?"' },
+    { angle: 'consulting', headline: 'Seu time não esqueceu o treinamento. Ele só ficou sozinho', hook: 'O vendedor voltou a fazer do jeito antigo. Antes de achar que ele não quis mudar, vale uma pergunta.', body: 'Quem estava lá com ele depois do treinamento? Na correria da operação, o gestor apaga incêndio, a meta aperta e o novo aprendizado fica para depois. Não é descaso, é sobrevivência.', takeaway: 'Na próxima reunião, troque uma pergunta sobre números por esta: "O que você tentou fazer diferente esta semana, e como foi?"' },
+    { angle: 'business', headline: 'O treinamento termina na agenda. O desenvolvimento continua na operação', hook: 'Toda empresa quer ver o time evoluindo. Quase todas já sentiram que o investimento não voltou.', body: 'A gente acredita que o problema quase nunca é a pessoa. É o ambiente em volta dela. Quando RH, liderança e comercial caminham juntos, o vendedor tem espaço para tentar, errar, ajustar e crescer.', takeaway: 'Reúna RH e comercial e pergunte: "O que queremos ver diferente nas conversas com os clientes daqui a 30 dias?"' } ]
+};
+export function humanVoiceForPrompt(v = HUMAN_VOICE_V2) {
+  return `
+VOZ HUMANA (v2, obrigatória, prevalece sobre qualquer instrução de tom mais seco): ${v.shift}
+Fazer: ${v.do.join(' ')}
+Evitar: ${v.avoid.join('; ')}.
+FORMATO: ${v.formats}
+CARROSSEL: ${v.carousel}
+IMAGEM (campo image_prompt): ${v.image}
+EXEMPLOS APROVADOS PELO EDITOR (referência de tom e qualidade, não copie o tema):
+${v.examples.map(e => `- [${e.angle}] Headline: "${e.headline}" | Gancho: "${e.hook}" | Corpo: "${e.body}" | Ponto aplicável: "${e.takeaway}"`).join('\n')}`;
 }

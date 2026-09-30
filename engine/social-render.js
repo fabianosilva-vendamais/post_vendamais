@@ -118,7 +118,11 @@ export function renderSlide(canvas, spec) {
   let meta = { headlineFontPx: 44 };
   if (s.role === 'cover') {
     meta = render(canvas, { ...spec, templateId: spec.templateId, headline: s.title, support: s.body || spec.support, kicker: s.kicker ?? spec.kicker, proofNumber: s.proof_number || '', proofLabel: s.proof_label || '' });
-    const dark = spec.templateId === 'T01' || spec.templateId === 'T03'; pager(dark ? 'rgba(255,255,255,0.7)' : C.gray); arrow(dark ? C.white : C.navy); return meta;
+    // Na capa, o texto dos templates ocupa a base: paginação e seta vão para o canto superior direito, alinhadas ao logo.
+    const dark = ['T01', 'T03'].includes(spec.templateId); const col = dark ? 'rgba(255,255,255,0.85)' : C.navy;
+    const ty = M + 26; ctx.font = `500 26px ${FONT}, Arial, sans-serif`; ctx.fillStyle = col; ctx.textAlign = 'right'; ctx.fillText(page, W - M - 64, ty + 9); ctx.textAlign = 'left';
+    ctx.strokeStyle = col; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(W - M - 40, ty); ctx.lineTo(W - M, ty); ctx.moveTo(W - M - 16, ty - 16); ctx.lineTo(W - M, ty); ctx.lineTo(W - M - 16, ty + 16); ctx.stroke();
+    return meta;
   }
   if (s.role === 'closing') {
     ctx.fillStyle = C.navy; ctx.fillRect(0, 0, W, H); drawV(ctx, spec.logoNegative, W - 520, H - 560, 560, 0.08);

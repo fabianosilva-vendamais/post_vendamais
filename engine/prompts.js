@@ -66,7 +66,7 @@ Se um bloco não existir no texto, deixe o array vazio ou a string vazia; nunca 
 "vendamais_note": string (inserção breve da VendaMais, se existir no texto), "closing": string, "cta": {"label": string, "url": string, "type": string}, "claims": []}
 TEXTO DO EDITOR:
 {{text}}` },
-  { id: 'posts_derive', name: 'Derivação dos três posts', version: 5, active: true, prompt_text:
+  { id: 'posts_derive', name: 'Derivação dos três posts', version: 6, active: true, prompt_text:
 `A newsletter abaixo foi aprovada. Transforme-a em três posts de alto nível editorial, seguindo a LINHA EDITORIAL abaixo. Não resuma a newsletter: reinterprete a tese para cada público.
 {{guide}}
 Regras de marca: todos os posts assinam VendaMais; nunca escreva "BU" ou "pela ótica de" no texto publicado. Cada post vive sozinho, entrega valor sem clique, CTA leve, até 5 hashtags. A legenda não repete o texto da arte.
@@ -90,8 +90,9 @@ CONHECIMENTO VENDAMAIS:
 MANCHETES RECENTES ({{trend_note}}):
 {{headlines}}
 Retorne JSON: {"themes":[{"theme":string (frase simples, até 14 palavras, sem ponto final),"why_now":string (o gancho de atualidade, cite a manchete quando houver),"vendamais_angle":string (frente, metodologia ou prova que sustenta),"thesis":string (tese em uma frase),"audience":"CEO/dono|Gestor comercial|RH/T&D|Vendedor/representante","tone":"analítico|provocativo|didático|executivo|case|tendência","heat":1-5 (quanto está em alta agora),"fit":1-5 (quanto a VendaMais tem autoridade),"sources_hint":[string] (que fontes buscar para sustentar com números),"headline_refs":[string] (títulos das manchetes usadas, se houver)}]}` },
-  { id: 'carousel_derive', name: 'Derivação de carrossel', version: 1, active: true, prompt_text:
-`Transforme este post ({{angle}}) em um carrossel de {{slides}} slides para LinkedIn e Instagram. Cada slide vive sozinho na tela, mas a sequência conta uma história: capa com tensão, desenvolvimento com prova, aplicação prática, fechamento com CTA.
+  { id: 'carousel_derive', name: 'Derivação de carrossel', version: 2, active: true, prompt_text:
+`{{voice}}
+Transforme este post ({{angle}}) em um carrossel de {{slides}} slides para LinkedIn e Instagram. Cada slide vive sozinho na tela, mas a sequência conta uma história: capa com tensão, desenvolvimento com prova, aplicação prática, fechamento com CTA.
 Regras: um pensamento por slide; títulos até 10 palavras, sem ponto final; texto de apoio até 30 palavras; números só com evidence_id; sem travessão; sem "Descubra", "Você já parou para pensar" ou frases motivacionais. A legenda do post já existe, não a repita.
 Retorne JSON: {"slides":[{"role":"cover|point|proof|action|closing","kicker":string (rótulo curto em caixa alta),"title":string,"body":string (vazio na capa é permitido),"proof_number":string|null (só número curto, ex.: "38%"),"proof_label":string|null,"evidence_ids":[string]}]}
 O primeiro slide é obrigatoriamente "cover" com a headline do post; o último é "closing" com o CTA.

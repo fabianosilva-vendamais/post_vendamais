@@ -2,7 +2,7 @@
 import { db, uid, now, audit, activeRules, assetByType, blobs } from './store.js';
 import { textJSON, imageGenerate } from './providers.js';
 import { fill } from './prompts.js';
-import { guideForPrompt, EDITORIAL_GUIDE_V1 } from './editorial-guide.js';
+import { guideForPrompt, EDITORIAL_GUIDE_V1, humanVoiceForPrompt } from './editorial-guide.js';
 import { deterministicChecks, combineScore, visualChecks } from './qa.js';
 import { render, renderSlide, loadImage, ensureFonts, canvasToBlob } from './social-render.js';
 import { current as currentNL, getPath, setPath, download, sanitize } from './newsletter-flow.js';
@@ -80,9 +80,9 @@ export async function renderPost(app, p, canvas, lang = 'pt') { await ensureFont
 
 // ---- Carrossel ----
 export function setFormat(app, p, format) { p.format = format; p.meta.edited.format = 'human'; p.updated_at = now(); audit('post.format', 'post', p.id, { format }); app.save(); }
-export async function deriveCarousel(app, p, slides = 6) {
+export async function deriveCarousel(app, p, slides = 7) {
   const evidence = app.evidence(p.edition_id); const R = activeRules();
-  const pr = fill(prompt('carousel_derive'), { angle: p.angle, slides, post: JSON.stringify(p.content_json), evidence: evidenceText(evidence) });
+  const pr = fill(prompt('carousel_derive'), { voice: humanVoiceForPrompt(), angle: p.angle, slides, post: JSON.stringify(p.content_json), evidence: evidenceText(evidence) });
   const out = await textJSON({ system: prompt('editor_base'), prompt: pr, purpose: 'carousel.derive', maxTokens: 6000 });
   let list = Array.isArray(out.slides) ? out.slides.map(s => sanitize({ role: s.role || 'point', kicker: s.kicker || '', title: s.title || '', body: s.body || '', proof_number: s.proof_number || '', proof_label: s.proof_label || '', evidence_ids: s.evidence_ids || [] })) : [];
   if (!list.length || list[0].role !== 'cover') list.unshift({ role: 'cover', kicker: p.content_json.kicker || R.angles[p.angle].kicker, title: p.content_json.headline, body: p.content_json.support_line, proof_number: '', proof_label: '', evidence_ids: [] });

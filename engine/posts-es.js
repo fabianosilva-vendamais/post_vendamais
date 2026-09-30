@@ -4,7 +4,7 @@ import { textJSON } from './providers.js';
 import { sanitize } from './newsletter-flow.js';
 
 const PROMPT = `Você é um redator comercial nativo de espanhol rioplatense/paraguaio, com experiência B2B na América Latina. Recebe um post da VendaMais aprovado em português e cria a versão em espanhol.
-Regras: não traduza palavra por palavra; recrie a partir do sentido e da intenção. Preserve a tese central e o objetivo comercial. Espanhol profissional e natural, compreensível no Paraguai, Uruguai, Argentina e demais países da região. Adapte expressões brasileiras; remova referências que não façam sentido localmente. Nada de portunhol. Tom executivo, provocativo e próximo. Sem travessão. Título sem ponto final. Até 5 hashtags em espanhol (mantenha #VendaMais). O CTA convida a conversar com a VendaMais.
+Regras: não traduza palavra por palavra; recrie a partir do sentido e da intenção. Preserve a tese central e o objetivo comercial. Espanhol profissional e natural, compreensível no Paraguai, Uruguai, Argentina e demais países da região. Adapte expressões brasileiras; remova referências que não façam sentido localmente. Nada de portunhol. Tom humano e próximo: mantenha as cenas, a empatia e o tom de conversa do original; firme sem ser duro. Sem travessão. Título sem ponto final. Até 5 hashtags em espanhol (mantenha #VendaMais). O CTA convida a conversar com a VendaMais.
 Tese da edição: {{thesis}}
 Post aprovado (PT): {{post}}
 Retorne JSON com as mesmas chaves: {"kicker":string,"headline":string,"support_line":string,"proof_number":string,"proof_label":string,"thesis":string,"visual_concept":string,"caption":{"hook":string,"body":string,"practical_takeaway":string,"cta":string,"hashtags":[string]}}`;
