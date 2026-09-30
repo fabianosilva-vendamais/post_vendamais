@@ -22,7 +22,7 @@ export async function bestTimes(network, start, end) { return edge({ action: 'be
 export async function listScheduled(start, end) { return edge({ action: 'list', blogId: db.settings.metricool_blog_id, start, end, timezone: db.settings.timezone || 'America/Sao_Paulo' }); }
 
 // Renderiza as artes finais, sobe para o Storage (bucket renders, URL pública assinada longa) e agenda no Metricool.
-export async function schedule(app, p, { networks, dateTime, draft = false, firstComment = '' }) {
+export async function schedule(app, p, { networks, dateTime, draft = false, firstComment = '', lang = 'pt' }) {
   if (p.status !== 'approved' && p.status !== 'exported') throw new Error('Só posts aprovados podem ser agendados.');
   if (!SB.signedIn()) throw new Error('Faça login no Supabase para publicar (as artes precisam de URL pública).');
   if (!networks?.length) throw new Error('Escolha ao menos uma rede.');
@@ -31,11 +31,11 @@ export async function schedule(app, p, { networks, dateTime, draft = false, firs
   const urls = [];
   const up = async (canvas, name) => { const blob = await canvasToBlob(canvas); const dataUrl = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); }); return SB.uploadPublic('renders', `${base}/${name}.png`, dataUrl); };
   const isCar = p.format === 'carousel' && p.carousel?.slides?.length;
-  if (isCar) { for (let i = 0; i < p.carousel.slides.length; i++) { const cv = document.createElement('canvas'); await renderCarouselSlide(app, p, i, cv); urls.push(await up(cv, String(i + 1).padStart(2, '0'))); } }
-  else { const cv = document.createElement('canvas'); await renderPost(app, p, cv); urls.push(await up(cv, 'post')); }
-  const text = captionText(p);
+  if (isCar) { for (let i = 0; i < p.carousel.slides.length; i++) { const cv = document.createElement('canvas'); await renderCarouselSlide(app, p, i, cv, lang); urls.push(await up(cv, String(i + 1).padStart(2, '0'))); } }
+  else { const cv = document.createElement('canvas'); await renderPost(app, p, cv, lang); urls.push(await up(cv, 'post')); }
+  const text = captionText(p, lang);
   const res = await edge({ action: 'schedule', blogId: db.settings.metricool_blog_id, text, mediaUrls: urls, networks, dateTime, timezone: db.settings.timezone || 'America/Sao_Paulo', draft, firstComment, altText: p.content_json.headline, linkedinDocumentTitle: isCar && networks.includes('linkedin') ? p.content_json.headline : '', instagramType: 'POST' });
-  const rec = { id: uid('pub'), post_id: p.id, edition_id: p.edition_id, provider: 'metricool', networks, date_time: dateTime, timezone: db.settings.timezone || 'America/Sao_Paulo', draft, media_urls: urls, remote: res.result, status: draft ? 'draft' : 'scheduled', created_at: now() };
+  const rec = { id: uid('pub'), post_id: p.id, edition_id: p.edition_id, provider: 'metricool', lang, networks, date_time: dateTime, timezone: db.settings.timezone || 'America/Sao_Paulo', draft, media_urls: urls, remote: res.result, status: draft ? 'draft' : 'scheduled', created_at: now() };
   db.publications = db.publications || []; db.publications.push(rec); p.publication_id = rec.id; p.status = 'exported'; ed.exports = ed.exports || {}; ed.exports.posts = now();
   audit('publish.schedule', 'post', p.id, { networks, dateTime, draft, slides: urls.length }); app.save(); return rec;
 }
