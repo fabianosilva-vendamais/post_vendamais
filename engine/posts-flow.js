@@ -2,14 +2,18 @@
 import { db, uid, now, audit, activeRules, assetByType, blobs } from './store.js';
 import { textJSON, imageGenerate } from './providers.js';
 import { fill } from './prompts.js';
-import { guideForPrompt, EDITORIAL_GUIDE_V1, humanVoiceForPrompt } from './editorial-guide.js';
+import { guideForPrompt, EDITORIAL_GUIDE_V1, humanVoiceForPrompt, MEME_RULES } from './editorial-guide.js';
 import { deterministicChecks, combineScore, visualChecks } from './qa.js';
 import { render, renderSlide, loadImage, ensureFonts, canvasToBlob } from './social-render.js';
 import { current as currentNL, getPath, setPath, download, sanitize } from './newsletter-flow.js';
 
 export const ANGLES = ['training', 'consulting', 'business'];
 const DEFAULT_TEMPLATE = { training: 'T01', consulting: 'T02', business: 'T03' };
-export function postsOf(editionId) { return ANGLES.map(a => db.posts.find(p => p.edition_id === editionId && p.angle === a)).filter(Boolean); }
+export const ALL_ANGLES = [...ANGLES, 'meme'];
+export function postsOf(editionId) { return ALL_ANGLES.map(a => db.posts.find(p => p.edition_id === editionId && p.angle === a)).filter(Boolean); }
+// Meme da Semana: 4º post opcional, criado vazio pelo editor (sem derivação automática).
+export function createMeme(app, editionId) { if (post(editionId, 'meme')) return post(editionId, 'meme'); const R = activeRules(); const c = { angle: 'meme', thesis: '', headline: '', support_line: '', proof_number: '', proof_label: '', visual_concept: '', image_prompt: '', negative_space: 'bottom', template_id: 'T04', kicker: '', caption: { hook: '', body: '', practical_takeaway: '', cta: '', hashtags: ['VendaMais', 'MemeDaSemana', 'GestãoComercial'] }, source_claims: [] }; const p = { id: uid('post'), edition_id: editionId, angle: 'meme', content_json: c, template_id: 'T04', image_id: null, crop: { scale: 1, x: 0.5, y: 0.5 }, partner_id: null, format: 'single', status: 'draft', score: null, qa_json: null, origin: 'human', meta: { locks: {}, edited: {} }, versions: [], publish_hint: R.angles.meme?.publish || 'sábado 10h', created_at: now(), updated_at: now() }; db.posts.push(p); audit('post.meme.create', 'post', p.id, {}); app.save(); return p; }
+export function removeMeme(app, editionId) { const p = post(editionId, 'meme'); if (!p) return; db.posts = db.posts.filter(x => x.id !== p.id); db.generated_images = db.generated_images.filter(i => i.post_id !== p.id); audit('post.meme.remove', 'post', p.id, {}); app.save(); }
 export function post(editionId, angle) { return db.posts.find(p => p.edition_id === editionId && p.angle === angle) || null; }
 function prompt(id) { return db.prompt_templates.find(p => p.id === id && p.active)?.prompt_text || ''; }
 function evidenceText(ev) { return ev.length ? ev.map(e => `${e.id} [${e.kind}] ${e.text}`).join('\n') : '(sem evidências estruturadas; não invente números)'; }
@@ -74,7 +78,7 @@ export async function buildSpec(app, p, lang = 'pt') {
   const url = (a) => a ? app.assetUrl(a) : '';
   const [logoPrimary, logoNegative, image, portrait] = await Promise.all([loadImage(url(assetByType('logo_primary'))), loadImage(url(assetByType('logo_negative'))), p.image_id ? blobs.get(p.image_id).then(loadImage) : null, p.partner_id ? loadImage(url(db.brand_assets.find(a => a.type === 'portrait' && a.partner_id === p.partner_id && a.active))) : null]);
   const partner = R.partners.find(x => x.id === p.partner_id) || null;
-  return { templateId: p.template_id, headline: c.headline, support: c.support_line, kicker: c.kicker === '' ? '' : (c.kicker || R.angles[p.angle].kicker), proofNumber: c.proof_number, proofLabel: c.proof_label, image, crop: p.crop, logoPrimary, logoNegative, portrait, partner };
+  return { templateId: p.template_id, headline: c.headline, support: c.support_line, kicker: c.kicker === '' ? '' : (c.kicker || R.angles[p.angle]?.kicker || ''), proofNumber: c.proof_number, proofLabel: c.proof_label, image, crop: p.crop, logoPrimary, logoNegative, portrait, partner };
 }
 export async function renderPost(app, p, canvas, lang = 'pt') { await ensureFonts(); const spec = await buildSpec(app, p, lang); const meta = render(canvas, spec); return { spec, meta }; }
 
@@ -135,7 +139,7 @@ function buildZip(files) {
 }
 export async function runQA(app, p) {
   const evidence = app.evidence(p.edition_id); const R = activeRules(); const det = deterministicChecks(p.content_json, evidence, 'post');
-  const G = db.editorial_guide || EDITORIAL_GUIDE_V1; const ga = G.angles[p.angle];
+  const G = db.editorial_guide || EDITORIAL_GUIDE_V1; const ga = G.angles[p.angle] || MEME_RULES;
   const pr = fill(prompt('qa_audit'), { channel: `post social 1080x1350 (LinkedIn + Instagram) com legenda de 400 a 1.500 caracteres, ângulo ${ga.label} para ${ga.audience}. LINHA EDITORIAL: reprove (severity bloqueio) se ${G.quality_gate.join('; ')}. Voz: ${G.voice.traits.join('; ')}. CTA nunca: ${G.cta.avoid.join(' / ')}`, piece: JSON.stringify(p.content_json), evidence: evidenceText(evidence) });
   const ai = await textJSON({ system: prompt('editor_base'), prompt: pr, purpose: 'post.qa' });
   const canvas = document.createElement('canvas'); const { spec, meta } = await renderPost(app, p, canvas);
