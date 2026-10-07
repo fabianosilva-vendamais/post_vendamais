@@ -98,14 +98,20 @@ export function render(canvas, spec) {
     drawV(ctx, spec.logoNegative, W - 380, H - 460, 420, 0.06);
     drawLogo(ctx, spec.logoNegative, M, M, 170);
     label(ctx, spec.kicker, M, M + 110, C.orange);
-    const raw = String(spec.headline || ''); const plain = raw.replace(/\*/g, '');
-    const hl = fit(ctx, plain, inner, { max: 92, min: 56, weight: 700, maxLines: 6, lh: 1.08 });
-    ctx.font = `700 ${hl.size}px ${FONT}, Arial, sans-serif`;
-    // palavras em laranja: trechos entre *asteriscos*
-    const hot = new Set(); { const parts = raw.split('*'); let k = 0; parts.forEach((pt, i) => { pt.split(/\s+/).filter(Boolean).forEach(() => { if (i % 2 === 1) hot.add(k); k++; }); }); }
-    const total = hl.lines.length * hl.lineH; let y = Math.round((H - total) / 2) + hl.size * 0.85; let wi = 0;
-    for (const line of hl.lines) { let x = M; for (const w of line.split(' ')) { ctx.fillStyle = hot.has(wi) ? C.orange : C.white; ctx.fillText(w, x, y); x += ctx.measureText(w + ' ').width; wi++; } y += hl.lineH; }
-    if (spec.support) { const sup = fit(ctx, spec.support, inner, { max: 30, min: 26, weight: 400, maxLines: 2, lh: 1.4 }); ctx.font = `400 ${sup.size}px ${FONT}, Arial, sans-serif`; drawLines(ctx, sup.lines, M, y + 16, sup.lineH, C.grayl); }
+    // Ritmo de meme: "/" quebra linha manualmente; *trecho* vira punchline em laranja e 1.5x maior.
+    const raw = String(spec.headline || '');
+    const segs = []; { const parts = raw.split('*'); parts.forEach((pt, i) => { pt.split('/').forEach((piece, j) => { if (j > 0) segs.push({ br: true }); const tx = piece.trim(); if (tx) segs.push({ text: tx, hot: i % 2 === 1 }); }); }); }
+    const manual = segs.some(x => x.br);
+    let base = 76; const minBase = 44; let lines;
+    const layout = (size) => { const big = Math.round(size * 1.5); const out = [[]]; let x = 0; const push = (word, hot) => { ctx.font = `700 ${hot ? big : size}px ${FONT}, Arial, sans-serif`; const w = ctx.measureText(word + ' ').width; if (x + w > inner && out[out.length - 1].length) { out.push([]); x = 0; } out[out.length - 1].push({ word, hot, w }); x += w; };
+      for (const sg of segs) { if (sg.br) { out.push([]); x = 0; continue; } for (const w of sg.text.split(/\s+/)) push(w, sg.hot); }
+      return out.filter(l => l.length); };
+    for (base = 76; base >= minBase; base -= 4) { lines = layout(base); const hgt = lines.reduce((a, l) => a + (l.some(w => w.hot) ? base * 1.5 : base) * 1.12, 0); if (hgt <= H - 2 * M - 260 && lines.length <= 8) break; }
+    const big = Math.round(base * 1.5);
+    const totalH = lines.reduce((a, l) => a + (l.some(w => w.hot) ? big : base) * 1.12, 0); let y = Math.round((H - totalH) / 2);
+    for (const line of lines) { const lh = (line.some(w => w.hot) ? big : base); y += lh; let x = M; for (const w of line) { ctx.font = `700 ${w.hot ? big : base}px ${FONT}, Arial, sans-serif`; ctx.fillStyle = w.hot ? C.orange : C.white; ctx.fillText(w.word, x, y); x += w.w; } y += lh * 0.12; }
+    if (spec.support) { const sup = fit(ctx, spec.support, inner, { max: 30, min: 26, weight: 400, maxLines: 2, lh: 1.4 }); ctx.font = `400 ${sup.size}px ${FONT}, Arial, sans-serif`; drawLines(ctx, sup.lines, M, y + 24, sup.lineH, C.grayl); }
+    const hl = { size: base };
     ctx.fillStyle = C.orange; ctx.fillRect(M, H - M - 6, 56, 6);
     meta.headlineFontPx = hl.size;
   } else if (t === 'T05') {
