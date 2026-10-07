@@ -91,6 +91,23 @@ export function render(canvas, spec) {
     if (spec.support) { const sup = fit(ctx, spec.support, inner - 200, { max: 32, min: 28, weight: 400, maxLines: 3, lh: 1.4 }); ctx.font = `400 ${sup.size}px ${FONT}, Arial, sans-serif`; drawLines(ctx, sup.lines, M, H - 300, sup.lineH, C.white); }
     ctx.fillStyle = C.orange; ctx.fillRect(M, H - 360, 56, 6);
     meta.headlineFontPx = hl.size;
+  } else if (t === 'T07') {
+    // Meme da Semana: navy cheio, frase gigante centrada verticalmente, trecho entre *asteriscos* em laranja, V como textura, logo pequeno.
+    ctx.fillStyle = C.navy; ctx.fillRect(0, 0, W, H);
+    if (spec.image) { drawCover(ctx, spec.image, 0, 0, W, H, spec.crop); ctx.fillStyle = 'rgba(22,38,58,0.85)'; ctx.fillRect(0, 0, W, H); }
+    drawV(ctx, spec.logoNegative, W - 380, H - 460, 420, 0.06);
+    drawLogo(ctx, spec.logoNegative, M, M, 170);
+    label(ctx, spec.kicker, M, M + 110, C.orange);
+    const raw = String(spec.headline || ''); const plain = raw.replace(/\*/g, '');
+    const hl = fit(ctx, plain, inner, { max: 92, min: 56, weight: 700, maxLines: 6, lh: 1.08 });
+    ctx.font = `700 ${hl.size}px ${FONT}, Arial, sans-serif`;
+    // palavras em laranja: trechos entre *asteriscos*
+    const hot = new Set(); { const parts = raw.split('*'); let k = 0; parts.forEach((pt, i) => { pt.split(/\s+/).filter(Boolean).forEach(() => { if (i % 2 === 1) hot.add(k); k++; }); }); }
+    const total = hl.lines.length * hl.lineH; let y = Math.round((H - total) / 2) + hl.size * 0.85; let wi = 0;
+    for (const line of hl.lines) { let x = M; for (const w of line.split(' ')) { ctx.fillStyle = hot.has(wi) ? C.orange : C.white; ctx.fillText(w, x, y); x += ctx.measureText(w + ' ').width; wi++; } y += hl.lineH; }
+    if (spec.support) { const sup = fit(ctx, spec.support, inner, { max: 30, min: 26, weight: 400, maxLines: 2, lh: 1.4 }); ctx.font = `400 ${sup.size}px ${FONT}, Arial, sans-serif`; drawLines(ctx, sup.lines, M, y + 16, sup.lineH, C.grayl); }
+    ctx.fillStyle = C.orange; ctx.fillRect(M, H - M - 6, 56, 6);
+    meta.headlineFontPx = hl.size;
   } else if (t === 'T05') {
     ctx.fillStyle = C.white; ctx.fillRect(0, 0, W, H);
     drawLogo(ctx, spec.logoPrimary, M, M, 200);

@@ -44,6 +44,7 @@ export const BRAND_RULES_V1 = {
     { id: 'T03', name: 'Fundo navy + imagem recortada', desc: 'Fundo navy, imagem em bloco recortado, frase curta, símbolo V como marcador', needs: ['image'] },
     { id: 'T04', name: 'Card editorial', desc: 'Card limpo em areia sobre branco, dado ou prova em display, apoio visual discreto', needs: [] },
     { id: 'T06', name: 'Manchete editorial', desc: 'Tipografia grande em display, número de prova gigante em laranja, faixa de foto diagonal na base, símbolo V como textura. Para tese forte ou dado de impacto', needs: [] },
+    { id: 'T07', name: 'Meme da Semana', desc: 'Navy cheio, frase gigante centralizada, trecho entre *asteriscos* em laranja, símbolo V como textura. Para humor de reconhecimento e frases de efeito; lê-se em um segundo no story', needs: [] },
     { id: 'T05', name: 'Retrato de sócio', desc: 'Só para peça assinada por sócio (nível B), retrato oficial em hexágono, assinatura no rodapé', needs: ['portrait', 'partner'] } ],
   qa: { threshold: 85, criteria: [
     { id: 'fidelity', label: 'Fidelidade às fontes', weight: 25 }, { id: 'utility', label: 'Utilidade prática', weight: 20 }, { id: 'dna', label: 'DNA verbal', weight: 15 }, { id: 'channel', label: 'Ajuste ao canal', weight: 10 }, { id: 'unity', label: 'Unidade da marca', weight: 10 }, { id: 'visual', label: 'Qualidade visual', weight: 10 }, { id: 'cta', label: 'CTA', weight: 5 }, { id: 'language', label: 'Revisão linguística', weight: 5 } ],
