@@ -87,10 +87,10 @@ ${label(`${name} • Newsletter ${editionNumber}${editionDate ? ' • ' + editio
 <div style="height:28px;line-height:28px;font-size:0;">&nbsp;</div>
 <h1 class="vm-h1" style="margin:0;font-family:${F};font-size:38px;line-height:46px;font-weight:700;color:${C.white};">${esc(n.headline || '')}</h1>
 ${n.support_line ? `<div style="height:16px;line-height:16px;font-size:0;">&nbsp;</div><p style="margin:0;font-family:${F};font-size:17px;line-height:26px;font-weight:400;color:${C.grayl};">${esc(n.support_line)}</p>` : ''}
-<div style="height:28px;line-height:28px;font-size:0;">&nbsp;</div>
+${(n.intro || '').trim() ? `<div style="height:28px;line-height:28px;font-size:0;">&nbsp;</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top:1px solid ${C.line_dark || '#324052'};font-size:0;line-height:0;">&nbsp;</td></tr></table>
 <div style="height:20px;line-height:20px;font-size:0;">&nbsp;</div>
-${p(n.intro || '', '#D5DEE7', 15)}
+${p(n.intro, '#D5DEE7', 15)}` : '<div style="height:8px;line-height:8px;font-size:0;">&nbsp;</div>'}
 </td></tr>
 ${n.free_blocks ? freeHtml(n) : `${sections}${practical}${interp}${action}${err}${mq}${qow}${closing}${cta}${vmNote}${podcast}`}${agenda}
 <tr><td class="vm-p" style="padding:32px 36px 40px 36px;border-top:1px solid ${C.line};">
