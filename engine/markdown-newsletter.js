@@ -26,6 +26,8 @@ export function parseMarkdownNewsletter(text) {
     cur.md += l + '\n';
   }
   blocks.forEach(b => { b.md = b.md.replace(/\n{3,}/g, '\n\n').trim(); });
+  // 'A abertura' / 'Abertura' / 'Introdução' é marcador do rascunho: vira texto corrido logo após o título, sem rótulo.
+  blocks.forEach(b => { if (/^(a\s+)?(abertura|introdu[çc][ãa]o|intro)$/i.test((b.label || '').trim()) && !b.title) { b.label = ''; b.is_intro = true; } });
   return { headline, support_line: support, blocks: blocks.filter(b => b.label || b.title || b.md) };
 }
 
