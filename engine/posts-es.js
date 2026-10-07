@@ -4,7 +4,7 @@ import { textJSON } from './providers.js';
 import { sanitize } from './newsletter-flow.js';
 
 const PROMPT = `Você é um redator comercial nativo de espanhol rioplatense/paraguaio, com experiência B2B na América Latina. Recebe um post da VendaMais aprovado em português e cria a versão em espanhol.
-Regras: não traduza palavra por palavra; recrie a partir do sentido e da intenção. Preserve a tese central e o objetivo comercial. Espanhol profissional e natural, compreensível no Paraguai, Uruguai, Argentina e demais países da região. Adapte expressões brasileiras; remova referências que não façam sentido localmente. Nada de portunhol. Tom humano e próximo: mantenha as cenas, a empatia e o tom de conversa do original; firme sem ser duro. Sem travessão. Título sem ponto final. Até 5 hashtags em espanhol (mantenha #VendaMais). O CTA convida a conversar com a VendaMais.
+Regras: não traduza palavra por palavra; recrie a partir do sentido e da intenção. Preserve a tese central e o objetivo comercial. Espanhol profissional e natural, compreensível no Paraguai, Uruguai, Argentina e demais países da região. Adapte expressões brasileiras; remova referências que não façam sentido localmente. Nada de portunhol. Tom humano e próximo: mantenha as cenas, a empatia e o tom de conversa do original; firme sem ser duro. Sem travessão. Título sem ponto final. IMPORTANTE: se o headline contiver barras ' / ' (quebras de linha) ou trechos entre *asteriscos* (destaque em laranja), preserve exatamente esses marcadores na mesma posição; nunca os substitua por aspas. Até 5 hashtags em espanhol (mantenha #VendaMais). O CTA convida a conversar com a VendaMais.
 Tese da edição: {{thesis}}
 Post aprovado (PT): {{post}}
 Retorne JSON com as mesmas chaves: {"kicker":string,"headline":string,"support_line":string,"proof_number":string,"proof_label":string,"thesis":string,"visual_concept":string,"caption":{"hook":string,"body":string,"practical_takeaway":string,"cta":string,"hashtags":[string]}}`;
@@ -28,6 +28,13 @@ export async function adaptToSpanish(app, p, thesis = '') {
   const out = await textJSON({ system: 'Retorne apenas JSON válido; dentro das strings use aspas simples para citações.', prompt: PROMPT.replace('{{thesis}}', thesis).replace('{{post}}', JSON.stringify(src)), purpose: `post.es:${p.angle}` });
   const es = sanitize({ ...c, ...out, angle: p.angle, caption: { ...(c.caption || {}), ...(out.caption || {}), hashtags: (out.caption?.hashtags || []).map(h => String(h).replace(/^#/, '')).slice(0, 5) } });
   es.headline = String(es.headline || '').replace(/[.]+$/, '');
+  // Meme/manchete: restaura marcadores de linha (/) e destaque (*...*) se a IA os perdeu.
+  if (/\/|\*/.test(c.headline || '') && !/\/|\*/.test(es.headline)) {
+    const ptLines = c.headline.split('/').map(x => x.trim()); let esTxt = es.headline.replace(/['"“”‘’]/g, '').trim();
+    const esSent = esTxt.split(/(?<=[.:?!])\s+/).filter(Boolean);
+    if (esSent.length === ptLines.length) es.headline = esSent.map((l, i) => /^\*.*\*$/.test(ptLines[i]) ? '*' + l + '*' : l).join(' / ');
+    else { const starIdx = ptLines.findIndex(l => /^\*/.test(l)); if (starIdx > 0) { const words = esTxt.split(' '); const cut = Math.max(1, Math.round(words.length * (ptLines.slice(0, starIdx).join(' ').length / c.headline.replace(/[\/*]/g, '').length))); es.headline = words.slice(0, cut).join(' ') + ' / *' + words.slice(cut).join(' ') + '*'; } }
+  }
   await fillMissing(es, c, TEXT_FIELDS, 'post ' + p.angle);
   if (es.proof_number !== c.proof_number) es.proof_number = c.proof_number;
   p.content_es_pt_fp = ptFingerprint(p);
