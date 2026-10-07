@@ -18,24 +18,52 @@ export function post(editionId, angle) { return db.posts.find(p => p.edition_id 
 function prompt(id) { return db.prompt_templates.find(p => p.id === id && p.active)?.prompt_text || ''; }
 function evidenceText(ev) { return ev.length ? ev.map(e => `${e.id} [${e.kind}] ${e.text}`).join('\n') : '(sem evidências estruturadas; não invente números)'; }
 
-export async function derive(app) {
-  const ed = app.edition(); const nl = currentNL(ed.id); if (!nl?.is_approved) throw new Error('Aprove a newsletter antes de gerar os posts.');
-  const evidence = app.evidence(ed.id); const R = activeRules(); const existing = postsOf(ed.id);
-  const lockedNote = existing.filter(p => Object.values(p.meta?.locks || {}).some(Boolean)).map(p => `Post ${p.angle}: manter exatamente ${Object.keys(p.meta.locks).filter(k => p.meta.locks[k]).map(k => `${k}=${JSON.stringify(getPath(p.content_json, k))}`).join('; ')}`).join('\n');
-  const recent = db.posts.filter(x => x.edition_id !== ed.id && (x.status === 'approved' || x.status === 'exported')).sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || '')).slice(0, 6).map(x => `${x.format === 'carousel' ? 'carrossel' : 'peça única'} ${x.template_id}`);
-  const guide = guideForPrompt(db.editorial_guide || EDITORIAL_GUIDE_V1, recent);
-  const p = fill(prompt('posts_derive'), { newsletter: JSON.stringify(nl.content_json).slice(0, 16000), evidence: evidenceText(evidence), guide }) + (lockedNote ? `\nCAMPOS FIXADOS PELO EDITOR:\n${lockedNote}` : '') + `\nDireção de imagem por ângulo: ${ANGLES.map(a => `${a}: preferir ${R.angles[a].image}; evitar ${R.angles[a].image_avoid}`).join(' | ')}`;
-  const out = await textJSON({ system: prompt('editor_base'), prompt: p, purpose: 'posts.derive', maxTokens: 10000 });
-  const list = Array.isArray(out.posts) ? out.posts : [];
-  for (const a of ANGLES) {
-    const c = list.find(x => x.angle === a) || {}; const prev = post(ed.id, a);
-    const content = normalizePost(c, a);
-    if (prev?.meta?.locks) for (const k of Object.keys(prev.meta.locks)) if (prev.meta.locks[k]) setPath(content, k, JSON.parse(JSON.stringify(getPath(prev.content_json, k))));
-    if (prev) { prev.versions = prev.versions || []; prev.versions.push({ content_json: JSON.parse(JSON.stringify(prev.content_json)), at: prev.updated_at || prev.created_at, origin: prev.origin }); prev.content_json = content; prev.origin = 'ai'; prev.score = null; prev.qa_json = null; prev.status = 'draft'; prev.updated_at = now(); if (!prev.template_id || !prev.meta?.edited?.template_id) prev.template_id = content.template_id || DEFAULT_TEMPLATE[a]; if (!prev.meta?.edited?.format) prev.format = c.format === 'carousel' ? 'carousel' : 'single'; }
-    else db.posts.push({ id: uid('post'), edition_id: ed.id, angle: a, content_json: content, template_id: ['T01', 'T02', 'T03', 'T04', 'T06', 'T07'].includes(content.template_id) ? content.template_id : DEFAULT_TEMPLATE[a], image_id: null, crop: { scale: 1, x: 0.5, y: 0.5 }, partner_id: null, format: c.format === 'carousel' ? 'carousel' : 'single', status: 'draft', score: null, qa_json: null, origin: 'ai', meta: { locks: {}, edited: {} }, versions: [], created_at: now(), updated_at: now() });
-  }
-  app.setStatus(ed, 'posts_generated'); audit('posts.derive', 'edition', ed.id, { count: list.length }); app.save();
+// Posts aprovados pelo editor nas edições anteriores: a IA aprende o tom pelo histórico, não só pela descrição.
+function approvedExamples(editionId, angle, n = 4) {
+  return db.posts.filter(x => x.edition_id !== editionId && x.angle === angle && (x.status === 'approved' || x.status === 'exported') && x.content_json?.headline)
+    .sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || '')).slice(0, n)
+    .map(x => { const c = x.content_json; return `- Headline: "${c.headline}" | Apoio: "${c.support_line || ''}" | Gancho: "${c.caption?.hook || ''}" | Corpo: "${(c.caption?.body || '').slice(0, 400)}" | Ponto aplicável: "${c.caption?.practical_takeaway || ''}" | CTA: "${c.caption?.cta || ''}"`; }).join('\n');
 }
+const ANGLE_BRIEF = {
+  training: { who: 'RH, T&D, DHO e líderes que desenvolvem equipes comerciais', lens: 'comportamento, prática, acompanhamento depois da sala; o que o time aprende e por que não aplica' },
+  consulting: { who: 'CEOs, diretores e gerentes comerciais', lens: 'rotina, decisão, processo, carteira, previsibilidade; o que a operação faz toda semana' },
+  business: { who: 'lideranças que olham o negócio inteiro: estratégia, pessoas, cultura, crescimento', lens: 'a tese da edição como visão de empresa; a VendaMais falando em "a gente"; conexão entre áreas' } };
+// Derivação em duas etapas, um post por vez, como um redator faria:
+// 1) ler a newsletter e escolher a cena, a frase de efeito e a emoção; 2) escrever o post a partir dessa escolha.
+export async function deriveOne(app, angle, { variants = 1, instruction = '' } = {}) {
+  const ed = app.edition(); const nl = currentNL(ed.id); if (!nl?.is_approved) throw new Error('Aprove a newsletter antes de gerar os posts.');
+  const evidence = app.evidence(ed.id); const R = activeRules(); const G = db.editorial_guide || EDITORIAL_GUIDE_V1; const prev = post(ed.id, angle);
+  const nlc = nl.content_json; const nlText = nlc.free_blocks ? [nlc.headline, nlc.support_line, ...nlc.free_blocks.map(b => [b.label, b.title, b.md].filter(Boolean).join('\n'))].join('\n\n') : JSON.stringify(nlc);
+  const brief = ANGLE_BRIEF[angle]; const examples = approvedExamples(ed.id, angle);
+  const others = ANGLES.filter(x => x !== angle).map(x => post(ed.id, x)).filter(Boolean).map(x => `[${x.angle}] ${x.content_json.headline}`).join(' | ');
+  const sys = prompt('editor_base') + '\n' + humanVoiceForPrompt();
+  // Etapa 1: leitura e escolha
+  const p1 = `Leia a newsletter abaixo como um redator sênior que vai escrever UM post para ${brief.who}. Lente deste post: ${brief.lens}.
+Antes de escrever qualquer coisa, escolha e devolva em JSON:
+{"scene": string (a cena concreta da newsletter que esse público mais reconhece, descrita em 1 ou 2 frases, com o detalhe que dói), "stolen_line": string (a melhor frase de efeito da própria newsletter para reaproveitar, copiada literalmente), "emotion": string (o sentimento que o leitor deve ter ao ler: frustração reconhecida, alívio, cumplicidade, curiosidade...), "angle_sentence": string (a tese do post em uma frase, diferente da headline da newsletter), "format": "single|carousel", "format_reason": string, "avoid": [string] (o que NÃO repetir dos outros posts desta edição: ${others || 'nenhum ainda'})}
+${examples ? 'POSTS DESTE ÂNGULO QUE O EDITOR APROVOU EM EDIÇÕES ANTERIORES (tom de referência):\n' + examples : ''}
+${instruction ? 'INSTRUÇÃO DO EDITOR: ' + instruction : ''}
+NEWSLETTER:
+${nlText.slice(0, 14000)}`;
+  const plan = await textJSON({ system: sys, prompt: p1, purpose: 'posts.plan:' + angle, maxTokens: 2000 });
+  // Etapa 2: escrita a partir do plano
+  const p2 = `Agora escreva ${variants > 1 ? variants + ' versões diferentes do' : 'o'} post para ${brief.who}, a partir deste plano (não o contradiga):
+${JSON.stringify(plan)}
+Regras de escrita: comece pela cena, não pela tese. Gancho em 1 ou 2 frases que um gestor mandaria para um colega. Corpo em 3 a 5 frases curtas, com a frase roubada da newsletter encaixada naturalmente. Ponto aplicável = um gesto pequeno para esta semana (uma pergunta, uma conversa), não checklist. CTA como convite. Headline até 12 palavras, sem ponto final, com tensão; linha de apoio até 20 palavras. Kicker: "${R.angles[angle]?.kicker || ''}". Sem travessão, sem superlativo, sem número que não esteja na newsletter ou nas evidências. Nada de "é fundamental", "é necessário", "deve-se".
+Imagem (image_prompt): fotografia editorial de estúdio, 4:5, pessoa brasileira em cena coerente com a emoção, luz lateral quente e sombras navy, espaço livre para texto; sem texto nem logo.
+Retorne JSON: {"posts":[{"angle":"${angle}","format":"${plan.format || 'single'}","thesis":string,"headline":string,"support_line":string,"proof_number":"","proof_label":"","visual_concept":string,"image_prompt":string,"negative_space":"bottom","template_id":"T01|T03|T06","kicker":string,"caption":{"hook":string,"body":string,"practical_takeaway":string,"cta":string,"hashtags":[string] (até 5)},"source_claims":[], "anchors":[string] (2 ou 3 trechos literais da newsletter usados)}]}
+Evidências disponíveis (só cite número que esteja aqui): ${evidenceText(evidence).slice(0, 4000)}`;
+  const out = await textJSON({ system: sys, prompt: p2, purpose: 'posts.write:' + angle, maxTokens: 6000 });
+  const list = (Array.isArray(out.posts) ? out.posts : [out]).filter(x => x && x.headline).slice(0, variants);
+  if (!list.length) throw new Error('A IA não devolveu o post. Tente de novo.');
+  const contents = list.map(c => { const n = normalizePost({ ...c, angle }, angle); n.plan = plan; n.anchors = c.anchors || []; return n; });
+  const chosen = contents[0]; const alts = contents.slice(1);
+  if (prev) { prev.versions = prev.versions || []; prev.versions.push({ content_json: JSON.parse(JSON.stringify(prev.content_json)), at: prev.updated_at || prev.created_at, origin: prev.origin }); prev.content_json = chosen; prev.origin = 'ai'; prev.score = null; prev.qa_json = null; prev.status = 'draft'; prev.updated_at = now(); if (!prev.meta?.edited?.format) prev.format = chosen.format === 'carousel' ? 'carousel' : 'single'; if (!prev.meta?.edited?.template_id) prev.template_id = ['T01', 'T03', 'T06'].includes(chosen.template_id) ? chosen.template_id : DEFAULT_TEMPLATE[angle]; prev.alternatives = alts; }
+  else db.posts.push({ id: uid('post'), edition_id: ed.id, angle, content_json: chosen, alternatives: alts, template_id: ['T01', 'T03', 'T06'].includes(chosen.template_id) ? chosen.template_id : DEFAULT_TEMPLATE[angle], image_id: null, crop: { scale: 1, x: 0.5, y: 0.5 }, partner_id: null, format: chosen.format === 'carousel' ? 'carousel' : 'single', status: 'draft', score: null, qa_json: null, origin: 'ai', meta: { locks: {}, edited: {} }, versions: [], created_at: now(), updated_at: now() });
+  if (ANGLES.every(x => post(ed.id, x))) app.setStatus(ed, 'posts_generated');
+  audit('posts.derive_one', 'edition', ed.id, { angle, variants: contents.length }); app.save(); return post(ed.id, angle);
+}
+export async function derive(app) { const ed = app.edition(); for (const a of ANGLES) await deriveOne(app, a); return postsOf(ed.id); }
 export function normalizePost(c, angle) {
   const R = activeRules(); c = sanitize(c || {}); const cap = c.caption || {};
   // Número de prova deve ser curto ("38%", "7 em 10", "2.500"); se vier frase, extrai o número e move o resto para proof_label.

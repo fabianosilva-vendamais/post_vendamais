@@ -106,10 +106,12 @@ export function render(canvas, spec) {
     const layout = (size) => { const big = Math.round(size * 1.5); const out = [[]]; let x = 0; const push = (word, hot) => { ctx.font = `700 ${hot ? big : size}px ${FONT}, Arial, sans-serif`; const w = ctx.measureText(word + ' ').width; if (x + w > inner && out[out.length - 1].length) { out.push([]); x = 0; } out[out.length - 1].push({ word, hot, w }); x += w; };
       for (const sg of segs) { if (sg.br) { out.push([]); x = 0; continue; } for (const w of sg.text.split(/\s+/)) push(w, sg.hot); }
       return out.filter(l => l.length); };
-    for (base = 76; base >= minBase; base -= 4) { lines = layout(base); const hgt = lines.reduce((a, l) => a + (l.some(w => w.hot) ? base * 1.5 : base) * 1.12, 0); if (hgt <= H - 2 * M - 260 && lines.length <= 8) break; }
+    const GAP = 0.55; // respiro antes da punchline (em alturas de linha)
+    const measure = (ls, b) => { const bg = Math.round(b * 1.5); let hgt = 0; ls.forEach((l, i) => { const hot = l.some(w => w.hot); const prevHot = i > 0 && ls[i - 1].some(w => w.hot); if (hot && !prevHot) hgt += b * GAP; hgt += (hot ? bg : b) * 1.04; }); return hgt; };
+    for (base = 76; base >= minBase; base -= 4) { lines = layout(base); if (measure(lines, base) <= H - 2 * M - 260 && lines.length <= 8) break; }
     const big = Math.round(base * 1.5);
-    const totalH = lines.reduce((a, l) => a + (l.some(w => w.hot) ? big : base) * 1.12, 0); let y = Math.round((H - totalH) / 2);
-    for (const line of lines) { const lh = (line.some(w => w.hot) ? big : base); y += lh; let x = M; for (const w of line) { ctx.font = `700 ${w.hot ? big : base}px ${FONT}, Arial, sans-serif`; ctx.fillStyle = w.hot ? C.orange : C.white; ctx.fillText(w.word, x, y); x += w.w; } y += lh * 0.12; }
+    let y = Math.round((H - measure(lines, base)) / 2);
+    lines.forEach((line, i) => { const hot = line.some(w => w.hot); const prevHot = i > 0 && lines[i - 1].some(w => w.hot); if (hot && !prevHot) y += base * GAP; const lh = hot ? big : base; y += lh * 0.86; let x = M; for (const w of line) { ctx.font = `700 ${w.hot ? big : base}px ${FONT}, Arial, sans-serif`; ctx.fillStyle = w.hot ? C.orange : C.white; ctx.fillText(w.word, x, y); x += w.w; } y += lh * 0.18; });
     if (spec.support) { const sup = fit(ctx, spec.support, inner, { max: 30, min: 26, weight: 400, maxLines: 2, lh: 1.4 }); ctx.font = `400 ${sup.size}px ${FONT}, Arial, sans-serif`; drawLines(ctx, sup.lines, M, y + 24, sup.lineH, C.grayl); }
     const hl = { size: base };
     ctx.fillStyle = C.orange; ctx.fillRect(M, H - M - 6, 56, 6);
