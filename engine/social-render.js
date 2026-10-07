@@ -100,15 +100,17 @@ export function render(canvas, spec) {
     label(ctx, spec.kicker, M, M + 110, C.orange);
     // Ritmo de meme: cada "/" é uma linha (nunca rebreak automático; a fonte reduz até caber). Setup em peso 500, punchline (*…*) em 800 e maior, com respiro.
     const raw = String(spec.headline || '');
-    const rows = raw.split('/').map(t => t.trim()).filter(Boolean).map(t => { const hot = /^\*.*\*$/.test(t) || (t.includes('*') && t.replace(/\*/g, '').trim().length > 0 && /\*[^*]+\*/.test(t) && t.replace(/\*[^*]+\*/, '').trim() === ''); return { text: t.replace(/\*/g, ''), hot }; });
+    // '//' = linha em branco (pausa maior). '/' = quebra simples.
+    const rows = raw.split('/').map(t => t.trim()).map(t => { const hot = /^\*.*\*$/.test(t) || (t.includes('*') && t.replace(/\*/g, '').trim().length > 0 && /\*[^*]+\*/.test(t) && t.replace(/\*[^*]+\*/, '').trim() === ''); return t ? { text: t.replace(/\*/g, ''), hot } : { blank: true }; }).filter((r, i, arr) => !(r.blank && (i === 0 || i === arr.length - 1)));
     const fitRow = (text, weight, max, min) => { for (let sz = max; sz >= min; sz -= 2) { ctx.font = `${weight} ${sz}px ${FONT}, Arial, sans-serif`; if (ctx.measureText(text).width <= inner) return sz; } return min; };
-    const setupRows = rows.filter(r => !r.hot), hotRows = rows.filter(r => r.hot);
+    const blanks = rows.filter(r => r.blank).length; const setupRows = rows.filter(r => !r.hot && !r.blank), hotRows = rows.filter(r => r.hot);
     const setupSize = setupRows.length ? Math.min(...setupRows.map(r => fitRow(r.text, 500, 60, 34))) : 0;
     const hotSize = hotRows.length ? Math.min(...hotRows.map(r => fitRow(r.text, 800, 112, 56))) : 0;
     const LH = 1.12, GAP = 36;
-    const blockH = setupRows.length * setupSize * LH + (hotRows.length && setupRows.length ? GAP : 0) + hotRows.length * hotSize * LH;
+    const BLANK = Math.round((setupSize || hotSize) * 0.9);
+    const blockH = setupRows.length * setupSize * LH + (hotRows.length && setupRows.length ? GAP : 0) + hotRows.length * hotSize * LH + blanks * BLANK;
     let y = Math.round((H - blockH) / 2) - 40; let seenHot = false;
-    for (const r of rows) { if (r.hot && !seenHot && setupRows.length) { y += GAP; seenHot = true; } const sz = r.hot ? hotSize : setupSize; ctx.font = `${r.hot ? 800 : 500} ${sz}px ${FONT}, Arial, sans-serif`; ctx.fillStyle = r.hot ? C.orange : C.white; y += sz * 0.86; ctx.fillText(r.text, M, y); y += sz * (LH - 0.86); }
+    for (const r of rows) { if (r.blank) { y += BLANK; continue; } if (r.hot && !seenHot && setupRows.length) { y += GAP; seenHot = true; } const sz = r.hot ? hotSize : setupSize; ctx.font = `${r.hot ? 800 : 500} ${sz}px ${FONT}, Arial, sans-serif`; ctx.fillStyle = r.hot ? C.orange : C.white; y += sz * 0.86; ctx.fillText(r.text, M, y); y += sz * (LH - 0.86); }
     if (spec.support) { const sup = fit(ctx, spec.support, inner, { max: 28, min: 24, weight: 400, maxLines: 2, lh: 1.4 }); ctx.font = `400 ${sup.size}px ${FONT}, Arial, sans-serif`; drawLines(ctx, sup.lines, M, y + 40, sup.lineH, C.grayl); }
     const base = hotSize || setupSize;
     const hl = { size: base };
