@@ -771,6 +771,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
                 <sc-if value="{{ isCarousel }}" hint-placeholder-val="{{ false }}">
                   <select value="{{ carouselSlidesWanted }}" onChange="{{ onSlidesWanted }}" style="padding:7px 10px;border:1px solid #E6E2DA;border-radius:4px;background:#fff;font-size:12px"><option value="4">4 slides</option><option value="5">5 slides</option><option value="6">6 slides</option><option value="7">7 slides</option></select>
                   <button onClick="{{ deriveCarousel }}" disabled="{{ busy }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:8px 12px;font-size:12px;font-weight:600">{{ deriveCarouselLabel }}</button>
+                  <button onClick="{{ createEmptyCarousel }}" disabled="{{ busy }}" title="Cria capa, slides vazios e fechamento para você escrever" style="background:#fff;border:1px solid #16263A;color:#16263A;border-radius:4px;padding:8px 14px;font-size:12px;font-weight:600">Criar slides em branco</button>
                 </sc-if>
               </div>
               <div style="font-size:11px;color:#5E6770;line-height:1.5">{{ formatHint }}</div>
@@ -1318,6 +1319,7 @@ class Component extends DCLogic {
   slideIndex(p) { const n = p?.carousel?.slides?.length || 0; return Math.min(Math.max(0, this.state.slideIdx || 0), Math.max(0, n - 1)); }
   setFormat = (e) => { const f = e.currentTarget.dataset.format; this.PF().setFormat(this, this.activePost(), f); if (this.lang() === 'es') this.ensureSpanish(); this.forceUpdate(); };
   onSlidesWanted = (e) => this.setState({ slidesWanted: Number(e.target.value) });
+  createEmptyCarousel = () => { const p = this.activePost(); const n = Number(this.state.slidesWanted || 7); this.PF().createEmptyCarousel(this, p, n); this.setState({ slideIdx: 0, drafts: {} }); this.toast(n + ' slides criados. A capa já traz a headline; preencha os demais.'); this.forceUpdate(); };
   deriveCarousel = () => this.run('Derivando carrossel', async () => { const p = this.activePost(); const c = await this.PF().deriveCarousel(this, p, this.state.slidesWanted || 6); this.setState({ slideIdx: 0 }); this.toast(`Carrossel com ${c.slides.length} slides gerado.`); });
   selectSlide = (e) => this.setState({ slideIdx: Number(e.currentTarget.dataset.idx) });
   stepSlide = (e) => { const p = this.activePost(); const n = p.carousel.slides.length; this.setState({ slideIdx: (this.slideIndex(p) + Number(e.currentTarget.dataset.dir) + n) % n }); };

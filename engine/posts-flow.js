@@ -139,6 +139,14 @@ Retorne JSON: {"kicker": string, "title": string, "body": string, "proof_number"
   p.carousel.history = p.carousel.history || []; p.carousel.history.push({ i, before: { ...s }, at: now() });
   Object.assign(s, clean); p.carousel.meta.edited[`${i}.ai`] = 'ai'; p.updated_at = now(); audit('carousel.rewrite_slide', 'post', p.id, { i, instruction }); app.save(); return s;
 }
+export function createEmptyCarousel(app, p, n = 7) {
+  const R = activeRules(); const c = p.content_json; const inner = Math.max(1, n - 2);
+  const slides = [{ role: 'cover', kicker: c.kicker ?? (R.angles[p.angle]?.kicker || ''), title: c.headline || '', body: c.support_line || '', proof_number: '', proof_label: '' }];
+  for (let i = 0; i < inner; i++) slides.push({ role: 'point', kicker: '', title: '', body: '', proof_number: '', proof_label: '' });
+  slides.push({ role: 'closing', kicker: '', title: '', body: '', cta: c.caption?.cta || 'Vamos conversar?', proof_number: '', proof_label: '' });
+  p.carousel = { slides, created_at: now(), meta: { edited: {} } }; p.format = 'carousel'; p.meta.edited.format = 'human'; p.updated_at = now(); p.score = null;
+  audit('carousel.create_empty', 'post', p.id, { slides: n }); app.save(); return p.carousel;
+}
 export function setSlideRole(app, p, i, role) { const s = p.carousel?.slides?.[i]; if (!s || !['point', 'proof', 'action'].includes(role)) return; s.role = role; p.updated_at = now(); audit('carousel.slide_role', 'post', p.id, { i, role }); app.save(); }
 export function setSlideStyle(app, p, i, style) { const s = p.carousel?.slides?.[i]; if (!s) return; if (style) s.style = style; else delete s.style; p.updated_at = now(); audit('carousel.slide_style', 'post', p.id, { i, style }); app.save(); }
 export function removeSlide(app, p, i) { const L = p.carousel.slides; if (L.length <= 3 || L[i].role === 'cover' || L[i].role === 'closing') return; L.splice(i, 1); app.save(); }
