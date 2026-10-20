@@ -1,0 +1,244 @@
+// Fluxo dos posts derivados: derivação, edição/regeneração local, imagens, QA, aprovação, exportação.
+import { db, uid, now, audit, activeRules, assetByType, blobs } from './store.js';
+import { textJSON, imageGenerate } from './providers.js';
+import { fill } from './prompts.js';
+import { guideForPrompt, EDITORIAL_GUIDE_V1, humanVoiceForPrompt, MEME_RULES } from './editorial-guide.js';
+import { deterministicChecks, combineScore, visualChecks } from './qa.js';
+import { render, renderSlide, loadImage, ensureFonts, canvasToBlob } from './social-render.js';
+import { current as currentNL, getPath, setPath, download, sanitize } from './newsletter-flow.js';
+
+export const ANGLES = ['training', 'consulting', 'business'];
+const DEFAULT_TEMPLATE = { training: 'T01', consulting: 'T02', business: 'T03' };
+export const ALL_ANGLES = [...ANGLES, 'meme'];
+export function postsOf(editionId) { return ALL_ANGLES.map(a => db.posts.find(p => p.edition_id === editionId && p.angle === a)).filter(Boolean); }
+// Meme da Semana: 4º post opcional, criado vazio pelo editor (sem derivação automática).
+export function createMeme(app, editionId) { if (post(editionId, 'meme')) return post(editionId, 'meme'); const R = activeRules(); const c = { angle: 'meme', thesis: '', headline: '', support_line: '', proof_number: '', proof_label: '', visual_concept: '', image_prompt: '', negative_space: 'bottom', template_id: 'T07', kicker: '', caption: { hook: '', body: '', practical_takeaway: '', cta: '', hashtags: ['VendaMais', 'MemeDaSemana', 'GestãoComercial'] }, source_claims: [] }; const p = { id: uid('post'), edition_id: editionId, angle: 'meme', content_json: c, template_id: 'T07', image_id: null, crop: { scale: 1, x: 0.5, y: 0.5 }, partner_id: null, format: 'single', status: 'draft', score: null, qa_json: null, origin: 'human', meta: { locks: {}, edited: {} }, versions: [], publish_hint: R.angles.meme?.publish || 'sábado 10h', created_at: now(), updated_at: now() }; db.posts.push(p); audit('post.meme.create', 'post', p.id, {}); app.save(); return p; }
+export function removeMeme(app, editionId) { const p = post(editionId, 'meme'); if (!p) return; db.posts = db.posts.filter(x => x.id !== p.id); db.generated_images = db.generated_images.filter(i => i.post_id !== p.id); audit('post.meme.remove', 'post', p.id, {}); app.save(); }
+export function post(editionId, angle) { return db.posts.find(p => p.edition_id === editionId && p.angle === angle) || null; }
+function prompt(id) { return db.prompt_templates.find(p => p.id === id && p.active)?.prompt_text || ''; }
+function evidenceText(ev) { return ev.length ? ev.map(e => `${e.id} [${e.kind}] ${e.text}`).join('\n') : '(sem evidências estruturadas; não invente números)'; }
+
+// Posts aprovados pelo editor nas edições anteriores: a IA aprende o tom pelo histórico, não só pela descrição.
+function approvedExamples(editionId, angle, n = 4) {
+  return db.posts.filter(x => x.edition_id !== editionId && x.angle === angle && (x.status === 'approved' || x.status === 'exported') && x.content_json?.headline)
+    .sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || '')).slice(0, n)
+    .map(x => { const c = x.content_json; return `- Headline: "${c.headline}" | Apoio: "${c.support_line || ''}" | Gancho: "${c.caption?.hook || ''}" | Corpo: "${(c.caption?.body || '').slice(0, 400)}" | Ponto aplicável: "${c.caption?.practical_takeaway || ''}" | CTA: "${c.caption?.cta || ''}"`; }).join('\n');
+}
+const ANGLE_BRIEF = {
+  training: { who: 'RH, T&D, DHO e líderes que desenvolvem equipes comerciais', lens: 'comportamento, prática, acompanhamento depois da sala; o que o time aprende e por que não aplica' },
+  consulting: { who: 'CEOs, diretores e gerentes comerciais', lens: 'rotina, decisão, processo, carteira, previsibilidade; o que a operação faz toda semana' },
+  business: { who: 'lideranças que olham o negócio inteiro: estratégia, pessoas, cultura, crescimento', lens: 'a tese da edição como visão de empresa; a VendaMais falando em "a gente"; conexão entre áreas' } };
+// Derivação em duas etapas, um post por vez, como um redator faria:
+// 1) ler a newsletter e escolher a cena, a frase de efeito e a emoção; 2) escrever o post a partir dessa escolha.
+export async function deriveOne(app, angle, { variants = 1, instruction = '' } = {}) {
+  const ed = app.edition(); const nl = currentNL(ed.id); if (!nl?.is_approved) throw new Error('Aprove a newsletter antes de gerar os posts.');
+  const evidence = app.evidence(ed.id); const R = activeRules(); const G = db.editorial_guide || EDITORIAL_GUIDE_V1; const prev = post(ed.id, angle);
+  const nlc = nl.content_json; const nlText = nlc.free_blocks ? [nlc.headline, nlc.support_line, ...nlc.free_blocks.map(b => [b.label, b.title, b.md].filter(Boolean).join('\n'))].join('\n\n') : JSON.stringify(nlc);
+  const brief = ANGLE_BRIEF[angle]; const examples = approvedExamples(ed.id, angle);
+  const others = ANGLES.filter(x => x !== angle).map(x => post(ed.id, x)).filter(Boolean).map(x => `[${x.angle}] ${x.content_json.headline}`).join(' | ');
+  const sys = prompt('editor_base') + '\n' + humanVoiceForPrompt();
+  // Etapa 1: leitura e escolha
+  const p1 = `Leia a newsletter abaixo como um redator sênior que vai escrever UM post para ${brief.who}. Lente deste post: ${brief.lens}.
+Antes de escrever qualquer coisa, escolha e devolva em JSON:
+{"scene": string (a cena concreta da newsletter que esse público mais reconhece, descrita em 1 ou 2 frases, com o detalhe que dói), "stolen_line": string (a melhor frase de efeito da própria newsletter para reaproveitar, copiada literalmente), "emotion": string (o sentimento que o leitor deve ter ao ler: frustração reconhecida, alívio, cumplicidade, curiosidade...), "angle_sentence": string (a tese do post em uma frase, diferente da headline da newsletter), "format": "single|carousel", "format_reason": string, "avoid": [string] (o que NÃO repetir dos outros posts desta edição: ${others || 'nenhum ainda'})}
+${examples ? 'POSTS DESTE ÂNGULO QUE O EDITOR APROVOU EM EDIÇÕES ANTERIORES (tom de referência):\n' + examples : ''}
+${instruction ? 'INSTRUÇÃO DO EDITOR: ' + instruction : ''}
+NEWSLETTER:
+${nlText.slice(0, 14000)}`;
+  const plan = await textJSON({ system: sys, prompt: p1, purpose: 'posts.plan:' + angle, maxTokens: 2000 });
+  // Etapa 2: escrita a partir do plano
+  const p2 = `Agora escreva ${variants > 1 ? variants + ' versões diferentes do' : 'o'} post para ${brief.who}, a partir deste plano (não o contradiga):
+${JSON.stringify(plan)}
+Regras de escrita: comece pela cena, não pela tese. Gancho em 1 ou 2 frases que um gestor mandaria para um colega. Corpo em 3 a 5 frases curtas, com a frase roubada da newsletter encaixada naturalmente. Ponto aplicável = um gesto pequeno para esta semana (uma pergunta, uma conversa), não checklist. CTA como convite. Headline até 12 palavras, sem ponto final, com tensão; linha de apoio até 20 palavras. Kicker: "${R.angles[angle]?.kicker || ''}". Sem travessão, sem superlativo, sem número que não esteja na newsletter ou nas evidências. Nada de "é fundamental", "é necessário", "deve-se".
+Imagem (image_prompt): fotografia editorial de estúdio, 4:5, pessoa brasileira em cena coerente com a emoção, luz lateral quente e sombras navy, espaço livre para texto; sem texto nem logo.
+Retorne JSON: {"posts":[{"angle":"${angle}","format":"${plan.format || 'single'}","thesis":string,"headline":string,"support_line":string,"proof_number":"","proof_label":"","visual_concept":string,"image_prompt":string,"negative_space":"bottom","template_id":"T01|T03|T06","kicker":string,"caption":{"hook":string,"body":string,"practical_takeaway":string,"cta":string,"hashtags":[string] (até 5)},"source_claims":[], "anchors":[string] (2 ou 3 trechos literais da newsletter usados)}]}
+Evidências disponíveis (só cite número que esteja aqui): ${evidenceText(evidence).slice(0, 4000)}`;
+  const out = await textJSON({ system: sys, prompt: p2, purpose: 'posts.write:' + angle, maxTokens: 6000 });
+  const list = (Array.isArray(out.posts) ? out.posts : [out]).filter(x => x && x.headline).slice(0, variants);
+  if (!list.length) throw new Error('A IA não devolveu o post. Tente de novo.');
+  const contents = list.map(c => { const n = normalizePost({ ...c, angle }, angle); n.plan = plan; n.anchors = c.anchors || []; return n; });
+  const chosen = contents[0]; const alts = contents.slice(1);
+  if (prev) { prev.versions = prev.versions || []; prev.versions.push({ content_json: JSON.parse(JSON.stringify(prev.content_json)), at: prev.updated_at || prev.created_at, origin: prev.origin }); prev.content_json = chosen; prev.origin = 'ai'; prev.score = null; prev.qa_json = null; prev.status = 'draft'; prev.updated_at = now(); if (!prev.meta?.edited?.format) prev.format = chosen.format === 'carousel' ? 'carousel' : 'single'; if (!prev.meta?.edited?.template_id) prev.template_id = ['T01', 'T03', 'T06'].includes(chosen.template_id) ? chosen.template_id : DEFAULT_TEMPLATE[angle]; prev.alternatives = alts; }
+  else db.posts.push({ id: uid('post'), edition_id: ed.id, angle, content_json: chosen, alternatives: alts, template_id: ['T01', 'T03', 'T06'].includes(chosen.template_id) ? chosen.template_id : DEFAULT_TEMPLATE[angle], image_id: null, crop: { scale: 1, x: 0.5, y: 0.5 }, partner_id: null, format: chosen.format === 'carousel' ? 'carousel' : 'single', status: 'draft', score: null, qa_json: null, origin: 'ai', meta: { locks: {}, edited: {} }, versions: [], created_at: now(), updated_at: now() });
+  if (ANGLES.every(x => post(ed.id, x))) app.setStatus(ed, 'posts_generated');
+  audit('posts.derive_one', 'edition', ed.id, { angle, variants: contents.length }); app.save(); return post(ed.id, angle);
+}
+export async function derive(app) { const ed = app.edition(); for (const a of ANGLES) await deriveOne(app, a); return postsOf(ed.id); }
+export function normalizePost(c, angle) {
+  const R = activeRules(); c = sanitize(c || {}); const cap = c.caption || {};
+  // Número de prova deve ser curto ("38%", "7 em 10", "2.500"); se vier frase, extrai o número e move o resto para proof_label.
+  let pn = String(c.proof_number || '').trim(), pl = String(c.proof_label || '').trim();
+  if (pn.length > 14) { const m = pn.match(/(\d+(?:[.,]\d+)*\s*(?:%|em cada \d+|de cada \d+|em \d+|mil|milhões|bilhões|pontos|p\.p\.)?)/i); if (m) { pl = pl || pn.replace(m[0], '').replace(/^[\s,.:;]+|[\s,.:;]+$/g, '').replace(/\s{2,}/g, ' '); pn = m[0].replace(/\s+(de|em) cada\s+/i, ' em ').trim(); } else { pl = pl || pn; pn = ''; } }
+  if (pl.length > 90) pl = pl.slice(0, 87).replace(/\s\S*$/, '') ;
+  return { angle, anchors: Array.isArray(c.anchors) ? c.anchors : [], brief: c.brief || null, format_reason: c.format_reason || '', thesis: c.thesis || '', headline: String(c.headline || '').replace(/[.]+$/, ''), support_line: c.support_line || '', proof_number: pn, proof_label: pl, visual_concept: c.visual_concept || '', image_prompt: c.image_prompt || '', negative_space: c.negative_space || 'bottom', template_id: c.template_id || '', kicker: c.kicker || R.angles[angle].kicker,
+    caption: { hook: cap.hook || '', body: cap.body || '', practical_takeaway: cap.practical_takeaway || '', cta: cap.cta || '', hashtags: Array.isArray(cap.hashtags) ? cap.hashtags.slice(0, R.voice.length.hashtags_max) : [] }, source_claims: Array.isArray(c.source_claims) ? c.source_claims : [] };
+}
+export function edit(app, p, path, value) { if (JSON.stringify(getPath(p.content_json, path)) === JSON.stringify(value)) return; p.versions = p.versions || []; p.versions.push({ content_json: JSON.parse(JSON.stringify(p.content_json)), at: now(), origin: 'autosave' }); if (p.versions.length > 40) p.versions.shift(); setPath(p.content_json, path, value); p.meta.edited[path] = 'human'; p.score = null; p.updated_at = now(); app.save('Autosave'); }
+export function toggleLock(app, p, path) { p.meta.locks[path] = !p.meta.locks[path]; audit(p.meta.locks[path] ? 'post.lock' : 'post.unlock', 'post', p.id, { path }); app.save(); }
+export async function rewriteField(app, p, field, instruction) {
+  if (p.meta.locks?.[field]) throw new Error('Campo fixado.');
+  const evidence = app.evidence(p.edition_id); const value = getPath(p.content_json, field);
+  const pr = fill(prompt('post_rewrite'), { angle: p.angle, instruction: instruction || 'melhore especificidade, prova e utilidade prática', field, value: JSON.stringify(value), post: JSON.stringify(p.content_json), evidence: evidenceText(evidence) });
+  const out = await textJSON({ system: prompt('editor_base'), prompt: pr, purpose: `post.rewrite:${field}` });
+  let v = out && typeof out === 'object' && 'value' in out ? out.value : out; if (typeof value === 'string' && typeof v !== 'string') v = typeof v === 'object' ? (v.text || v.body || JSON.stringify(v)) : String(v);
+  p.versions.push({ content_json: JSON.parse(JSON.stringify(p.content_json)), at: now(), origin: 'pre-regen' }); setPath(p.content_json, field, field === 'image_prompt' ? v : sanitize(v)); p.meta.edited[field] = 'ai'; p.score = null; p.updated_at = now(); audit('post.rewrite_field', 'post', p.id, { field, instruction }); app.save(); return v;
+}
+export function setTemplate(app, p, id) { p.template_id = id; p.meta.edited.template_id = 'human'; p.updated_at = now(); audit('post.template', 'post', p.id, { template_id: id }); app.save(); }
+export function setCrop(app, p, crop) { p.crop = { ...p.crop, ...crop }; app.save('Autosave'); }
+export function setPartner(app, p, id) { p.partner_id = id || null; app.save(); }
+
+// ---- imagens-base ----
+export function imagesOf(postId) { return db.generated_images.filter(i => i.post_id === postId).sort((a, b) => b.created_at.localeCompare(a.created_at)); }
+export async function generateImage(app, p, { prompt: pr, provider, mode, references }) {
+  const started = Date.now();
+  const res = await imageGenerate({ prompt: pr, provider, mode, references });
+  const id = uid('img'); await blobs.put(id, res.dataUrl);
+  const rec = { id, post_id: p.id, edition_id: p.edition_id, source: 'ai', provider: res.provider, model: res.model, mode, prompt: res.prompt, cost_meta: res.cost_meta, ms: Date.now() - started, created_at: now() };
+  db.generated_images.push(rec); p.image_id = id; p.crop = { scale: 1, x: 0.5, y: 0.5 }; audit('image.generate', 'generated_image', id, { provider: rec.provider, model: rec.model, mode, ms: rec.ms, cost: res.cost_meta }); app.save(); return rec;
+}
+export async function addImageFromDataUrl(app, p, dataUrl, source, label) { const id = uid('img'); await blobs.put(id, dataUrl); const rec = { id, post_id: p.id, edition_id: p.edition_id, source, provider: source, model: null, prompt: label || '', created_at: now() }; db.generated_images.push(rec); p.image_id = id; p.crop = { scale: 1, x: 0.5, y: 0.5 }; audit('image.add', 'generated_image', id, { source, label }); app.save(); return rec; }
+export function chooseImage(app, p, id) { p.image_id = id; p.updated_at = now(); audit('image.choose', 'post', p.id, { image_id: id }); app.save(); }
+
+// ---- render ----
+export function contentFor(p, lang) { return lang === 'es' && p.content_es ? p.content_es : p.content_json; }
+export async function buildSpec(app, p, lang = 'pt') {
+  const R = activeRules(); const c = contentFor(p, lang);
+  const url = (a) => a ? app.assetUrl(a) : '';
+  const [logoPrimary, logoNegative, image, portrait] = await Promise.all([loadImage(url(assetByType('logo_primary'))), loadImage(url(assetByType('logo_negative'))), p.image_id ? blobs.get(p.image_id).then(loadImage) : null, p.partner_id ? loadImage(url(db.brand_assets.find(a => a.type === 'portrait' && a.partner_id === p.partner_id && a.active))) : null]);
+  const partner = R.partners.find(x => x.id === p.partner_id) || null;
+  return { templateId: p.template_id, memeLayout: p.meme_layout || 'bottom', headline: c.headline, support: c.support_line, kicker: c.kicker === '' ? '' : (c.kicker || R.angles[p.angle]?.kicker || ''), proofNumber: c.proof_number, proofLabel: c.proof_label, image, crop: p.crop, logoPrimary, logoNegative, portrait, partner };
+}
+export async function renderPost(app, p, canvas, lang = 'pt') { await ensureFonts(); const spec = await buildSpec(app, p, lang); const meta = render(canvas, spec); return { spec, meta }; }
+
+// ---- Carrossel ----
+export function setFormat(app, p, format) { p.format = format; p.meta.edited.format = 'human'; p.updated_at = now(); audit('post.format', 'post', p.id, { format }); app.save(); }
+export async function deriveCarousel(app, p, slides = 7) {
+  const evidence = app.evidence(p.edition_id); const R = activeRules();
+  const pr = fill(prompt('carousel_derive'), { voice: humanVoiceForPrompt(), angle: p.angle, slides, post: JSON.stringify(p.content_json), evidence: evidenceText(evidence) });
+  const out = await textJSON({ system: prompt('editor_base'), prompt: pr, purpose: 'carousel.derive', maxTokens: 6000 });
+  let list = Array.isArray(out.slides) ? out.slides.map(s => sanitize({ role: s.role || 'point', kicker: s.kicker || '', title: s.title || '', body: s.body || '', proof_number: s.proof_number || '', proof_label: s.proof_label || '', evidence_ids: s.evidence_ids || [] })) : [];
+  if (!list.length || list[0].role !== 'cover') list.unshift({ role: 'cover', kicker: p.content_json.kicker || R.angles[p.angle].kicker, title: p.content_json.headline, body: p.content_json.support_line, proof_number: '', proof_label: '', evidence_ids: [] });
+  if (list[list.length - 1].role !== 'closing') list.push({ role: 'closing', kicker: 'PRÓXIMO PASSO', title: p.content_json.caption?.cta || 'Fale com a VendaMais', body: '', proof_number: '', proof_label: '', evidence_ids: [] });
+  p.carousel = { slides: list, created_at: now(), meta: { edited: {} } }; p.format = 'carousel'; p.updated_at = now(); p.score = null;
+  audit('carousel.derive', 'post', p.id, { slides: list.length }); app.save(); return p.carousel;
+}
+export function editSlide(app, p, i, field, value) { const s = p.carousel?.slides?.[i]; if (!s || s[field] === value) return; s[field] = value; p.carousel.meta.edited[`${i}.${field}`] = 'human'; p.updated_at = now(); app.save('Autosave'); }
+// Reescreve um único slide com instrução do editor, mantendo o restante do carrossel como contexto.
+export async function rewriteSlide(app, p, i, instruction) {
+  const L = p.carousel?.slides || []; const s = L[i]; if (!s) throw new Error('Slide inexistente.');
+  const evidence = app.evidence(p.edition_id); const ctx = L.map((x, k) => k === i ? { ...x, _rewriting: true } : x);
+  const pr = `Reescreva SOMENTE o slide ${i + 1} de ${L.length} deste carrossel (papel: ${s.role}). Mantenha coerência com os demais slides (contexto abaixo, não altere). Instrução do editor: ${instruction || 'deixe mais claro e direto, frases curtas, sem jargão'}.
+Regras: título até 10 palavras, sem ponto final; texto de apoio até 40 palavras, frases curtas, uma ideia por slide; sem travessão; se houver número de prova, ele deve existir nas evidências e o proof_label deve explicar o número em linguagem simples (ex.: 'das oportunidades ficam paradas mais de 30 dias').
+Slide atual: ${JSON.stringify({ kicker: s.kicker, title: s.title, body: s.body, proof_number: s.proof_number, proof_label: s.proof_label })}
+Carrossel (contexto): ${JSON.stringify(ctx.map(x => ({ role: x.role, title: x.title, body: x.body }))).slice(0, 6000)}
+Evidências: ${evidence.map(e => e.id + ' ' + e.text).join('\n').slice(0, 6000)}
+Retorne JSON: {"kicker": string, "title": string, "body": string, "proof_number": string, "proof_label": string}`;
+  const out = await textJSON({ system: prompt('editor_base'), prompt: pr, purpose: 'carousel.rewrite' });
+  const clean = sanitize({ kicker: out.kicker ?? s.kicker, title: out.title ?? s.title, body: out.body ?? s.body, proof_number: out.proof_number ?? s.proof_number, proof_label: out.proof_label ?? s.proof_label });
+  clean.title = String(clean.title || '').replace(/[.]+$/, '');
+  p.carousel.history = p.carousel.history || []; p.carousel.history.push({ i, before: { ...s }, at: now() });
+  Object.assign(s, clean); p.carousel.meta.edited[`${i}.ai`] = 'ai'; p.updated_at = now(); audit('carousel.rewrite_slide', 'post', p.id, { i, instruction }); app.save(); return s;
+}
+export function createEmptyCarousel(app, p, n = 7) {
+  const R = activeRules(); const c = p.content_json; const inner = Math.max(1, n - 2);
+  const slides = [{ role: 'cover', kicker: c.kicker ?? (R.angles[p.angle]?.kicker || ''), title: c.headline || '', body: c.support_line || '', proof_number: '', proof_label: '' }];
+  for (let i = 0; i < inner; i++) slides.push({ role: 'point', kicker: '', title: '', body: '', proof_number: '', proof_label: '' });
+  slides.push({ role: 'closing', kicker: '', title: '', body: '', cta: c.caption?.cta || 'Vamos conversar?', proof_number: '', proof_label: '' });
+  p.carousel = { slides, created_at: now(), meta: { edited: {} } }; p.format = 'carousel'; p.meta.edited.format = 'human'; p.updated_at = now(); p.score = null;
+  audit('carousel.create_empty', 'post', p.id, { slides: n }); app.save(); return p.carousel;
+}
+export function setMemeLayout(app, p, layout) { p.meme_layout = layout; p.updated_at = now(); audit('post.meme_layout', 'post', p.id, { layout }); app.save(); }
+export function setSlideRole(app, p, i, role) { const s = p.carousel?.slides?.[i]; if (!s || !['point', 'proof', 'action'].includes(role)) return; s.role = role; p.updated_at = now(); audit('carousel.slide_role', 'post', p.id, { i, role }); app.save(); }
+export function setSlideStyle(app, p, i, style) { const s = p.carousel?.slides?.[i]; if (!s) return; if (style) s.style = style; else delete s.style; p.updated_at = now(); audit('carousel.slide_style', 'post', p.id, { i, style }); app.save(); }
+export function removeSlide(app, p, i) { const L = p.carousel.slides; if (L.length <= 3 || L[i].role === 'cover' || L[i].role === 'closing') return; L.splice(i, 1); app.save(); }
+export function addSlide(app, p, i) { const L = p.carousel.slides; if (L.length >= 10) return; L.splice(i + 1, 0, { role: 'point', kicker: 'PONTO', title: 'Novo slide', body: '', proof_number: '', proof_label: '', evidence_ids: [] }); app.save(); }
+export function moveSlide(app, p, i, dir) { const L = p.carousel.slides; const j = i + dir; if (j <= 0 || j >= L.length - 1 || i <= 0 || i >= L.length - 1) return; [L[i], L[j]] = [L[j], L[i]]; app.save(); }
+export async function renderCarouselSlide(app, p, i, canvas, lang = 'pt') { await ensureFonts(); const spec = await buildSpec(app, p, lang); const s = ((lang === 'es' && p.carousel_es?.slides?.length) ? p.carousel_es.slides : p.carousel.slides)[i]; const R = activeRules();
+  const sid = p.carousel.slides[i]?.image_id; if (sid) { const img = await blobs.get(sid).then(loadImage); if (img) { spec.image = img; spec.crop = p.carousel.slides[i].crop || { scale: 1, x: 0.5, y: 0.5 }; } }
+  return renderSlide(canvas, { ...spec, slide: { ...s, index: i, total: p.carousel.slides.length }, cta: s.cta || contentFor(p, lang).caption?.cta || '', tagline: lang === 'es' ? (R.newsletter.tagline_es || 'Ventas para quienes influyen en las ventas') : R.newsletter.tagline }); }
+export function carouselChecks(p, evidence) { const issues = []; const L = p.carousel?.slides || []; for (let i = 0; i < L.length; i++) { const d = deterministicChecks({ headline: L[i].title, body: L[i].body, proof_label: L[i].proof_label, proof_number: L[i].proof_number, evidence_ids: L[i].evidence_ids }, evidence, 'slide'); d.blockers.forEach(b => issues.push({ kind: 'Bloqueio', where: `slide ${i + 1}`, text: b.text })); d.warnings.forEach(w => issues.push({ kind: 'Alerta', where: `slide ${i + 1}`, text: w.text })); if (L[i].title.split(/\s+/).length > 12) issues.push({ kind: 'Alerta', where: `slide ${i + 1}`, text: 'Título com mais de 12 palavras.' }); } return issues; }
+// Exporta todos os slides em ZIP (PNG numerados + legenda). ZIP "store" sem compressão, escrito à mão.
+export async function exportCarousel(app, p, lang = 'pt') {
+  const ed = app.edition(); const base = `vendamais-radar-${ed.brief.number}-${p.angle}${lang === 'es' ? '-es' : ''}-carrossel`; const files = [];
+  for (let i = 0; i < p.carousel.slides.length; i++) { const cv = document.createElement('canvas'); await renderCarouselSlide(app, p, i, cv, lang); const blob = await canvasToBlob(cv); files.push({ name: `${base}/${String(i + 1).padStart(2, '0')}.png`, data: new Uint8Array(await blob.arrayBuffer()) }); }
+  files.push({ name: `${base}/legenda.txt`, data: new TextEncoder().encode(captionText(p, lang)) });
+  const zip = buildZip(files); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([zip], { type: 'application/zip' })); a.download = `${base}.zip`; a.click();
+  db.renders.push({ id: uid('render'), post_id: p.id, template_id: 'carousel', image_id: p.image_id, dimensions: `1080x1350 x${p.carousel.slides.length}`, created_at: now() });
+  if (p.status === 'approved') p.status = 'exported'; ed.exports = ed.exports || {}; ed.exports.posts = now(); audit('carousel.export', 'post', p.id, { slides: p.carousel.slides.length }); app.save();
+}
+function crc32(u8) { let c, crc = 0xFFFFFFFF; for (let n = 0; n < u8.length; n++) { c = (crc ^ u8[n]) & 0xFF; for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xEDB88320 : c >>> 1; crc = (crc >>> 8) ^ c; } return (crc ^ 0xFFFFFFFF) >>> 0; }
+function buildZip(files) {
+  const enc = new TextEncoder(); const parts = []; const central = []; let offset = 0;
+  const u16 = (n) => [n & 255, (n >> 8) & 255], u32 = (n) => [n & 255, (n >> 8) & 255, (n >> 16) & 255, (n >>> 24) & 255];
+  for (const f of files) { const name = enc.encode(f.name); const crc = crc32(f.data); const head = new Uint8Array([0x50, 0x4b, 0x03, 0x04, ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0), ...u32(crc), ...u32(f.data.length), ...u32(f.data.length), ...u16(name.length), ...u16(0)]); parts.push(head, name, f.data); central.push(new Uint8Array([0x50, 0x4b, 0x01, 0x02, ...u16(20), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0), ...u32(crc), ...u32(f.data.length), ...u32(f.data.length), ...u16(name.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(offset)]), name); offset += head.length + name.length + f.data.length; }
+  const cdSize = central.reduce((s, c) => s + c.length, 0); const end = new Uint8Array([0x50, 0x4b, 0x05, 0x06, ...u16(0), ...u16(0), ...u16(files.length), ...u16(files.length), ...u32(cdSize), ...u32(offset), ...u16(0)]);
+  const all = [...parts, ...central, end]; const out = new Uint8Array(all.reduce((s, a) => s + a.length, 0)); let o = 0; for (const a of all) { out.set(a, o); o += a.length; } return out;
+}
+export async function runQA(app, p) {
+  const evidence = app.evidence(p.edition_id); const R = activeRules(); const det = deterministicChecks(p.content_json, evidence, 'post');
+  const G = db.editorial_guide || EDITORIAL_GUIDE_V1; const ga = G.angles[p.angle] || MEME_RULES;
+  const pr = fill(prompt('qa_audit'), { channel: `post social 1080x1350 (LinkedIn + Instagram) com legenda de 400 a 1.500 caracteres, ângulo ${ga.label} para ${ga.audience}. LINHA EDITORIAL: reprove (severity bloqueio) se ${G.quality_gate.join('; ')}. Voz: ${G.voice.traits.join('; ')}. CTA nunca: ${G.cta.avoid.join(' / ')}`, piece: JSON.stringify(p.content_json), evidence: evidenceText(evidence) });
+  const ai = await textJSON({ system: prompt('editor_base'), prompt: pr, purpose: 'post.qa' });
+  const canvas = document.createElement('canvas'); const { spec, meta } = await renderPost(app, p, canvas);
+  const vis = visualChecks({ templateId: p.template_id, hasImage: !!spec.image, logoAssetOk: !!(spec.logoPrimary && spec.logoNegative), headline: p.content_json.headline, headlineFontPx: meta.headlineFontPx, portraitOk: !!spec.portrait, partner: spec.partner });
+  const blockers = [...det.blockers, ...vis.issues.map(i => ({ code: i.code, where: 'render', text: i.text })), ...(ai.issues || []).filter(i => i.severity === 'bloqueio').map(i => ({ code: 'ai', where: i.where, text: i.text + (i.fix ? ` Correção: ${i.fix}` : '') }))];
+  const { score, ready } = combineScore(ai.scores || {}, vis.score, blockers);
+  p.score = score; p.qa_json = { deterministic: det, ai, visual: vis, blockers, ready, threshold: R.qa.threshold, at: now() }; p.updated_at = now();
+  audit('post.qa', 'post', p.id, { score, blockers: blockers.length, ready }); app.save(); return p.qa_json;
+}
+export function approvePost(app, p) {
+  const det = deterministicChecks(p.content_json, app.evidence(p.edition_id), 'post'); const blockers = [...det.blockers, ...(p.qa_json?.visual?.issues || []), ...((p.qa_json?.ai?.issues || []).filter(i => i.severity === 'bloqueio'))];
+  if (blockers.length) throw new Error(`${blockers.length} bloqueio(s) impedem a aprovação deste post.`);
+  p.status = 'approved'; p.approved_at = now(); audit('post.approve', 'post', p.id, { score: p.score }); const ed = app.edition();
+  if (postsOf(ed.id).length === 3 && postsOf(ed.id).every(x => x.status === 'approved' || x.status === 'exported')) app.setStatus(ed, 'approved'); app.save();
+}
+export function captionText(p, lang = 'pt') { const c = contentFor(p, lang).caption || {}; return [c.hook, '', c.body, '', c.practical_takeaway, '', c.cta, '', (c.hashtags || []).map(h => h.startsWith('#') ? h : '#' + h).join(' ')].filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n').trim(); }
+export async function exportPost(app, p, { png = true, copy = true, lang = 'pt' } = {}) {
+  const ed = app.edition(); const base = `vendamais-radar-${ed.brief.number}-${p.angle}${lang === 'es' ? '-es' : ''}`;
+  if (png) { const canvas = document.createElement('canvas'); await renderPost(app, p, canvas, lang); const blob = await canvasToBlob(canvas); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${base}-1080x1350.png`; a.click(); const rid = uid('render'); db.renders.push({ id: rid, post_id: p.id, template_id: p.template_id, image_id: p.image_id, dimensions: '1080x1350', created_at: now() }); }
+  if (copy) download(`${base}-legenda.txt`, captionText(p, lang));
+  if (p.status === 'approved') p.status = 'exported'; ed.exports = ed.exports || {}; ed.exports.posts = now(); if (postsOf(ed.id).every(x => x.status === 'exported') && ed.exports.newsletter) app.setStatus(ed, 'exported');
+  audit('post.export', 'post', p.id, { png, copy }); app.save();
+}
+
+// Imagem "existe" só se o arquivo estiver disponível neste navegador; referência sem arquivo conta como pendente.
+export async function hasImageFile(p) { if (!p.image_id) return false; try { return !!(await blobs.get(p.image_id)); } catch (e) { return false; } }
+export async function pendingImages(editionId) { const out = []; for (const p of postsOf(editionId)) if (!(await hasImageFile(p))) out.push(p); return out; }
+export async function generateAllImages(app, editionId, opts = {}) {
+  const done = [], failed = [];
+  for (const p of postsOf(editionId)) { if (!opts.force && await hasImageFile(p)) continue; if (p.image_id && !(await hasImageFile(p))) { p.image_id = null; } try { await generateImage(app, p, { prompt: p.content_json.image_prompt, provider: opts.provider, mode: opts.mode, references: [] }); done.push(p.angle); } catch (e) { failed.push(`${p.angle}: ${e.message}`); } }
+  return { done, failed };
+}
+
+// PDF do carrossel (LinkedIn documento): um slide por página, JPEG embutido. Escrito sem biblioteca externa.
+export async function exportCarouselPdf(app, p, lang = 'pt') {
+  const L = ((lang === 'es' && p.carousel_es?.slides?.length) ? p.carousel_es.slides : p.carousel?.slides) || []; if (!L.length) throw new Error('Carrossel vazio.');
+  const jpegs = [];
+  for (let i = 0; i < L.length; i++) { const cv = document.createElement('canvas'); await renderCarouselSlide(app, p, i, cv, lang); const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.92)); jpegs.push(new Uint8Array(await blob.arrayBuffer())); }
+  const W = 1080, H = 1350; const enc = new TextEncoder(); const parts = []; const offsets = []; let pos = 0;
+  const push = (s) => { const b = typeof s === 'string' ? enc.encode(s) : s; parts.push(b); pos += b.length; };
+  const obj = (n, body) => { offsets[n] = pos; push(n + ' 0 obj\n'); push(body); push('\nendobj\n'); };
+  push('%PDF-1.4\n');
+  const N = jpegs.length; const pageIds = jpegs.map((_, i) => 3 + i * 3);
+  obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+  obj(2, '<< /Type /Pages /Kids [' + pageIds.map(id => id + ' 0 R').join(' ') + '] /Count ' + N + ' >>');
+  jpegs.forEach((jpg, i) => { const pid = 3 + i * 3, cid = pid + 1, iid = pid + 2; const content = 'q ' + W + ' 0 0 ' + H + ' 0 0 cm /Im0 Do Q';
+    obj(pid, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + W + ' ' + H + '] /Contents ' + cid + ' 0 R /Resources << /XObject << /Im0 ' + iid + ' 0 R >> >> >>');
+    obj(cid, '<< /Length ' + content.length + ' >>\nstream\n' + content + '\nendstream');
+    offsets[iid] = pos; push(iid + ' 0 obj\n<< /Type /XObject /Subtype /Image /Width ' + W + ' /Height ' + H + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + jpg.length + ' >>\nstream\n'); push(jpg); push('\nendstream\nendobj\n'); });
+  const total = 3 + N * 3; const xref = pos; push('xref\n0 ' + total + '\n0000000000 65535 f \n'); for (let i = 1; i < total; i++) push(String(offsets[i]).padStart(10, '0') + ' 00000 n \n');
+  push('trailer\n<< /Size ' + total + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF');
+  const blob = new Blob(parts, { type: 'application/pdf' }); const ed = app.edition(); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'vendamais-radar-' + ed.brief.number + '-' + p.angle + (lang === 'es' ? '-es' : '') + '-carrossel.pdf'; a.click();
+  audit('carousel.export_pdf', 'post', p.id, { slides: N, lang }); return N;
+}
+
+// Imagem própria por slide (ex.: capa com a dor, fechamento com a virada). Fica no slide PT e vale também para o ES.
+export async function generateSlideImage(app, p, i, { prompt: pr, provider, mode }) {
+  const s = p.carousel?.slides?.[i]; if (!s) throw new Error('Slide inexistente.'); if (!String(pr || '').trim()) throw new Error('Escreva o prompt da imagem deste slide.');
+  const started = Date.now(); const res = await imageGenerate({ prompt: pr, provider, mode });
+  const id = uid('img'); await blobs.put(id, res.dataUrl);
+  db.generated_images.push({ id, post_id: p.id, edition_id: p.edition_id, slide: i, source: 'ai', provider: res.provider, model: res.model, mode, prompt: res.prompt, cost_meta: res.cost_meta, ms: Date.now() - started, created_at: now() });
+  s.image_id = id; s.image_prompt = pr; if (!s.style || s.style === 'navy') s.style = 'photo'; p.updated_at = now(); audit('carousel.slide_image', 'post', p.id, { i, provider: res.provider }); app.save(); return id;
+}
+export async function setSlideImageFromDataUrl(app, p, i, dataUrl, label) { const s = p.carousel?.slides?.[i]; if (!s) return; const id = uid('img'); await blobs.put(id, dataUrl); db.generated_images.push({ id, post_id: p.id, edition_id: p.edition_id, slide: i, source: 'upload', provider: 'upload', prompt: label || '', created_at: now() }); s.image_id = id; if (!s.style || s.style === 'navy') s.style = 'photo'; p.updated_at = now(); app.save(); return id; }
+export function chooseSlideImage(app, p, i, id) { const s = p.carousel?.slides?.[i]; if (!s) return; if (id) { s.image_id = id; if (!s.style || s.style === 'navy') s.style = 'photo'; } else delete s.image_id; p.updated_at = now(); app.save(); }
