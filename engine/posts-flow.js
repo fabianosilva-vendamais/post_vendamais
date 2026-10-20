@@ -106,7 +106,7 @@ export async function buildSpec(app, p, lang = 'pt') {
   const url = (a) => a ? app.assetUrl(a) : '';
   const [logoPrimary, logoNegative, image, portrait] = await Promise.all([loadImage(url(assetByType('logo_primary'))), loadImage(url(assetByType('logo_negative'))), p.image_id ? blobs.get(p.image_id).then(loadImage) : null, p.partner_id ? loadImage(url(db.brand_assets.find(a => a.type === 'portrait' && a.partner_id === p.partner_id && a.active))) : null]);
   const partner = R.partners.find(x => x.id === p.partner_id) || null;
-  return { templateId: p.template_id, headline: c.headline, support: c.support_line, kicker: c.kicker === '' ? '' : (c.kicker || R.angles[p.angle]?.kicker || ''), proofNumber: c.proof_number, proofLabel: c.proof_label, image, crop: p.crop, logoPrimary, logoNegative, portrait, partner };
+  return { templateId: p.template_id, memeLayout: p.meme_layout || 'bottom', headline: c.headline, support: c.support_line, kicker: c.kicker === '' ? '' : (c.kicker || R.angles[p.angle]?.kicker || ''), proofNumber: c.proof_number, proofLabel: c.proof_label, image, crop: p.crop, logoPrimary, logoNegative, portrait, partner };
 }
 export async function renderPost(app, p, canvas, lang = 'pt') { await ensureFonts(); const spec = await buildSpec(app, p, lang); const meta = render(canvas, spec); return { spec, meta }; }
 
@@ -147,6 +147,7 @@ export function createEmptyCarousel(app, p, n = 7) {
   p.carousel = { slides, created_at: now(), meta: { edited: {} } }; p.format = 'carousel'; p.meta.edited.format = 'human'; p.updated_at = now(); p.score = null;
   audit('carousel.create_empty', 'post', p.id, { slides: n }); app.save(); return p.carousel;
 }
+export function setMemeLayout(app, p, layout) { p.meme_layout = layout; p.updated_at = now(); audit('post.meme_layout', 'post', p.id, { layout }); app.save(); }
 export function setSlideRole(app, p, i, role) { const s = p.carousel?.slides?.[i]; if (!s || !['point', 'proof', 'action'].includes(role)) return; s.role = role; p.updated_at = now(); audit('carousel.slide_role', 'post', p.id, { i, role }); app.save(); }
 export function setSlideStyle(app, p, i, style) { const s = p.carousel?.slides?.[i]; if (!s) return; if (style) s.style = style; else delete s.style; p.updated_at = now(); audit('carousel.slide_style', 'post', p.id, { i, style }); app.save(); }
 export function removeSlide(app, p, i) { const L = p.carousel.slides; if (L.length <= 3 || L[i].role === 'cover' || L[i].role === 'closing') return; L.splice(i, 1); app.save(); }
