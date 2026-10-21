@@ -70,3 +70,6 @@ No briefing, **Sugerir tema em alta** lê manchetes dos últimos 7 dias (Google 
 - Rótulo/kicker social renderizado a 22 px (a escala do DNA indica 12 px, ilegível no feed em celular); demais tamanhos seguem a escala (display ≤72, H1 44, corpo ≥16).
 - Logos recebidos estão em petróleo/coral (pré-migração). São usados como estão; nunca redesenhados. Substituir no Brand Center quando o arquivo em navy #16263A / laranja #E2742B existir.
 - Travessões e ponto final em título vindos da IA são corrigidos deterministicamente (`sanitize`) antes de salvar.
+
+
+- 
