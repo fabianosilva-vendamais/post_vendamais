@@ -1,10 +1,10 @@
-import { isMarkdown, parseMarkdownNewsletter } from './markdown-newsletter.js';
+import { isMarkdown, parseMarkdownNewsletter } from './markdown-newsletter.js?vmvhcom96';
 // Fluxo da newsletter: geração, regeneração local de bloco, QA, aprovação, exportação.
-import { db, uid, now, audit, activeRules, assetByType } from './store.js';
-import { textJSON } from './providers.js';
-import { fill } from './prompts.js';
-import { deterministicChecks, combineScore, aiBlockers } from './qa.js';
-import { renderEmail, renderPlainText } from './newsletter-render.js';
+import { db, uid, now, audit, activeRules, assetByType } from './store.js?vmvhcom96';
+import { textJSON } from './providers.js?vmvhcom96';
+import { fill } from './prompts.js?vmvhcom96';
+import { deterministicChecks, combineScore, aiBlockers } from './qa.js?vmvhcom96';
+import { renderEmail, renderPlainText } from './newsletter-render.js?vmvhcom96';
 
 const LENGTH_WORDS = { short: 550, standard: 950, deep: 1500 };
 export const BLOCK_LABELS = { subject: 'Assunto do e-mail', preheader: 'Preheader', headline: 'Headline principal', intro: 'Abertura', practical_block: 'Ferramenta da semana', interpretation: 'Como interpretar', action: 'Como agir', common_error: 'Erro comum', meeting_questions: 'Leve para a próxima reunião', question_of_week: 'Pergunta da semana', closing: 'Fechamento', cta: 'CTA', podcast: 'Podcast VendaMais', agenda: 'Agenda VendaMais' };

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="./support.js"></script>
+<script src="./support.js?vmvhcom96"></script>
 </head>
 <body>
 <x-dc>
@@ -1002,14 +1002,14 @@ class Component extends DCLogic {
     if (window.__VM_SUPABASE_URL__ && !db.settings.supabase_url) { db.settings.supabase_url = window.__VM_SUPABASE_URL__; db.settings.supabase_anon_key = window.__VM_SUPABASE_ANON__ || ''; store.save(); }
     if (window.__VM_API_BASE__ && db.settings.functions_base !== window.__VM_API_BASE__) { db.settings.functions_base = window.__VM_API_BASE__; store.save(); }
     const saved = JSON.parse(localStorage.getItem('vm_ce_ui') || '{}');
-    this.M.newsletter = await import(new URL('engine/newsletter-flow.js', base).href);
-    this.M.posts = await import(new URL('engine/posts-flow.js', base).href);
-    this.M.supabase = await import(new URL('engine/supabase.js', base).href);
-    this.M.knowledge = await import(new URL('engine/knowledge.js', base).href);
-    this.M.publisher = await import(new URL('engine/publisher.js', base).href);
-    this.M.editorial = await import(new URL('engine/editorial-guide.js', base).href);
-    this.M.n21 = await import(new URL('engine/newsletter-21.js', base).href);
-    this.M.es = await import(new URL('engine/posts-es.js', base).href);
+    this.M.newsletter = await import(new URL('engine/newsletter-flow.js?vmvhcom96', base).href);
+    this.M.posts = await import(new URL('engine/posts-flow.js?vmvhcom96', base).href);
+    this.M.supabase = await import(new URL('engine/supabase.js?vmvhcom96', base).href);
+    this.M.knowledge = await import(new URL('engine/knowledge.js?vmvhcom96', base).href);
+    this.M.publisher = await import(new URL('engine/publisher.js?vmvhcom96', base).href);
+    this.M.editorial = await import(new URL('engine/editorial-guide.js?vmvhcom96', base).href);
+    this.M.n21 = await import(new URL('engine/newsletter-21.js?vmvhcom96', base).href);
+    this.M.es = await import(new URL('engine/posts-es.js?vmvhcom96', base).href);
     try { if (this.M.n21.applyNewsletter21(db, { uid: store.uid, now: store.now, audit: store.audit })) { store.save(); console.info('Newsletter 21 aplicada'); } } catch (e) { console.error('migração n21', e); }
     if (this.M.supabase.signedIn()) this.M.supabase.refreshIfNeeded().then(ok => ok && this.M.supabase.pullAll().then(() => this.forceUpdate()).catch(e => console.warn('pull', e)));
     this.setState({ ready: true, route: saved.route || 'dashboard', editionId: saved.editionId || null, brief: this.emptyBrief(), rulesDraft: JSON.stringify(store.activeRules(), null, 2) }, () => { if (this.state.editionId) this.loadBrief(this.state.editionId); this.refreshBlobUrls(); });
@@ -1104,7 +1104,7 @@ class Component extends DCLogic {
   });
   useAngle = (e) => { const idx = Number(e.currentTarget.dataset.idx); const ed = this.edition(); const an = this.db().analyses.find(a => a.edition_id === ed.id); const a = an?.angles?.[idx]; if (!a) return; ed.brief.angle_hint = ed.brief.angle_hint === a.title ? '' : a.title; ed.brief.angle_thesis = ed.brief.angle_hint ? a.thesis : ''; this.setState({ brief: { ...ed.brief } }); this.save(); };
   generateNewsletter = () => this.run('Gerando newsletter', async () => {
-    if (!this.M.newsletter) { const m = await import(new URL('engine/newsletter-flow.js', document.baseURI).href); this.M.newsletter = m; }
+    if (!this.M.newsletter) { const m = await import(new URL('engine/newsletter-flow.js?vmvhcom96', document.baseURI).href); this.M.newsletter = m; }
     await this.M.newsletter.generate(this); this.setState({ route: 'newsletter' }, this.persistUI);
   });
 
@@ -1158,7 +1158,7 @@ class Component extends DCLogic {
   previewRef = React.createRef(); _lastPreview = ''; undoStack = []; redoStack = [];
   componentDidUpdate() { this.persistUI(); const f = this.previewRef.current; const html = this._previewHtml || ''; if (f && (f !== this._lastPreviewEl || html !== this._lastPreview)) { f.srcdoc = html; this._lastPreview = html; this._lastPreviewEl = f; } this.scheduleRender(); }
   NL() { return this.M.newsletter; }
-  async ensureNL() { if (!this.M.newsletter) this.M.newsletter = await import(new URL('engine/newsletter-flow.js', document.baseURI).href); return this.M.newsletter; }
+  async ensureNL() { if (!this.M.newsletter) this.M.newsletter = await import(new URL('engine/newsletter-flow.js?vmvhcom96', document.baseURI).href); return this.M.newsletter; }
   pushUndo(snap) { this.undoStack.push(snap); if (this.undoStack.length > 60) this.undoStack.shift(); this.redoStack = []; }
   currentNL() { return this.M.newsletter && this.state.editionId ? this.M.newsletter.current(this.state.editionId) : null; }
   onFieldInput = (e) => { const p = e.target.dataset.path; this.setState({ drafts: { ...(this.state.drafts || {}), [p]: e.target.value } }); };

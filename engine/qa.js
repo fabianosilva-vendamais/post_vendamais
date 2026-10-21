@@ -1,5 +1,5 @@
 // QA: bloqueios determinísticos + score ponderado (IA + checagens do sistema).
-import { activeRules } from './store.js';
+import { activeRules } from './store.js?vmvhcom96';
 
 const NUM_RE = /(?<![\w.,])(\d{1,3}(?:[.\s]\d{3})+|\d+(?:[.,]\d+)?)\s*(%|por cento|mil|milh|bilh|clientes|projetos|empresas|diagn|vendedores|dias|anos|reais|R\$)?/gi;
 

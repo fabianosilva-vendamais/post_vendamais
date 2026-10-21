@@ -1,11 +1,11 @@
 // Fluxo dos posts derivados: derivação, edição/regeneração local, imagens, QA, aprovação, exportação.
-import { db, uid, now, audit, activeRules, assetByType, blobs } from './store.js';
-import { textJSON, imageGenerate } from './providers.js';
-import { fill } from './prompts.js';
-import { guideForPrompt, EDITORIAL_GUIDE_V1, humanVoiceForPrompt, MEME_RULES } from './editorial-guide.js';
-import { deterministicChecks, combineScore, visualChecks } from './qa.js';
-import { render, renderSlide, loadImage, ensureFonts, canvasToBlob } from './social-render.js';
-import { current as currentNL, getPath, setPath, download, sanitize } from './newsletter-flow.js';
+import { db, uid, now, audit, activeRules, assetByType, blobs } from './store.js?vmvhcom96';
+import { textJSON, imageGenerate } from './providers.js?vmvhcom96';
+import { fill } from './prompts.js?vmvhcom96';
+import { guideForPrompt, EDITORIAL_GUIDE_V1, humanVoiceForPrompt, MEME_RULES } from './editorial-guide.js?vmvhcom96';
+import { deterministicChecks, combineScore, visualChecks } from './qa.js?vmvhcom96';
+import { render, renderSlide, loadImage, ensureFonts, canvasToBlob } from './social-render.js?vmvhcom96';
+import { current as currentNL, getPath, setPath, download, sanitize } from './newsletter-flow.js?vmvhcom96';
 
 export const ANGLES = ['training', 'consulting', 'business'];
 const DEFAULT_TEMPLATE = { training: 'T01', consulting: 'T02', business: 'T03' };

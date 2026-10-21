@@ -1,6 +1,6 @@
 // Adapters de IA. Chaves nunca ficam no navegador: OpenAI/Gemini/Anthropic passam pelas Edge Functions do Supabase.
 // "claude_builtin" usa o assistente embutido da plataforma (sem chave), útil para operar antes do Supabase existir.
-import { db, audit, uid, now } from './store.js';
+import { db, audit, uid, now } from './store.js?vmvhcom96';
 export class ConfigError extends Error { constructor(m, hint) { super(m); this.name = 'ConfigError'; this.hint = hint; } }
 
 export function supabaseConfigured() { return !!(db.settings.supabase_url && db.settings.supabase_anon_key); }

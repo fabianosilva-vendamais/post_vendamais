@@ -1,5 +1,5 @@
 // Supabase: Auth (e-mail/senha), PostgREST (espelho das tabelas locais) e Storage. Sem SDK: fetch puro.
-import { db, save, audit, blobs, now } from './store.js';
+import { db, save, audit, blobs, now } from './store.js?vmvhcom96';
 const WS = 'ws_vendamais';
 const base = () => db.settings.supabase_url.replace(/\/$/, '');
 const H = (extra = {}) => ({ apikey: db.settings.supabase_anon_key, Authorization: `Bearer ${db.session?.access_token || db.settings.supabase_anon_key}`, 'Content-Type': 'application/json', ...extra });

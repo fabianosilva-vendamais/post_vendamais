@@ -1,6 +1,6 @@
 // Persistência: localStorage para registros (espelho do schema Supabase) + IndexedDB para binários.
 // Quando Supabase estiver configurado, supabase.js sincroniza as mesmas tabelas.
-import { BRAND_RULES_V1, DEFAULT_ASSETS } from './brand-rules.js';
+import { BRAND_RULES_V1, DEFAULT_ASSETS } from './brand-rules.js?vmvhcom96';
 const KEY = 'vm_content_engine_db_v1';
 export const uid = (p) => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 export const now = () => new Date().toISOString();

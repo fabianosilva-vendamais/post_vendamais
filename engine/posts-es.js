@@ -1,7 +1,7 @@
 // Adaptação dos posts para espanhol (Paraguai e América Latina). Não é tradução literal: parte do sentido do PT aprovado.
-import { db, now, audit } from './store.js';
-import { textJSON } from './providers.js';
-import { sanitize } from './newsletter-flow.js';
+import { db, now, audit } from './store.js?vmvhcom96';
+import { textJSON } from './providers.js?vmvhcom96';
+import { sanitize } from './newsletter-flow.js?vmvhcom96';
 
 const PROMPT = `Você é um redator comercial nativo de espanhol rioplatense/paraguaio, com experiência B2B na América Latina. Recebe um post da VendaMais aprovado em português e cria a versão em espanhol.
 Regras: não traduza palavra por palavra; recrie a partir do sentido e da intenção. Preserve a tese central e o objetivo comercial. Espanhol profissional e natural, compreensível no Paraguai, Uruguai, Argentina e demais países da região. Adapte expressões brasileiras; remova referências que não façam sentido localmente. Nada de portunhol. Tom humano e próximo: mantenha as cenas, a empatia e o tom de conversa do original; firme sem ser duro. Sem travessão. Título sem ponto final. IMPORTANTE: se o headline contiver barras ' / ' (quebras de linha) ou trechos entre *asteriscos* (destaque em laranja), preserve exatamente esses marcadores na mesma posição; nunca os substitua por aspas. Até 5 hashtags em espanhol (mantenha #VendaMais). O CTA convida a conversar com a VendaMais.

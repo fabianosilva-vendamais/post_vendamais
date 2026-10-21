@@ -1,4 +1,4 @@
-import { mdToEmail, mdToPlain } from './markdown-newsletter.js';
+import { mdToEmail, mdToPlain } from './markdown-newsletter.js?vmvhcom96';
 // Render determinístico da newsletter: JSON -> HTML de e-mail (tabelas, 600px, inline, sem JS) + plain text.
 // Baseado no piloto Radar VendaMais v2. Fonte Poppins com fallback Arial (Outlook).
 const C = { navy: '#16263A', orange: '#E2742B', white: '#FFFFFF', sand: '#FAF7F2', line: '#E6E2DA', ink: '#1E1E1E', gray: '#5E6770', grayl: '#9FB3C2', bg: '#EEF1F4' };
