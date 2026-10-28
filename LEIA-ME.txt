@@ -1,2 +1,12 @@
-GitHub > post_vendamais > Add file > Upload files > arraste SOMENTE a pasta "engine" desta pasta > Commit changes.
-Depois: Vercel (aguarde o check verde) > site com Ctrl+Shift+R > Editor da Newsletter > Nova versao pela IA.
+VendaMais Content Engine · pacote 2026-10-28
+
+1) GitHub: Add file → Upload files → arraste a pasta "engine" inteira e o "index.html" → Commit. Espere o ✅ da Vercel. No site: Ctrl+Shift+R.
+2) Supabase → SQL Editor → cole MIGRACAO.sql → Run.
+3) Site → Configurações → Publicação (Metricool) → Buscar marcas → clique na VendaMais (PT); Shift+clique na VendaMais LATAM (ES).
+
+Fluxo semanal (um clique):
+- Ordem: monta a edição em português → você revisa, define a imagem e aprova cada post → o espanhol é gerado na hora da aprovação, com a mesma imagem.
+- Posts saem quarta, sexta e segunda; você escolhe o post de cada dia em Publicar semana. Meme só se você escolher um dia para ele.
+- Pode colar os textos prontos dos posts (campo 'Já tenho os textos dos posts') em vez de a IA escrever.
+- Nova edição → "Edição completa em um clique": cole o artigo, confira número/data/CTA, podcast opcional → Criar edição completa.
+- Revise newsletter e posts (aprove cada post). Post Studio → Publicar semana → confira datas → Agendar.

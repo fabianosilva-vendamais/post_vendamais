@@ -16,7 +16,7 @@ function empty() {
       text_provider: 'openai', text_model: 'gpt-5', builtin_model: 'claude-sonnet-4-5',
       image_provider_default: 'openai', image_mode: 'premium',
       image_models: { gemini: { economy: 'gemini-3.1-flash-image', standard: 'gemini-3.1-flash-image', premium: 'gemini-3-pro-image' }, openai: { economy: 'gpt-image-2.5-flare', standard: 'gpt-image-2.5-flare', premium: 'gpt-image-2.5-sunburst' } },
-      qa_threshold: 85, last_edition_number: 0, supabase_url: '', supabase_anon_key: '', metricool_blog_id: '', metricool_brand_name: '', timezone: 'America/Sao_Paulo', default_length: 'standard', default_tone: 'analítico', default_cta_type: 'conversa'
+      qa_threshold: 85, last_edition_number: 0, supabase_url: '', supabase_anon_key: '', metricool_blog_id: '', metricool_brand_name: '', metricool_blog_id_es: '', metricool_brand_name_es: '', default_cta_url: '', timezone: 'America/Sao_Paulo', default_length: 'standard', default_tone: 'analítico', default_cta_type: 'conversa'
     }
   };
 }

@@ -14,6 +14,23 @@ export function postsOf(editionId) { return ALL_ANGLES.map(a => db.posts.find(p 
 // Meme da Semana: 4º post opcional, criado vazio pelo editor (sem derivação automática).
 export function createMeme(app, editionId) { if (post(editionId, 'meme')) return post(editionId, 'meme'); const R = activeRules(); const c = { angle: 'meme', thesis: '', headline: '', support_line: '', proof_number: '', proof_label: '', visual_concept: '', image_prompt: '', negative_space: 'bottom', template_id: 'T07', kicker: '', caption: { hook: '', body: '', practical_takeaway: '', cta: '', hashtags: ['VendaMais', 'MemeDaSemana', 'GestãoComercial'] }, source_claims: [] }; const p = { id: uid('post'), edition_id: editionId, angle: 'meme', content_json: c, template_id: 'T07', image_id: null, crop: { scale: 1, x: 0.5, y: 0.5 }, partner_id: null, format: 'single', status: 'draft', score: null, qa_json: null, origin: 'human', meta: { locks: {}, edited: {} }, versions: [], publish_hint: R.angles.meme?.publish || 'sábado 10h', created_at: now(), updated_at: now() }; db.posts.push(p); audit('post.meme.create', 'post', p.id, {}); app.save(); return p; }
 export function removeMeme(app, editionId) { const p = post(editionId, 'meme'); if (!p) return; db.posts = db.posts.filter(x => x.id !== p.id); db.generated_images = db.generated_images.filter(i => i.post_id !== p.id); audit('post.meme.remove', 'post', p.id, {}); app.save(); }
+// Meme da Semana escrito pela IA: humor de reconhecimento, sem bronca, com os marcadores do T07 (/ quebra linha, // pula linha, *…* punchline).
+export async function deriveMeme(app, m) {
+  const ed = app.edition(); const nl = currentNL(ed.id); if (!nl?.is_approved) throw new Error('Aprove a newsletter antes.');
+  const nlc = nl.content_json; const nlText = nlc.free_blocks ? [nlc.headline, nlc.support_line, ...nlc.free_blocks.map(b => [b.label, b.title, b.md].filter(Boolean).join('\n'))].join('\n\n') : JSON.stringify(nlc);
+  const approved = db.posts.filter(x => x.edition_id !== ed.id && x.angle === 'meme' && (x.status === 'approved' || x.status === 'exported') && x.content_json?.headline).slice(-4).map(x => '- ' + x.content_json.headline).join('\n');
+  const pr = `Você é redator de humor corporativo da VendaMais. A partir da newsletter abaixo, escreva o MEME DA SEMANA (post único, sábado 11h, Instagram e LinkedIn).
+Regras: humor de reconhecimento (o leitor ri porque já viveu), nunca bronca, nunca ridicularizar vendedor ou cliente, nunca palavrão, nunca política. Ironia leve e inteligente. A punchline é curta.
+Formato da frase (campo headline): use ' / ' para quebrar linha, ' // ' para pular uma linha (pausa) e *asteriscos* ao redor da punchline (sai em laranja e maior). Setup em 1 a 3 linhas curtas, pausa, punchline em 1 a 2 linhas. Até 16 palavras no total.
+Legenda (caption.hook + caption.body curto): 1 a 2 frases leves que convidam a marcar alguém; fecha com 'Sexta a gente fala sério. Sábado é só pra rir.' ou variação. Hashtags: VendaMais, MemeDaSemana + 1 do tema.
+image_prompt: cena bem-humorada, cores vivas, liberdade criativa (não precisa seguir paleta), SEM textos legíveis e SEM logos; a foto é a protagonista e o texto fica numa faixa.
+${approved ? 'Memes aprovados antes (referência de tom, não copie):\n' + approved : ''}
+Newsletter: ${nlText.slice(0, 9000)}
+Retorne JSON: {"headline": string, "visual_concept": string, "image_prompt": string, "caption": {"hook": string, "body": string, "practical_takeaway": "", "cta": string, "hashtags": [string]}}`;
+  const out = await textJSON({ system: prompt('editor_base') + '\n' + humanVoiceForPrompt(), prompt: pr, purpose: 'meme.derive' });
+  const c = m.content_json; c.headline = String(out.headline || '').trim(); c.visual_concept = out.visual_concept || ''; c.image_prompt = out.image_prompt || ''; c.caption = { hook: out.caption?.hook || '', body: out.caption?.body || '', practical_takeaway: '', cta: out.caption?.cta || '', hashtags: (out.caption?.hashtags || ['VendaMais', 'MemeDaSemana']).map(h => String(h).replace(/^#/, '')).slice(0, 5) };
+  m.template_id = 'T07'; m.meme_layout = m.meme_layout || 'bottom'; m.updated_at = now(); audit('meme.derive', 'post', m.id, {}); app.save(); return m;
+}
 export function post(editionId, angle) { return db.posts.find(p => p.edition_id === editionId && p.angle === angle) || null; }
 function prompt(id) { return db.prompt_templates.find(p => p.id === id && p.active)?.prompt_text || ''; }
 function evidenceText(ev) { return ev.length ? ev.map(e => `${e.id} [${e.kind}] ${e.text}`).join('\n') : '(sem evidências estruturadas; não invente números)'; }
