@@ -63,7 +63,7 @@ Evidências disponíveis (só cite número que esteja aqui): ${evidenceText(evid
   if (ANGLES.every(x => post(ed.id, x))) app.setStatus(ed, 'posts_generated');
   audit('posts.derive_one', 'edition', ed.id, { angle, variants: contents.length }); app.save(); return post(ed.id, angle);
 }
-export async function derive(app) { const ed = app.edition(); for (const a of ANGLES) await deriveOne(app, a); return postsOf(ed.id); }
+export async function derive(app) { const ed = app.edition(); const failed = []; for (const a of ANGLES) { try { await deriveOne(app, a); app.forceUpdate?.(); } catch (e) { console.error('derive', a, e); failed.push(`${({ training: 'Treinamento', consulting: 'Consultoria', business: 'Negócio' })[a]}: ${e.message}`); } } if (failed.length) throw new Error(`${failed.length} post(s) não gerado(s). ${failed.join(' | ')}${failed.length < 3 ? ' Os demais foram salvos; gere os que faltam um por vez.' : ''}`); return postsOf(ed.id); }
 export function normalizePost(c, angle) {
   const R = activeRules(); c = sanitize(c || {}); const cap = c.caption || {};
   // Número de prova deve ser curto ("38%", "7 em 10", "2.500"); se vier frase, extrai o número e move o resto para proof_label.

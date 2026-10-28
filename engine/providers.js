@@ -22,7 +22,8 @@ async function edge(fn, body) {
   if (!functionsConfigured()) throw new ConfigError('Supabase não configurado', 'Informe URL e anon key em Configurações e publique as Edge Functions.');
   const url = `${functionsBase()}/${fn}`;
   const token = db.session?.access_token || db.settings.supabase_anon_key;
-  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: db.settings.supabase_anon_key, Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+  const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), body.timeout_ms || 110000);
+  let r; try { r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: db.settings.supabase_anon_key, Authorization: `Bearer ${token}` }, body: JSON.stringify(body), signal: ctrl.signal }); } catch (e) { clearTimeout(timer); throw new Error(e.name === 'AbortError' ? `${fn}: a IA demorou mais de ${Math.round((body.timeout_ms || 110000) / 1000)}s e a chamada foi interrompida. Tente de novo ou gere um post por vez.` : `${fn}: sem resposta do servidor (${e.message}). Verifique a conexão e se a Edge Function está publicada.`); } finally { clearTimeout(timer); }
   if (!r.ok) { const t = await r.text(); throw new Error(`${fn}: ${r.status} ${t.slice(0, 300)}`); }
   return r.json();
 }
