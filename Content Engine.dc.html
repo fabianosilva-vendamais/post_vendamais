@@ -1050,7 +1050,7 @@ class Component extends DCLogic {
   M = {};
   async componentDidMount() {
     const base = document.baseURI;
-    const [store, providers, prompts, qa, nl, sources, brand] = await Promise.all(['store', 'providers', 'prompts', 'qa', 'newsletter-render', 'sources', 'brand-rules'].map(n => import(new URL(`engine/${n}.js`, base).href)));
+    const [store, providers, prompts, qa, nl, sources, brand] = await Promise.all(['store', 'providers', 'prompts', 'qa', 'newsletter-render', 'sources', 'brand-rules'].map(n => import(new URL(`engine/${n}.js?vm202611011639`, base).href)));
     this.M = { store, providers, prompts, qa, nl, sources, brand };
     const db = store.db;
     if (!db.prompt_templates.length) { db.prompt_templates = prompts.PROMPTS.map(p => ({ ...p })); store.save(); }
