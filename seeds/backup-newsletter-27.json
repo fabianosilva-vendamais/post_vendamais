@@ -124,6 +124,15 @@
      "youtube_url": "",
      "spotify_url": "",
      "cover_url": ""
+    },
+    "events": {
+     "enabled": true,
+     "label": "LANÇAMENTO",
+     "title": "SalesTrain: a IA da VendaMais para treinar vendedores todos os dias",
+     "text": "Tudo o que esta edição propõe, praticar antes da negociação real, observar comportamentos e dar ao gestor visibilidade de onde cada pessoa precisa melhorar, agora pode acontecer na rotina. O SalesTrain simula conversas de venda com IA, dá feedback na hora e mostra ao gestor um radar de habilidades da equipe.\n\nEstamos abrindo as primeiras turmas para empresas que querem conhecer antes de todo mundo.",
+     "url": "fabiano.silva@vendamais.com.br?subject=Quero%20conhecer%20o%20SalesTrain",
+     "cta": "Quero conhecer o SalesTrain",
+     "image_url": ""
     }
    },
    "meta": {

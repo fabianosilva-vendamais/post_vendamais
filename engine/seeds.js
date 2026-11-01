@@ -1,6 +1,6 @@
 // Edições preparadas pelo editor fora do sistema (backup-newsletter-NN.json) entram sozinhas na abertura do app.
 // O arquivo fica no repositório em seeds/; cada um é aplicado uma única vez (marcado em db.migrations.seeds).
-import { db, save, audit, now } from './store.js?vm202611011639';
+import { db, save, audit, now } from './store.js?vm202611011656';
 export const SEEDS = ['seeds/backup-newsletter-27.json'];
 export async function applySeeds(app) {
   db.migrations = db.migrations || {}; db.migrations.seeds = db.migrations.seeds || {}; let applied = 0;

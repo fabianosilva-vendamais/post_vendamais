@@ -1,11 +1,11 @@
 // Fluxo dos posts derivados: derivação, edição/regeneração local, imagens, QA, aprovação, exportação.
-import { db, uid, now, audit, activeRules, assetByType, blobs } from './store.js?vm202611011639';
-import { textJSON, imageGenerate } from './providers.js?vm202611011639';
-import { fill } from './prompts.js?vm202611011639';
-import { guideForPrompt, EDITORIAL_GUIDE_V1, humanVoiceForPrompt, MEME_RULES } from './editorial-guide.js?vm202611011639';
-import { deterministicChecks, combineScore, visualChecks } from './qa.js?vm202611011639';
-import { render, renderSlide, loadImage, ensureFonts, canvasToBlob } from './social-render.js?vm202611011639';
-import { current as currentNL, getPath, setPath, download, sanitize } from './newsletter-flow.js?vm202611011639';
+import { db, uid, now, audit, activeRules, assetByType, blobs } from './store.js?vm202611011656';
+import { textJSON, imageGenerate } from './providers.js?vm202611011656';
+import { fill } from './prompts.js?vm202611011656';
+import { guideForPrompt, EDITORIAL_GUIDE_V1, humanVoiceForPrompt, MEME_RULES } from './editorial-guide.js?vm202611011656';
+import { deterministicChecks, combineScore, visualChecks } from './qa.js?vm202611011656';
+import { render, renderSlide, loadImage, ensureFonts, canvasToBlob } from './social-render.js?vm202611011656';
+import { current as currentNL, getPath, setPath, download, sanitize } from './newsletter-flow.js?vm202611011656';
 
 export const ANGLES = ['training', 'consulting', 'business'];
 const DEFAULT_TEMPLATE = { training: 'T01', consulting: 'T02', business: 'T03' };
