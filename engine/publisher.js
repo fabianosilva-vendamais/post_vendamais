@@ -1,10 +1,10 @@
 // Publisher Adapter: agenda publicação dos posts aprovados via Metricool (Edge Function publish-schedule).
 // Regra: só post aprovado entra na fila. Sem publicação sem aprovação humana.
-import { db, uid, now, audit, blobs } from './store.js?vmvhcom96';
-import { supabaseConfigured, ConfigError, functionsBase, functionsConfigured } from './providers.js?vmvhcom96';
-import { renderPost, renderCarouselSlide, captionText } from './posts-flow.js?vmvhcom96';
-import { canvasToBlob } from './social-render.js?vmvhcom96';
-import * as SB from './supabase.js?vmvhcom96';
+import { db, uid, now, audit, blobs } from './store.js?vm202611011621';
+import { supabaseConfigured, ConfigError, functionsBase, functionsConfigured } from './providers.js?vm202611011621';
+import { renderPost, renderCarouselSlide, captionText } from './posts-flow.js?vm202611011621';
+import { canvasToBlob } from './social-render.js?vm202611011621';
+import * as SB from './supabase.js?vm202611011621';
 
 export const NETWORKS = [{ id: 'linkedin', label: 'LinkedIn' }, { id: 'instagram', label: 'Instagram' }];
 export const BRANDS = [{ lang: 'pt', key: 'metricool_blog_id', nameKey: 'metricool_brand_name', label: 'VendaMais (Brasil, PT)' }, { lang: 'es', key: 'metricool_blog_id_es', nameKey: 'metricool_brand_name_es', label: 'VendaMais LATAM (ES)' }];

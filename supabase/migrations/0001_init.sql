@@ -94,8 +94,8 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users for each row execute procedure public.handle_new_user();
 
 -- RLS
-create or replace function public.my_workspace() returns text language sql stable as $$ select workspace_id from public.users where id = auth.uid() $$;
-create or replace function public.my_role() returns text language sql stable as $$ select role from public.users where id = auth.uid() $$;
+create or replace function public.my_workspace() returns text language sql stable security definer set search_path = public as $$ select workspace_id from public.users where id = auth.uid() $$;
+create or replace function public.my_role() returns text language sql stable security definer set search_path = public as $$ select role from public.users where id = auth.uid() $$;
 
 do $$ declare t text; begin
   foreach t in array array['workspaces','users','brand_assets','brand_rules','editions','prompt_templates','audit_log','settings'] loop
@@ -108,8 +108,8 @@ do $$ declare t text; begin
 end $$;
 
 create policy ws_read on workspaces for select using (id = my_workspace());
-create policy users_read on users for select using (workspace_id = my_workspace());
-create policy users_admin on users for update using (my_role() = 'admin');
+create policy users_read on users for select using (id = auth.uid() or workspace_id = (select workspace_id from public.users u where u.id = auth.uid()));
+create policy users_admin on users for update using ((select role from public.users u where u.id = auth.uid()) = 'admin');
 create policy ba_rw on brand_assets for all using (workspace_id = my_workspace()) with check (workspace_id = my_workspace() and my_role() in ('admin','editor'));
 create policy br_read on brand_rules for select using (workspace_id = my_workspace());
 create policy br_admin on brand_rules for insert with check (workspace_id = my_workspace() and my_role() = 'admin');

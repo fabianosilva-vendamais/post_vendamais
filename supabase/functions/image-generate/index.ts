@@ -25,7 +25,7 @@ serve(async (req) => {
     }
     if (provider === 'openai') {
       const key = Deno.env.get('OPENAI_API_KEY'); if (!key) return json({ error: 'OPENAI_API_KEY não configurada' }, 501);
-      const m = model || Deno.env.get('OPENAI_IMAGE_MODEL') || 'gpt-image-2.5';
+      const m = model || Deno.env.get('OPENAI_IMAGE_MODEL') || (mode === 'premium' ? 'gpt-image-2.5-sunburst' : 'gpt-image-2.5-flare');
       const quality = mode === 'premium' ? 'high' : mode === 'economy' ? 'low' : 'medium';
       const r = await fetch('https://api.openai.com/v1/images/generations', { method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: m, prompt, size: '1024x1536', quality, n: 1 }) });
       const d = await r.json(); if (!r.ok) return json({ error: d.error?.message || 'openai error' }, 502);
