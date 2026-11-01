@@ -1,12 +1,12 @@
 // Pipeline "Artigo → Edição completa": uma ação cria a edição, estrutura a newsletter (Markdown, sem IA), roda a revisão,
 // aprova se não houver bloqueio, escreve os 3 posts + meme com a voz editorial, escolhe formato, gera carrossel quando for o caso,
 // adapta para espanhol e gera as imagens-base. Cada etapa reporta progresso e falhas isoladas não param as seguintes.
-import { db, uid, now, audit, nextEditionNumber } from './store.js?vm202611011621';
-import { deterministicChecks } from './qa.js?vm202611011621';
-import * as NL from './newsletter-flow.js?vm202611011621';
-import * as PF from './posts-flow.js?vm202611011621';
-import * as ES from './posts-es.js?vm202611011621';
-import { imageProviderStatus } from './providers.js?vm202611011621';
+import { db, uid, now, audit, nextEditionNumber } from './store.js?vm202611011639';
+import { deterministicChecks } from './qa.js?vm202611011639';
+import * as NL from './newsletter-flow.js?vm202611011639';
+import * as PF from './posts-flow.js?vm202611011639';
+import * as ES from './posts-es.js?vm202611011639';
+import { imageProviderStatus } from './providers.js?vm202611011639';
 
 export const STEPS = [
   { id: 'edition', label: 'Criar edição' }, { id: 'newsletter', label: 'Montar newsletter a partir do texto' }, { id: 'qa', label: 'Revisão VendaMais da newsletter' }, { id: 'approve', label: 'Aprovar newsletter (fonte-mãe)' },

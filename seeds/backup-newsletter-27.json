@@ -1,0 +1,145 @@
+{
+ "editions": [
+  {
+   "id": "ed_n27",
+   "status": "newsletter_generated",
+   "created_at": "2026-11-01T18:44:05.524Z",
+   "updated_at": "2026-11-01T18:44:05.524Z",
+   "title": "Newsletter 27 · Será que estou perdendo dinheiro por algo que poderia ter evitado?",
+   "theme": "Será que estou perdendo dinheiro por algo que poderia ter evitado?",
+   "audience": "Gestor comercial",
+   "objective": "Educar",
+   "edition_date": "2026-11-04",
+   "brief": {
+    "mode": "ready",
+    "ready_text": "",
+    "theme": "Será que estou perdendo dinheiro por algo que poderia ter evitado?",
+    "title": "Newsletter 27 · Será que estou perdendo dinheiro por algo que poderia ter evitado?",
+    "objective": "Educar",
+    "audience": "Gestor comercial",
+    "tone": "provocativo",
+    "length": "standard",
+    "edition_date": "2026-11-04",
+    "number": 27,
+    "cta": "Vamos conversar?",
+    "cta_type": "conversa",
+    "cta_url": "fabiano.silva@vendamais.com.br",
+    "notes": "",
+    "podcast_title": "",
+    "podcast_url": "",
+    "agenda_enabled": false
+   }
+  }
+ ],
+ "sources": [],
+ "analyses": [],
+ "posts": [],
+ "newsletter_versions": [
+  {
+   "id": "nlv_n27_1",
+   "edition_id": "ed_n27",
+   "n": 1,
+   "content_json": {
+    "thesis": "A melhor venda perdida é aquela que conseguimos evitar",
+    "subject": "Será que estou perdendo dinheiro por algo que poderia ter evitado?",
+    "preheader": "Nem toda venda perdida era inevitável. Descubra onde sua equipe precisa melhorar antes que isso custe a próxima oportunidade.",
+    "headline": "Será que estou perdendo dinheiro por algo que poderia ter evitado?",
+    "support_line": "Nem toda venda perdida era inevitável. Algumas poderiam ter sido preservadas se a empresa tivesse identificado antes onde sua equipe precisava melhorar.",
+    "intro": "",
+    "sections": [],
+    "free_blocks": [
+     {
+      "label": "",
+      "title": "",
+      "is_intro": true,
+      "md": "A negociação parecia promissora.\n\nForam semanas de relacionamento, reuniões, propostas e investimento para conquistar aquela oportunidade. O cliente demonstrou interesse. A solução fazia sentido. A equipe estava confiante.\n\nMas a venda não aconteceu.\n\nNa reunião seguinte, a diretoria quer entender o motivo. Foi o preço? A concorrência? O prazo? O cliente desistiu? As explicações aparecem. Algumas fazem sentido. Outras deixam dúvidas.\n\nAté que alguém faz uma pergunta diferente:\n\n**Será que estávamos realmente preparados para aquela negociação?**\n\nTalvez tenha faltado uma pergunta importante. Talvez a equipe não tenha conseguido demonstrar o valor da solução. Ou talvez uma objeção previsível tenha surgido justamente no momento em que ninguém sabia como conduzi-la.\n\nNão significa que faltou dedicação. Significa que aquela dificuldade poderia ter sido identificada antes.\n\nE essa é uma das situações mais frustrantes para quem dirige uma empresa: perceber que parte do dinheiro investido para conquistar uma oportunidade pode ter sido comprometida por algo que seria possível antecipar.\n\n**Toda empresa perde vendas. O problema é continuar perdendo pelas mesmas razões sem perceber que algumas delas poderiam ser evitadas.**"
+     },
+     {
+      "label": "O PROBLEMA CENTRAL",
+      "title": "Sua empresa mede o resultado das vendas. Mas mede a preparação para conquistá-las?",
+      "md": "As empresas acompanham faturamento, conversão, ticket médio, propostas enviadas e negócios perdidos. São indicadores indispensáveis. Mas todos eles mostram, principalmente, o que aconteceu.\n\nPoucas empresas conseguem responder com a mesma clareza:\n\n- Quais situações comerciais nossa equipe domina?\n- Em quais momentos os profissionais encontram mais dificuldades?\n- Quem está preparado para conduzir uma negociação complexa?\n- Quais objeções costumam comprometer nossas oportunidades?\n- Como identificamos essas limitações antes de uma conversa decisiva?\n\nPense na lógica de outras atividades que envolvem riscos. Pilotos utilizam simuladores. Profissionais de saúde praticam procedimentos. Equipes de emergência treinam situações críticas.\n\nO objetivo não é eliminar completamente os erros. É desenvolver a capacidade de lidar com situações difíceis antes que elas aconteçam de verdade.\n\nEm vendas, porém, ainda é comum que uma das principais oportunidades de aprendizagem seja a própria negociação com o cliente. E existe um custo nessa escolha. Cada oportunidade pode representar meses de prospecção, investimento em marketing, relacionamento construído e expectativa de receita.\n\n**Por que esperar que uma negociação importante revele uma dificuldade que poderia ter sido identificada e trabalhada antes?**"
+     },
+     {
+      "label": "DIAGNÓSTICO DE 30 MINUTOS",
+      "title": "Sua empresa sabe onde a equipe precisa melhorar antes que isso custe uma venda?",
+      "md": "Reúna a liderança comercial e, se possível, quem responde pelo desenvolvimento da equipe. Analise as últimas oportunidades importantes e responda às cinco perguntas.\n\n### 01. Quais situações comerciais oferecem maior risco?\nIdentifique os momentos que exigem mais preparo. Pode ser uma reunião com a diretoria do cliente, uma negociação de preço, uma apresentação técnica, uma objeção sobre concorrentes ou a condução de um fechamento complexo. Não é necessário avaliar tudo. Comece pelas três situações que mais influenciam o resultado da operação.\n\n### 02. O que aconteceu nas últimas dez oportunidades perdidas?\nNão basta registrar motivos como \"preço\", \"concorrência\" ou \"cliente desistiu\". Procure compreender o que aconteceu durante a negociação. A equipe conseguiu identificar a necessidade? O decisor participou? O valor foi demonstrado? As objeções foram compreendidas? Havia um próximo passo acordado? O objetivo não é procurar culpados, mas identificar padrões que merecem investigação.\n\n### 03. Como sabemos se os profissionais dominam essas situações?\nTempo de empresa não garante domínio de todas as competências. Participar de um treinamento também não. A pergunta é: **existe alguma evidência de que o profissional consegue executar adequadamente aquilo que esperamos dele?** Essa evidência pode vir de observação, análise de conversas, avaliações práticas ou simulações.\n\n### 04. Existe oportunidade de praticar antes da negociação real?\nA equipe possui situações estruturadas para testar abordagens, trabalhar objeções e receber orientação? Ou o desenvolvimento depende quase exclusivamente da experiência adquirida diante dos clientes? Prática e experiência são complementares, mas não precisam acontecer sempre no mesmo ambiente.\n\n### 05. O gestor consegue identificar onde deve atuar?\nUma equipe pode ter vinte vendedores e vinte necessidades diferentes de desenvolvimento. Sem informação, o gestor tende a oferecer orientações genéricas. Com evidências, consegue priorizar competências, acompanhar a evolução e orientar melhor cada profissional."
+     },
+     {
+      "label": "A FERRAMENTA DA SEMANA",
+      "title": "Mapa de Prontidão Comercial",
+      "md": "Uma maneira simples de avaliar a preparação da equipe é escolher situações críticas e observar como os profissionais lidam com elas. Comece com três momentos reais do seu processo comercial.\n\n| Situação crítica | O que precisa ser demonstrado |\n|---|---|\n| **Primeira conversa com um cliente importante** | Capacidade de investigar necessidades e compreender o contexto |\n| **Objeção sobre preço ou concorrência** | Capacidade de compreender a objeção, demonstrar valor e negociar |\n| **Reunião decisiva** | Capacidade de conduzir a conversa, confirmar critérios e definir próximos passos |\n\nPara cada situação, defina três comportamentos observáveis. Depois, utilize uma escala simples:\n\n- **0. Não demonstrou:** o comportamento esperado não apareceu.\n- **1. Demonstrou parcialmente:** conseguiu executar parte do comportamento ou precisou de orientação.\n- **2. Demonstrou com consistência:** executou o comportamento adequadamente, sem depender de intervenção.\n\nNão estamos criando uma nota definitiva para o vendedor. Estamos identificando oportunidades de desenvolvimento.\n\nO resultado permite responder três perguntas importantes: **quem precisa de apoio? Em qual competência? E o que devemos praticar primeiro?**\n\nEssa informação vale muito mais do que simplesmente concluir que a equipe precisa vender melhor."
+     },
+     {
+      "label": "COMO FAZER NA PRÁTICA",
+      "title": "Crie uma rotina de preparação comercial em 15 dias",
+      "md": "Não é necessário interromper a operação nem organizar um grande programa de treinamento para começar.\n\n1. **Escolha uma situação que está custando vendas.** Analise negociações recentes e encontre uma dificuldade recorrente. Por exemplo: a equipe perde força quando o cliente compara sua proposta com a de um concorrente mais barato.\n2. **Transforme essa situação em uma simulação.** Construa um cenário parecido com a realidade: um cliente exigente, um produto conhecido, uma objeção frequente e uma decisão que precisa ser conduzida. O profissional deverá conversar, investigar e responder como faria em uma negociação real.\n3. **Observe comportamentos, não apenas respostas.** Não se trata de decorar frases. Observe se o profissional faz boas perguntas, escuta, compreende a objeção, demonstra valor e consegue conduzir a conversa.\n4. **Ofereça feedback e permita uma nova tentativa.** Identifique aquilo que funcionou e escolha um ponto para melhorar. Depois, repita a situação. O valor da prática está na possibilidade de errar, compreender, corrigir e tentar novamente sem colocar uma negociação real em risco.\n5. **Acompanhe a evolução.** Depois de duas semanas, compare a execução das simulações. Os profissionais estão demonstrando mais segurança? A qualidade das perguntas melhorou? As objeções estão sendo trabalhadas com mais consistência? Na operação real, acompanhe os indicadores relacionados à competência desenvolvida.\n\nA evolução nas simulações não garante, isoladamente, aumento de vendas. Mas oferece informações antecipadas para orientar a gestão e verificar se o desenvolvimento está acontecendo."
+     },
+     {
+      "label": "UM EXEMPLO",
+      "title": "A objeção aparece. E o vendedor precisa decidir em segundos",
+      "md": "Imagine uma empresa que comercializa soluções de maior valor agregado. Durante uma negociação importante, o cliente afirma:\n\n**\"Gostamos da proposta, mas encontramos outro fornecedor com um preço significativamente menor.\"**\n\nNesse momento, diferentes caminhos são possíveis. O profissional pode oferecer imediatamente um desconto. Pode insistir que sua solução é melhor. Pode tentar encerrar a negociação rapidamente. Ou pode investigar o que está sendo comparado, quais critérios realmente importam e quais diferenças representam valor para aquele cliente.\n\nA última abordagem exige preparo. Não apenas conhecimento técnico sobre o produto. Exige capacidade de fazer perguntas, ouvir, interpretar, argumentar e decidir durante a conversa.\n\nAgora imagine se a empresa pudesse observar como seus profissionais lidam com essa situação antes de colocá-los diante de uma negociação importante. As dificuldades apareceriam em um ambiente de prática. O gestor teria informações para orientar. O profissional poderia tentar novamente. E a empresa teria uma oportunidade concreta de melhorar sua preparação.\n\nNão seria possível garantir o fechamento. **Mas seria possível reduzir a dependência do improviso.**"
+     },
+     {
+      "label": "ERROS MAIS COMUNS",
+      "title": "O que impede as empresas de antecipar dificuldades comerciais",
+      "md": "- **Descobrir as falhas apenas depois de perder.** Analisar negócios perdidos é importante. Mas o aprendizado também precisa orientar a preparação para as próximas negociações.\n- **Confundir experiência com domínio.** Um profissional experiente pode dominar algumas situações e continuar encontrando dificuldades em outras.\n- **Realizar práticas muito distantes da realidade.** Simulações genéricas não reproduzem necessariamente a complexidade do mercado, dos produtos e dos clientes da empresa.\n- **Oferecer feedback sem oportunidade de repetir.** A pessoa compreende o que precisa melhorar, mas não possui uma situação estruturada para praticar o novo comportamento.\n- **Utilizar a avaliação apenas para cobrança.** Se o profissional percebe a simulação como uma ameaça, tende a esconder dificuldades. Um ambiente de desenvolvimento precisa permitir erros, orientação e evolução.\n- **Esperar que a tecnologia resolva tudo sozinha.** Ferramentas podem ampliar a capacidade de prática e oferecer informações. Mas a liderança continua responsável por desenvolver pessoas e acompanhar resultados."
+     },
+     {
+      "label": "LEVE PARA A PRÓXIMA REUNIÃO COMERCIAL",
+      "title": "Seis perguntas que podem mudar a maneira como sua empresa prepara as pessoas",
+      "md": "1. Quais situações comerciais mais comprometem nossos resultados?\n2. Como identificamos as competências que nossa equipe ainda precisa desenvolver?\n3. Quais profissionais estão preparados para conduzir nossas negociações mais importantes?\n4. Como podemos reproduzir situações reais para que as pessoas pratiquem antes de enfrentar o cliente?\n5. Que informações nossos gestores precisam receber para orientar melhor suas equipes?\n6. Quanto poderia mudar se as dificuldades fossem identificadas antes, e não depois, das negociações?\n\nA proposta não é transformar cada vendedor em um profissional perfeito. **É criar uma operação que aprende, identifica dificuldades e melhora continuamente.**"
+     },
+     {
+      "label": "PERGUNTA DA SEMANA",
+      "title": "",
+      "md": "**Se amanhã sua empresa tivesse a oportunidade comercial mais importante do ano, como saberia se a equipe está realmente preparada para conquistá-la?**\n\nA resposta provavelmente revela muito sobre como o desenvolvimento comercial é conduzido hoje."
+     },
+     {
+      "label": "",
+      "title": "A melhor venda perdida é aquela que conseguimos evitar",
+      "md": "Nem toda oportunidade pode ser conquistada. Existem decisões de clientes, condições de mercado, limitações de orçamento e fatores que nenhuma equipe consegue controlar.\n\nMas existem habilidades que podem ser desenvolvidas. Existem dificuldades que podem ser antecipadas. Existem conversas que podem ser praticadas. E existem gestores que podem tomar decisões melhores quando conseguem enxergar a evolução das pessoas antes de olhar apenas para o resultado final.\n\nDurante muito tempo, essa preparação dependeu de treinamentos presenciais, acompanhamento individual e da disponibilidade dos gestores. Essas práticas continuam importantes. Mas novas tecnologias estão ampliando a possibilidade de simular situações comerciais, oferecer feedback e acompanhar o desenvolvimento de equipes inteiras.\n\nIsso abre uma oportunidade para quem dirige empresas: deixar de descobrir as dificuldades apenas quando elas custam dinheiro e começar a identificá-las enquanto ainda existe tempo para melhorar.\n\nPorque perder uma venda faz parte dos negócios. **Continuar perdendo pelo que poderíamos ter aprendido antes é uma escolha que vale a pena rever.**"
+     },
+     {
+      "label": "Vamos conversar?",
+      "title": "",
+      "md": "A VendaMais ajuda empresas a identificar onde a equipe precisa melhorar e a transformar essa informação em preparação, prática e resultado comercial.\n\nPorque perder vendas faz parte. Perder pelo que poderia ter sido antecipado, não precisa fazer.\n\n**Vendas levadas a sério.**\n\n[Vamos conversar?]"
+     },
+     {
+      "label": "PODCAST VENDAMAIS",
+      "title": "Continue aprendendo com quem vive vendas na prática",
+      "md": "Toda semana, o Podcast VendaMais reúne especialistas e convidados para discutir desafios reais de gestão, liderança, estratégia e performance comercial.\n\n[Ouvir no Spotify]  [Assistir no YouTube]"
+     }
+    ],
+    "claims": [],
+    "sources_used": [],
+    "cta": {
+     "label": "Vamos conversar?",
+     "url": "fabiano.silva@vendamais.com.br",
+     "type": "conversa"
+    },
+    "podcast": {
+     "enabled": true,
+     "title": "",
+     "description": "",
+     "youtube_url": "",
+     "spotify_url": "",
+     "cover_url": ""
+    }
+   },
+   "meta": {
+    "locks": {},
+    "edited": {},
+    "mode": "markdown"
+   },
+   "origin": "human",
+   "score": null,
+   "qa_json": null,
+   "is_approved": false,
+   "created_at": "2026-11-01T18:44:05.524Z",
+   "note": "Texto do editor (Newsletter 27), estrutura preservada"
+  }
+ ],
+ "settings": {
+  "last_edition_number": 27
+ }
+}
