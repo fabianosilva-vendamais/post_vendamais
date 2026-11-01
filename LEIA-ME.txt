@@ -10,4 +10,3 @@ Fluxo semanal (um clique):
 - Pode colar os textos prontos dos posts (campo 'Já tenho os textos dos posts') em vez de a IA escrever.
 - Nova edição → "Edição completa em um clique": cole o artigo, confira número/data/CTA, podcast opcional → Criar edição completa.
 - Revise newsletter e posts (aprove cada post). Post Studio → Publicar semana → confira datas → Agendar.
-ok
