@@ -4,6 +4,7 @@ const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
+    if (!(await isUser(req))) return json({ error: 'unauthorized' }, 401);
     const { url } = await req.json(); if (!/^https?:\/\//.test(url || '')) return json({ error: 'url inválida' }, 400);
     const r = await fetch(url, { headers: { 'User-Agent': 'VendaMaisContentEngine/1.0' } }); const html = await r.text();
     const text = html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<\/(p|div|h[1-6]|li|br|tr)>/gi, '\n').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n\n').trim();
@@ -11,3 +12,5 @@ serve(async (req) => {
   } catch (e) { return json({ error: String(e?.message || e) }, 500); }
 });
 function json(body: unknown, status = 200) { return new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } }); }
+// Só usuário logado: valida o JWT da sessão no Auth (a anon key sozinha não passa).
+async function isUser(req: Request) { const auth = req.headers.get('Authorization') || ''; if (!auth.startsWith('Bearer ')) return false; try { const r = await fetch(`${Deno.env.get('SUPABASE_URL')}/auth/v1/user`, { headers: { Authorization: auth, apikey: Deno.env.get('SUPABASE_ANON_KEY') || '' } }); return r.ok; } catch { return false; } }

@@ -5,6 +5,7 @@ const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
+    if (!(await isUser(req))) return json({ error: 'unauthorized' }, 401);
     const { queries = ['vendas B2B', 'gestão comercial', 'liderança de vendas', 'IA em vendas'], lang = 'pt-BR' } = await req.json();
     const items: any[] = [];
     for (const q of queries.slice(0, 8)) {
@@ -20,3 +21,5 @@ serve(async (req) => {
   } catch (e) { return json({ error: String(e?.message || e) }, 500); }
 });
 function json(body: unknown, status = 200) { return new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } }); }
+// Só usuário logado: valida o JWT da sessão no Auth (a anon key sozinha não passa).
+async function isUser(req: Request) { const auth = req.headers.get('Authorization') || ''; if (!auth.startsWith('Bearer ')) return false; try { const r = await fetch(`${Deno.env.get('SUPABASE_URL')}/auth/v1/user`, { headers: { Authorization: auth, apikey: Deno.env.get('SUPABASE_ANON_KEY') || '' } }); return r.ok; } catch { return false; } }
