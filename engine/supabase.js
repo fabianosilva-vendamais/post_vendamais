@@ -6,11 +6,58 @@ const H = (extra = {}) => ({ apikey: db.settings.supabase_anon_key, Authorizatio
 export const configured = () => !!(db.settings.supabase_url && db.settings.supabase_anon_key);
 export const signedIn = () => !!db.session?.access_token;
 
+async function acceptSession(session) {
+  db.session = { access_token: session.access_token, refresh_token: session.refresh_token, expires_at: Date.now() + (session.expires_in || 3600) * 1000 };
+  const user = session.user;
+  db.user = { id: user.id, email: user.email, name: user.user_metadata?.name || user.email };
+  await loadRole();
+  audit('auth.signin', 'user', db.user.id, {});
+  save();
+  return db.user;
+}
+
 export async function signIn(email, password) {
   const r = await fetch(`${base()}/auth/v1/token?grant_type=password`, { method: 'POST', headers: H(), body: JSON.stringify({ email, password }) });
   const d = await r.json(); if (!r.ok) throw new Error(d.error_description || d.msg || d.error || 'Falha no login');
-  db.session = { access_token: d.access_token, refresh_token: d.refresh_token, expires_at: Date.now() + (d.expires_in || 3600) * 1000 }; db.user = { id: d.user.id, email: d.user.email, name: d.user.user_metadata?.name || d.user.email };
-  await loadRole(); audit('auth.signin', 'user', db.user.id, {}); save(); return db.user;
+  return acceptSession(d);
+}
+
+export async function sendEmailAccess(email) {
+  email = String(email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Informe o e-mail da sua conta.');
+  const r = await fetch(`${base()}/auth/v1/otp`, {
+    method: 'POST', headers: H(), body: JSON.stringify({ email, create_user: false }),
+  });
+  if (r.status === 429) throw new Error('Aguarde um minuto antes de pedir outro e-mail.');
+  if (!r.ok) throw new Error('Não foi possível enviar o acesso. Confira seu e-mail ou tente novamente.');
+}
+
+export async function signInWithEmailAccess(email, input) {
+  email = String(email || '').trim().toLowerCase();
+  const value = String(input || '').trim();
+  let proof;
+  if (/^\d{6,10}$/.test(value)) {
+    proof = { email, token: value };
+  } else {
+    let link;
+    try { link = new URL(value); } catch { throw new Error('Informe o código ou copie o link original do e-mail.'); }
+    const hash = link.searchParams.get('token_hash') || link.searchParams.get('token');
+    if (link.protocol !== 'https:' || link.origin !== new URL(base()).origin || link.username || link.password ||
+        link.pathname !== '/auth/v1/verify' || !['magiclink', 'email'].includes(link.searchParams.get('type')) ||
+        !hash || !/^[\w-]{16,256}$/.test(hash)) {
+      throw new Error('Copie o link original de acesso enviado pelo Estúdio.');
+    }
+    proof = { token_hash: hash };
+  }
+  const r = await fetch(`${base()}/auth/v1/verify`, {
+    method: 'POST', headers: H(), body: JSON.stringify({ ...proof, type: 'email' }),
+  });
+  const session = await r.json().catch(() => ({}));
+  if (!r.ok || !session.access_token || !session.refresh_token || !session.user?.id) {
+    throw new Error('O link ou código expirou ou é inválido. Solicite um novo acesso.');
+  }
+  if (session.user.email?.toLowerCase() !== email) throw new Error('O acesso pertence a outro e-mail.');
+  return acceptSession(session);
 }
 export async function signUp(email, password, name) {
   const r = await fetch(`${base()}/auth/v1/signup`, { method: 'POST', headers: H(), body: JSON.stringify({ email, password, data: { name } }) });

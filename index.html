@@ -81,6 +81,14 @@ button:disabled{opacity:.5;cursor:not-allowed}
           <button onClick="{{ signUp }}" disabled="{{ busy }}" style="background:#fff;border:1px solid #16263A;color:#16263A;border-radius:4px;padding:11px 18px;font-weight:600">Criar conta</button>
           <sc-if value="{{ allowLocalBypass }}" hint-placeholder-val="{{ true }}"><button onClick="{{ localBypass }}" style="margin-left:auto;background:transparent;border:0;color:#5E6770;font-size:12px;text-decoration:underline">Continuar em modo local</button></sc-if>
         </div>
+        <button onClick="{{ requestEmailAccess }}" disabled="{{ busy }}" style="align-self:flex-start;background:#fff;border:1px solid #16263A;color:#16263A;border-radius:4px;padding:10px 14px;font-weight:600">Receber acesso por e-mail</button>
+        <sc-if value="{{ auth.emailAccess }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <p style="margin:0;font-size:13px;line-height:1.5;color:#5E6770">Copie o endereço do link de acesso sem abri-lo, ou use o código do e-mail, e cole no campo abaixo.</p>
+            <input aria-label="Link ou código de acesso" data-field="emailProof" type="password" value="{{ auth.emailProof }}" onChange="{{ onAuth }}" autocomplete="one-time-code" placeholder="Link ou código de acesso" style="min-width:0;width:100%;padding:11px 12px;border:1px solid #E6E2DA;border-radius:4px;font-size:14px">
+            <button onClick="{{ verifyEmailAccess }}" disabled="{{ busy }}" style="align-self:flex-start;background:#16263A;color:#fff;border:0;border-radius:4px;padding:11px 18px;font-weight:600">Confirmar acesso</button>
+          </div>
+        </sc-if>
         <div style="font-size:12px;color:#DC2626">{{ auth.error }}</div>
       </div>
     </section>
@@ -1061,7 +1069,7 @@ class Component extends DCLogic {
     const saved = JSON.parse(localStorage.getItem('vm_ce_ui') || '{}');
     this.M.newsletter = await import(new URL('engine/newsletter-flow.js?vm202611011656', base).href);
     this.M.posts = await import(new URL('engine/posts-flow.js?vm202611011656', base).href);
-    this.M.supabase = await import(new URL('engine/supabase.js?vm202611011656', base).href);
+    this.M.supabase = await import(new URL('engine/supabase.js?vm-email-access-v1', base).href);
     this.M.knowledge = await import(new URL('engine/knowledge.js?vm202611011656', base).href);
     this.M.publisher = await import(new URL('engine/publisher.js?vm202611011656', base).href);
     this.M.pipeline = await import(new URL('engine/pipeline.js?vm202611011656', base).href);
@@ -1202,6 +1210,28 @@ class Component extends DCLogic {
   onAuth = (e) => this.setState({ auth: { ...(this.state.auth || {}), [e.target.dataset.field]: e.target.value, error: '' } });
   signIn = () => this.run('Entrando', async () => { const a = this.state.auth || {}; try { await this.SB().signIn(a.email, a.password); this.setState({ auth: { ...a, password: '', error: '' }, localBypass: false }); this.toast(`Bem-vindo, ${this.db().user.name}. Trazendo dados do Supabase.`); await this.SB().pullAll(); this.forceUpdate(); } catch (err) { this.setState({ auth: { ...a, error: err.message } }); } });
   signUp = () => this.run('Criando conta', async () => { const a = this.state.auth || {}; try { const r = await this.SB().signUp(a.email, a.password, a.name); if (r.confirmed) { this.toast('Conta criada e autenticada.'); this.setState({ localBypass: false }); } else this.setState({ auth: { ...a, error: 'Conta criada. Confirme o e-mail e depois entre.' } }); } catch (err) { this.setState({ auth: { ...a, error: err.message } }); } });
+  requestEmailAccess = () => this.run('Solicitando acesso por e-mail', async () => {
+    const a = this.state.auth || {};
+    try {
+      await this.SB().sendEmailAccess(a.email);
+      this.setState({ auth: { ...a, emailAccess: true, emailProof: '', password: '', error: '' } });
+      this.toast('Confira seu e-mail para continuar.');
+    } catch (err) {
+      this.setState({ auth: { ...a, emailProof: '', error: err.message } });
+    }
+  });
+  verifyEmailAccess = () => this.run('Confirmando acesso por e-mail', async () => {
+    const a = this.state.auth || {};
+    this.setState({ auth: { ...a, emailProof: '', error: '' } });
+    try {
+      await this.SB().signInWithEmailAccess(a.email, a.emailProof);
+      this.setState({ auth: { email: a.email, password: '', name: '', error: '' }, localBypass: false });
+      await this.SB().pullAll();
+      this.forceUpdate();
+    } catch (err) {
+      this.setState({ auth: { email: a.email, emailAccess: true, emailProof: '', error: err.message } });
+    }
+  });
   signOut = () => { this.SB().signOut(); this.forceUpdate(); };
   localBypass = () => this.setState({ localBypass: true });
   showLogin = () => this.setState({ localBypass: false, route: 'dashboard' });
