@@ -11,7 +11,32 @@ const BASE = 'https://app.metricool.com/api';
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
-    const auth = req.headers.get('Authorization') || ''; if (!auth.startsWith('Bearer ')) return json({ error: 'unauthorized' }, 401);
+    const auth = req.headers.get('Authorization');
+    if (!auth?.startsWith('Bearer ') || !auth.slice(7).trim()) return json({ error: 'Entre no Estúdio para continuar.' }, 401);
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !anonKey || !serviceKey) return json({ error: 'A validação de acesso está indisponível.' }, 503);
+
+    const userResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: { apikey: anonKey, Authorization: auth },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (userResponse.status === 401 || userResponse.status === 403) return json({ error: 'Sua sessão expirou ou é inválida. Entre novamente.' }, 401);
+    if (!userResponse.ok) return json({ error: 'A validação de acesso está indisponível.' }, 503);
+    const user = await userResponse.json();
+    if (!user?.id) return json({ error: 'Sessão inválida.' }, 401);
+
+    // A consulta privilegiada é limitada ao usuário confirmado pelo Supabase Auth.
+    const memberQuery = new URLSearchParams({ id: `eq.${user.id}`, workspace_id: 'eq.ws_vendamais', select: 'role' });
+    const memberResponse = await fetch(`${supabaseUrl}/rest/v1/users?${memberQuery}`, {
+      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!memberResponse.ok) return json({ error: 'A validação de acesso está indisponível.' }, 503);
+    const [member] = await memberResponse.json();
+    if (member?.role !== 'admin') return json({ error: 'Somente administradores do Estúdio podem acessar o Metricool.' }, 403);
     const token = Deno.env.get('METRICOOL_USER_TOKEN'), userId = Deno.env.get('METRICOOL_USER_ID');
     if (!token || !userId) return json({ error: 'METRICOOL_USER_TOKEN / METRICOOL_USER_ID não configurados' }, 501);
     const body = await req.json(); const H = { 'X-Mc-Auth': token, 'Content-Type': 'application/json' };
