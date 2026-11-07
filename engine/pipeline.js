@@ -13,13 +13,13 @@ export const STEPS = [
   { id: 'post_training', label: 'Post Treinamento' }, { id: 'post_consulting', label: 'Post Consultoria' }, { id: 'post_business', label: 'Post Negócio' }, { id: 'meme', label: 'Meme da Semana' },
   { id: 'carousel', label: 'Carrossel (quando a ideia pedir)' }, { id: 'es', label: 'Versões em espanhol (normalmente geradas na aprovação de cada post)' }, { id: 'images', label: 'Imagens-base' }, { id: 'sync', label: 'Sincronizar com o Supabase' } ];
 
-export function nextTuesday(from = new Date()) { const d = new Date(from); d.setHours(12, 0, 0, 0); const day = d.getDay(); const add = ((2 - day + 7) % 7) || 7; d.setDate(d.getDate() + add); return d.toISOString().slice(0, 10); }
+export function nextWednesday(from = new Date()) { const d = new Date(from); d.setHours(12, 0, 0, 0); const day = d.getDay(); const add = ((3 - day + 7) % 7) || 7; d.setDate(d.getDate() + add); return d.toISOString().slice(0, 10); }
 
-export async function run(app, { text, number, date, podcast = {}, ctaUrl, withImages = true, withEs = false, withMeme = false, postsText = '', onStep }) {
+export async function run(app, { text, number, date, podcast = {}, ctaUrl, withImages = true, withEs = true, withMeme = false, postsText = '', onStep }) {
   const report = []; const step = (id, status, note = '') => { report.push({ id, status, note }); onStep?.(id, status, note, report); };
   const guard = async (id, fn) => { step(id, 'running'); try { const r = await fn(); step(id, 'done', typeof r === 'string' ? r : ''); return r; } catch (e) { console.error('pipeline', id, e); step(id, 'error', e.message); return null; } };
   const words = (text || '').trim().split(/\s+/).filter(Boolean).length; if (words < 80) throw new Error('Cole o artigo completo (mínimo 80 palavras).');
-  const n = Number(number) || nextEditionNumber(); const edDate = date || nextTuesday();
+  const n = Number(number) || nextEditionNumber(); const edDate = date || nextWednesday();
   // 1. edição
   const ed = await guard('edition', async () => {
     const firstH1 = (text.match(/^#\s+(?!\**\s*(radar|vendamais))(.+)$/im) || [])[2] || (text.split('\n').map(l => l.trim()).find(l => l.length > 20 && l.length < 140) || `Newsletter ${n}`);
