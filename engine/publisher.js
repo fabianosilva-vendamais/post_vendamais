@@ -46,15 +46,15 @@ export async function schedule(app, p, { networks, dateTime, draft = false, firs
 export function publicationsOf(postId) { return (db.publications || []).filter(x => x.post_id === postId).sort((a, b) => b.created_at.localeCompare(a.created_at)); }
 export async function cancel(app, pub) { const id = pub.remote?.id || pub.remote?.data?.id; if (id) await edge({ action: 'delete', blogId: blogIdFor(pub.lang || 'pt'), postId: id }); pub.status = 'cancelled'; audit('publish.cancel', 'publication', pub.id, {}); app.save(); }
 
-// Calendário: quarta, sexta e segunda (após a newsletter de terça). O editor escolhe qual post vai em cada dia; meme só se incluído.
-// PT na marca VendaMais às 09:00 (padrão); ES na marca LATAM uma hora depois.
+// Calendário da Radar: quarta, sexta e segunda às 06:00 em Brasília, em PT e ES.
+// O meme continua opcional e tem horário próprio quando incluído.
 export const SLOTS = [{ id: 'wed', label: 'Quarta', dow: 3 }, { id: 'fri', label: 'Sexta', dow: 5 }, { id: 'mon', label: 'Segunda', dow: 8 }, { id: 'sat', label: 'Sábado (meme)', dow: 5.5 }];
 export function slotDate(ed, slot) { const base = new Date((ed.edition_date || new Date().toISOString().slice(0, 10)) + 'T12:00:00'); const monday = new Date(base); monday.setDate(base.getDate() - ((base.getDay() + 6) % 7)); const d = new Date(monday); d.setDate(monday.getDate() + Math.floor(slot.dow) - 1 + (slot.dow % 1 ? 1 : 0)); return d.toISOString().slice(0, 10); }
 export function defaultAssignment(ed, posts) { const order = ['consulting', 'training', 'business']; const slots = ['wed', 'fri', 'mon']; const out = {}; order.forEach((a, i) => { const p = posts.find(x => x.angle === a); if (p) out[slots[i]] = p.id; }); const m = posts.find(x => x.angle === 'meme'); if (m && (ed.meme_included ?? false)) out.sat = m.id; return ed.schedule_assignment ? { ...out, ...ed.schedule_assignment } : out; }
 export function weekPlan(ed, posts, assignment = defaultAssignment(ed, posts), times = ed.schedule_times || {}) {
   const rows = [];
   for (const slot of SLOTS) { const pid = assignment[slot.id]; if (!pid) continue; const p = posts.find(x => x.id === pid); if (!p) continue; const date = (times[slot.id + '_date']) || slotDate(ed, slot);
-    for (const lang of ['pt', 'es']) { const ready = (p.status === 'approved' || p.status === 'exported') && (lang === 'pt' || !!p.content_es); const already = (db.publications || []).some(x => x.post_id === p.id && (x.lang || 'pt') === lang && x.status !== 'cancelled'); rows.push({ slot: slot.id, slotLabel: slot.label, postId: p.id, angle: p.angle, lang, date, time: times[slot.id + '_' + lang] || (lang === 'pt' ? (slot.id === 'sat' ? '11:00' : '09:00') : (slot.id === 'sat' ? '12:00' : '10:00')), networks: ['linkedin', 'instagram'], ready, already, blocker: !ready ? (p.status !== 'approved' && p.status !== 'exported' ? 'post não aprovado' : 'sem versão ES') : already ? 'já agendado' : '' }); } }
+    for (const lang of ['pt', 'es']) { const ready = (p.status === 'approved' || p.status === 'exported') && (lang === 'pt' || !!p.content_es); const already = (db.publications || []).some(x => x.post_id === p.id && (x.lang || 'pt') === lang && x.status !== 'cancelled'); rows.push({ slot: slot.id, slotLabel: slot.label, postId: p.id, angle: p.angle, lang, date, time: times[slot.id + '_' + lang] || (slot.id === 'sat' ? (lang === 'pt' ? '11:00' : '12:00') : '06:00'), networks: ['linkedin', 'instagram'], ready, already, blocker: !ready ? (p.status !== 'approved' && p.status !== 'exported' ? 'post não aprovado' : 'sem versão ES') : already ? 'já agendado' : '' }); } }
   return rows;
 }
 export async function scheduleWeek(app, rows, { draft = false, onRow } = {}) {
