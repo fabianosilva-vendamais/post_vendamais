@@ -121,8 +121,8 @@ async function send(row, draft, profile) {
 async function lookup(plan, profile) {
   const days = plan.posts.map(row => row.dateTime.slice(0, 10)).sort();
   const value = (await edge({
-    action: 'list', blogId: profile.blogId, start: `${days[0]}T00:00:00-03:00`,
-    end: `${days.at(-1)}T23:59:59-03:00`, timezone: plan.timezone,
+    action: 'list', blogId: profile.blogId, start: `${days[0]}T00:00:00`,
+    end: `${days.at(-1)}T23:59:59`, timezone: plan.timezone,
   })).posts;
   const list = Array.isArray(value) ? value : value?.data;
   if (!Array.isArray(list)) throw new Error('Não foi possível verificar o calendário do Metricool.');
