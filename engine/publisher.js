@@ -13,7 +13,7 @@ export function status() {
   const s = db.settings; const ok = supabaseConfigured() && !!s.metricool_blog_id;
   return { ok, label: 'Metricool', hint: !supabaseConfigured() ? 'Requer Supabase + Edge Function publish-schedule com METRICOOL_USER_TOKEN e METRICOOL_USER_ID nos secrets.' : !s.metricool_blog_id ? 'Escolha a marca (blogId) em Configurações → Publicação.' : `Marca ${s.metricool_brand_name || s.metricool_blog_id} · fuso ${s.timezone || 'America/Sao_Paulo'}` };
 }
-async function edge(body) {
+export async function edge(body) {
   if (!functionsConfigured()) throw new ConfigError('Supabase não configurado', 'Informe URL e anon key em Configurações e publique a Edge Function publish-schedule com METRICOOL_USER_TOKEN e METRICOOL_USER_ID.');
   const url = `${functionsBase()}/publish-schedule`;
   const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: db.settings.supabase_anon_key, Authorization: `Bearer ${db.session?.access_token || db.settings.supabase_anon_key}` }, body: JSON.stringify(body) });

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VM Estúdio · Pacote de publicação</title>
+<style>
+  body{background:#faf7f2;color:#16263a;font:16px/1.5 system-ui,sans-serif;margin:0}
+  main{max-width:900px;margin:0 auto;padding:36px 24px}h1{margin:.4em 0}
+  button,input{font:inherit} button{padding:8px 13px;cursor:pointer}
+  button:disabled{cursor:default} article{background:white;padding:14px 18px;margin:10px 0;border:1px solid #e6e2da;border-radius:7px}
+  #status{font-weight:600;min-height:25px} .actions{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+  output{display:block;margin:6px 0} details{margin-top:6px} pre{white-space:pre-wrap;font:inherit}
+</style>
+<main>
+  <a href="/">VM Estúdio</a>
+  <h1>Pacote de publicação</h1>
+  <p>Selecione o manifesto e as artes PNG já aprovadas. Confira o rascunho no Metricool antes de agendar as demais peças.</p>
+  <label for="package">Manifesto JSON e artes PNG</label>
+  <input id="package" type="file" accept=".json,.png,application/json,image/png" multiple>
+  <div class="actions">
+    <button id="draft" type="button" disabled>Criar rascunho de teste</button>
+    <button id="schedule" type="button" disabled>Agendar publicações restantes</button>
+  </div>
+  <p id="status" role="status" aria-live="polite"></p>
+  <section id="posts" aria-label="Publicações do pacote"></section>
+</main>
+<script type="module" src="./engine/package-publication.js"></script>
+</html>
