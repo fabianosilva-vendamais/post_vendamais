@@ -1,16 +1,16 @@
-import { listBrands, edge } from './publisher.js?vm-package-v1';
+import { listBrands } from './publisher.js?vm-package-v1';
 import { refreshIfNeeded, uploadPublic } from './supabase.js?vm-email-access-v1';
 
 const picker = document.querySelector('#package');
-const draftButton = document.querySelector('#draft');
-const scheduleButton = document.querySelector('#schedule');
+const stageButton = document.querySelector('#stage');
+const download = document.querySelector('#download');
 const status = document.querySelector('#status');
 const posts = document.querySelector('#posts');
 const brands = new Set(['VendaMais Brasil', 'VendaMais LATAM']);
 const networks = new Set(['linkedin', 'instagram']);
 const storage = new Map();
 let loaded;
-let draftVerified = false;
+let downloadUrl;
 
 const setStatus = text => { status.textContent = text; };
 const nameOf = row => `${row.brand} · ${row.network} · ${row.dateTime.slice(0, 10)} às ${row.dateTime.slice(11, 16)}`;
@@ -33,18 +33,21 @@ export async function readPackage(files) {
         typeof row.text !== 'string' || !row.text.trim() || !Array.isArray(row.assets) || !row.assets.length || row.assets.length > 10) {
       throw new Error('Há uma publicação com campos inválidos ou data vencida.');
     }
+    if (row.document && (row.network !== 'linkedin' || row.assets.length !== 1)) throw new Error('Documento permitido apenas para LinkedIn.');
     const key = nameOf(row);
     if (seen.has(key)) throw new Error('O pacote contém duas publicações para a mesma marca, rede e horário.');
     seen.add(key);
     for (const asset of row.assets) {
       const file = byName.get(asset.name);
-      if (!file || !/^[\w.-]+\.png$/i.test(asset.name) || file.size > 10000000 || !/^[a-f0-9]{64}$/.test(asset.sha256)) {
-        throw new Error('Falta uma arte PNG válida no pacote.');
+      const extension = row.document ? /\.pdf$/i : /\.png$/i;
+      if (!file || !/^[\w.-]+$/.test(asset.name) || !extension.test(asset.name) || file.size < 8 || file.size > 10000000 || !/^[a-f0-9]{64}$/.test(asset.sha256)) {
+        throw new Error('Falta uma arte válida no pacote.');
       }
       if (!verified.has(asset.name)) {
         const buffer = await file.arrayBuffer();
         const magic = new Uint8Array(buffer, 0, 8);
-        if (Array.from(magic).join(',') !== '137,80,78,71,13,10,26,10') throw new Error('Formato da arte inválido.');
+        const expected = row.document ? '37,80,68,70,45' : '137,80,78,71,13,10,26,10';
+        if (!Array.from(magic).join(',').startsWith(expected)) throw new Error('Formato da arte inválido.');
         const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', buffer));
         verified.set(asset.name, Array.from(digest, b => b.toString(16).padStart(2, '0')).join(''));
       }
@@ -87,99 +90,46 @@ async function upload(asset) {
   return storage.get(asset.sha256);
 }
 
-function resultRecord(value) {
-  const row = value?.data ?? value;
-  return Array.isArray(row) ? row[0] : row;
-}
-
-function assertReceipt(result, row, draft) {
-  if (!result?.id || result.draft !== draft || result.autoPublish !== !draft ||
-      !Array.isArray(result.media) || result.media.length !== row.assets.length ||
-      result.providers?.length !== 1 || result.providers[0]?.network !== row.network ||
-      (row.network === 'linkedin' && row.assets.length > 1 && result.linkedinData?.publishImagesAsPDF !== true) ||
-      result.publicationDate?.dateTime?.slice(0, 19) !== row.dateTime) {
-    throw new Error('O Metricool respondeu sem confirmar todos os dados. Confira a agenda antes de repetir.');
-  }
-}
-
-async function send(row, draft, profile) {
-  const mediaUrls = [];
-  for (const asset of row.assets) mediaUrls.push(await upload(asset));
-  const response = await edge({
-    action: 'schedule', blogId: profile.blogId, text: row.text, mediaUrls, networks: [row.network],
-    dateTime: row.dateTime, timezone: loaded.timezone, draft, altText: row.title, instagramType: 'POST',
-    linkedinDocumentTitle: row.network === 'linkedin' && mediaUrls.length > 1 ? row.title : '',
-  });
-  const result = resultRecord(response.result);
-  if (result?.id) row.out.textContent = `Recebido · ID ${result.id}`;
-  assertReceipt(result, row, draft);
-  row.out.textContent = `${draft ? 'Rascunho verificado' : 'Agendado e verificado'} · ID ${result.id} · ${result.media.length} arquivo(s)`;
-  row.receipt = result;
-  row.draft = draft;
-}
-
-async function lookup(plan, profile) {
-  const days = plan.posts.map(row => row.dateTime.slice(0, 10)).sort();
-  const value = (await edge({
-    action: 'list', blogId: profile.blogId, start: `${days[0]}T00:00:00`,
-    end: `${days.at(-1)}T23:59:59`, timezone: plan.timezone,
-  })).posts;
-  const list = Array.isArray(value) ? value : value?.data;
-  if (!Array.isArray(list)) throw new Error('Não foi possível verificar o calendário do Metricool.');
-  return list;
-}
-
-function findMatch(calendar, row) {
-  return calendar.find(item => item.publicationDate?.dateTime?.slice(0, 19) === row.dateTime &&
-    item.providers?.some(provider => provider.network === row.network) && item.text?.trim() === row.text);
-}
-
-async function run(test) {
-  picker.disabled = draftButton.disabled = scheduleButton.disabled = true;
+async function stage() {
+  picker.disabled = stageButton.disabled = true;
   try {
     if (!await refreshIfNeeded()) throw new Error('Entre no VM Estúdio para enviar o pacote.');
-    const profiles = await listBrands();
-    const byBrand = new Map(profiles.map(p => [p.label, p]));
-    const calendars = new Map();
-    for (const brand of new Set(loaded.posts.map(row => row.brand))) {
-      if (!byBrand.get(brand)?.blogId) throw new Error(`Marca não conectada: ${brand}.`);
-      calendars.set(brand, await lookup(loaded, byBrand.get(brand)));
+    const profiles = new Map((await listBrands()).map(p => [p.label, p.blogId]));
+    const rows = [];
+    for (const row of loaded.posts) {
+      setStatus(`Preparando ${nameOf(row)}…`);
+      if (!profiles.get(row.brand)) throw new Error(`Marca não conectada: ${row.brand}.`);
+      const media = [];
+      for (const asset of row.assets) media.push(await upload(asset));
+      const { out, assets, ...publication } = row;
+      rows.push({ ...publication, blogId: profiles.get(row.brand), assets, media });
+      out.textContent = `${media.length} anexo(s) preparado(s)`;
     }
-    const rows = test ? [loaded.posts[0]] : loaded.posts.slice(1);
-    for (const row of rows) {
-      setStatus(`Conferindo ${nameOf(row)}…`);
-      const found = findMatch(calendars.get(row.brand), row);
-      if (found) {
-        assertReceipt(found, row, test);
-        row.out.textContent = `${test ? 'Rascunho verificado' : 'Já agendado e verificado'} · ID ${found.id}`;
-      } else {
-        await send(row, test, byBrand.get(row.brand));
-      }
-    }
-    if (test) draftVerified = true;
-    setStatus(test ? 'Rascunho confirmado no Metricool.' : 'Publicações restantes confirmadas no Metricool.');
+    if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+    downloadUrl = URL.createObjectURL(new Blob([JSON.stringify({ edition: loaded.edition, timezone: loaded.timezone, posts: rows })], {type:'application/json'}));
+    download.href = downloadUrl;
+    download.download = `Radar${loaded.edition}-anexos.json`;
+    download.hidden = false;
+    setStatus(`${rows.length} publicações com anexos preparados.`);
   } catch (error) {
-    setStatus(error.message || 'Falha ao preparar as publicações.');
+    setStatus(error.message || 'Falha ao preparar os anexos.');
   } finally {
-    picker.disabled = false;
-    draftButton.disabled = draftVerified;
-    scheduleButton.disabled = !draftVerified;
+    picker.disabled = stageButton.disabled = false;
   }
 }
 
 picker.addEventListener('change', async () => {
   loaded = null;
-  draftVerified = false;
-  draftButton.disabled = scheduleButton.disabled = true;
+  stageButton.disabled = true;
+  download.hidden = true;
   posts.replaceChildren();
   try {
     loaded = await readPackage(Array.from(picker.files));
     render(loaded);
-    draftButton.disabled = false;
+    stageButton.disabled = false;
     setStatus(`Radar ${loaded.edition} · ${loaded.posts.length} publicações · artes conferidas.`);
   } catch (error) {
     setStatus(error.message || 'Falha ao ler o pacote.');
   }
 });
-draftButton.addEventListener('click', () => run(true));
-scheduleButton.addEventListener('click', () => run(false));
+stageButton.addEventListener('click', stage);
