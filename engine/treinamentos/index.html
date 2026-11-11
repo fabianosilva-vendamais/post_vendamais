@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Postagens de Treinamentos | VendaMais</title>
+  <link rel="stylesheet" href="training.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="/" aria-label="Voltar ao Estúdio da VendaMais"><img src="/assets/brand/logo-negativo.png" alt="VendaMais"></a>
+    <a href="/">← Voltar ao Estúdio</a>
+  </header>
+  <main>
+    <div class="heading">
+      <div><h1>Postagens de Treinamentos</h1><p>Revise as fotos e as legendas antes de agendar.</p></div>
+      <button id="reload" type="button" hidden>Atualizar fila</button>
+    </div>
+    <p id="notice" role="status" aria-live="polite"></p>
+    <section id="login" class="panel login" hidden>
+      <h2>Entre no Estúdio</h2>
+      <label>E-mail <input id="email" type="email" autocomplete="email"></label>
+      <button id="send-code" type="button">Receber código por e-mail</button>
+      <label>Código ou link de acesso <input id="code" autocomplete="one-time-code"></label>
+      <button id="verify-code" class="primary" type="button">Entrar</button>
+    </section>
+    <div class="layout" id="workspace" hidden>
+      <aside class="panel inbox" aria-label="Fila de treinamentos">
+        <div class="inbox-header"><h2>Fila de revisão</h2><select id="filter" aria-label="Filtrar treinamentos"><option value="active">Em revisão</option><option value="scheduled">Agendados</option><option value="discarded">Descartados</option><option value="all">Todos</option></select></div>
+        <div id="queue"></div>
+      </aside>
+      <section id="detail" class="panel detail" aria-label="Revisão da postagem"></section>
+    </div>
+  </main>
+  <script>window.__VM_SUPABASE_URL__="https://ysepqedjtsyybfdtsdwr.supabase.co";window.__VM_SUPABASE_ANON__="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlzZXBxZWRqdHN5eWJmZHRzZHdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyNjUyNDYsImV4cCI6MjEwNDg0MTI0Nn0.03CbG6V17eXeN_UuOCl2kjWPs06CHaV4QZedwWGa5zs";</script>
+  <script type="module" src="training.js"></script>
+</body>
+</html>
