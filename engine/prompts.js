@@ -1,6 +1,7 @@
+import { CLARITY_POLICY } from './editorial-clarity.js';
 // Prompts internos versionados (Documento Mestre, seção 13). Alterações geram nova versão em prompt_templates.
 export const PROMPTS = [
-  { id: 'editor_base', name: 'Prompt-base do Editor', version: 2, active: true, prompt_text:
+  { id: 'editor_base', name: 'Prompt-base do Editor', version: 3, active: true, prompt_text:
 `Você é o editor executivo da VendaMais. Escreva conteúdo B2B para líderes comerciais, CEOs, RH/T&D e profissionais de vendas.
 REGRAS DE MARCA:
 - VendaMais, uma palavra.
@@ -66,7 +67,7 @@ Se um bloco não existir no texto, deixe o array vazio ou a string vazia; nunca 
 "vendamais_note": string (inserção breve da VendaMais, se existir no texto), "closing": string, "cta": {"label": string, "url": string, "type": string}, "claims": []}
 TEXTO DO EDITOR:
 {{text}}` },
-  { id: 'posts_derive', name: 'Derivação dos três posts', version: 6, active: true, prompt_text:
+  { id: 'posts_derive', name: 'Derivação dos três posts', version: 7, active: true, prompt_text:
 `A newsletter abaixo foi aprovada. Transforme-a em três posts de alto nível editorial, seguindo a LINHA EDITORIAL abaixo. Não resuma a newsletter: reinterprete a tese para cada público.
 {{guide}}
 Regras de marca: todos os posts assinam VendaMais; nunca escreva "BU" ou "pela ótica de" no texto publicado. Cada post vive sozinho, entrega valor sem clique, CTA leve, até 5 hashtags. A legenda não repete o texto da arte.
@@ -90,7 +91,7 @@ CONHECIMENTO VENDAMAIS:
 MANCHETES RECENTES ({{trend_note}}):
 {{headlines}}
 Retorne JSON: {"themes":[{"theme":string (frase simples, até 14 palavras, sem ponto final),"why_now":string (o gancho de atualidade, cite a manchete quando houver),"vendamais_angle":string (frente, metodologia ou prova que sustenta),"thesis":string (tese em uma frase),"audience":"CEO/dono|Gestor comercial|RH/T&D|Vendedor/representante","tone":"analítico|provocativo|didático|executivo|case|tendência","heat":1-5 (quanto está em alta agora),"fit":1-5 (quanto a VendaMais tem autoridade),"sources_hint":[string] (que fontes buscar para sustentar com números),"headline_refs":[string] (títulos das manchetes usadas, se houver)}]}` },
-  { id: 'carousel_derive', name: 'Derivação de carrossel', version: 2, active: true, prompt_text:
+  { id: 'carousel_derive', name: 'Derivação de carrossel', version: 3, active: true, prompt_text:
 `{{voice}}
 Transforme este post ({{angle}}) em um carrossel de {{slides}} slides para LinkedIn e Instagram. Cada slide vive sozinho na tela, mas a sequência conta uma história: capa com tensão, desenvolvimento com prova, aplicação prática, fechamento com CTA.
 Regras: um pensamento por slide; títulos até 10 palavras, sem ponto final; texto de apoio até 30 palavras; números só com evidence_id; sem travessão; sem "Descubra", "Você já parou para pensar" ou frases motivacionais. A legenda do post já existe, não a repita.
@@ -105,4 +106,5 @@ Retorne JSON: {"scores":{"fidelity":0-100,"utility":0-100,"dna":0-100,"channel":
 Peça: {{piece}}
 Evidências disponíveis: {{evidence}}` }
 ];
+for (const p of PROMPTS) if (['editor_base', 'posts_derive', 'post_rewrite', 'carousel_derive', 'qa_audit'].includes(p.id)) p.prompt_text += '\n' + CLARITY_POLICY;
 export function fill(text, vars) { return text.replace(/\{\{(\w+)\}\}/g, (_, k) => (vars[k] ?? '')); }

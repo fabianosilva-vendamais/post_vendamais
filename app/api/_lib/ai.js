@@ -1,3 +1,4 @@
+import { generateEditorial } from '../../../engine/editorial-server.js';
 // Núcleo compartilhado das rotas de IA. Mesma lógica das Supabase Edge Functions (supabase/functions/*), em Node.
 // Chaves só em process.env (Vercel → Project Settings → Environment Variables). Nunca chegam ao navegador.
 export const runtime = 'nodejs';
@@ -5,13 +6,13 @@ export const runtime = 'nodejs';
 export function ok(body, status = 200) { return Response.json(body, { status }); }
 export function err(message, status = 500) { return Response.json({ error: message }, { status }); }
 
-export async function textGenerate(body) {
+async function rawTextGenerate(body) {
   const { provider = process.env.TEXT_PROVIDER || 'openai', model, system = '', prompt, max_tokens = 8000 } = body;
   if (!prompt) return err('prompt obrigatório', 400);
   let text = '';
   if (provider === 'openai') {
     const key = process.env.OPENAI_API_KEY; if (!key) return err('OPENAI_API_KEY não configurada', 501);
-    const r = await fetch('https://api.openai.com/v1/chat/completions', { method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model || process.env.TEXT_MODEL || 'gpt-5', messages: [{ role: 'system', content: system }, { role: 'user', content: prompt }], max_completion_tokens: max_tokens, response_format: { type: 'json_object' } }) });
+    const r = await fetch('https://api.openai.com/v1/chat/completions', { method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model || process.env.TEXT_MODEL || 'gpt-5', messages: [{ role: 'system', content: system }, { role: 'user', content: prompt }], max_completion_tokens: max_tokens, ...(body.purpose === 'clarity.audit' && /^gpt-5(?:$|[.-])/.test(model || process.env.TEXT_MODEL || 'gpt-5') ? { reasoning_effort: 'low' } : {}), response_format: { type: 'json_object' } }) });
     const d = await r.json(); if (!r.ok) return err(d.error?.message || 'openai error', 502); text = d.choices?.[0]?.message?.content || '';
   } else if (provider === 'anthropic') {
     const key = process.env.ANTHROPIC_API_KEY; if (!key) return err('ANTHROPIC_API_KEY não configurada', 501);
@@ -24,6 +25,18 @@ export async function textGenerate(body) {
     const d = await r.json(); if (!r.ok) return err(d.error?.message || 'gemini error', 502); text = (d.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');
   } else return err(`provider desconhecido: ${provider}`, 400);
   return ok({ text, provider, model });
+}
+
+export async function textGenerate(body) {
+  try {
+    const result = await generateEditorial(body, async input => {
+      const response = await rawTextGenerate(input);
+      const data = await response.json();
+      if (!response.ok) throw Object.assign(new Error(data.error), { status: response.status });
+      return data;
+    }, { enabled: process.env.EDITORIAL_CLARITY_ENABLED !== 'false' });
+    return ok(result);
+  } catch (error) { return err(error.message, error.status || 500); }
 }
 
 export async function imageGenerate(body) {

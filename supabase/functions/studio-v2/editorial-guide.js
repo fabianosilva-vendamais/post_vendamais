@@ -1,3 +1,4 @@
+import { CLARITY_POLICY } from './editorial-clarity.js';
 // Guia Editorial e Criativo VendaMais Content v1.0 (16/09/2026). Linha editorial obrigatória dos três posts.
 // Fonte: uploads/Guia_Editorial_VendaMais_Content.docx. Editável no Brand Center → Linha editorial.
 export const EDITORIAL_GUIDE_V1 = {
@@ -41,7 +42,7 @@ FORMATO nasce da ideia: ${Object.values(g.visual.formats).join('; ')}. ${g.visua
 ARTE: ${g.art_text}
 VISUAL, evitar: ${g.visual.avoid.join('; ')}. Buscar: ${g.visual.seek.join('; ')}. Sensação: ${g.visual.feeling}
 AUTOCRÍTICA antes de responder: ${g.self_critique.join(' ')} Reprove e reescreva se: ${g.quality_gate.join('; ')}.
-ASSINATURA: ${g.signature}${humanVoiceForPrompt()}`;
+ASSINATURA: ${g.signature}${humanVoiceForPrompt()}\n${CLARITY_POLICY}`;
 }
 
 // v2 (30/09/2026): voz humana e emocional validada na Newsletter 22. Vale para todas as edições e se soma à linha editorial salva no Brand Center.
@@ -50,7 +51,7 @@ export const HUMAN_VOICE_V2 = {
   do: ['Abrir com cena concreta e reconhecível (a sala cheia, a agenda lotada, o fim de expediente).', 'Nomear o sentimento real: frustração, cansaço, dúvida ("Frustrante, né?", "Se isso já aconteceu com você, você não está sozinho").', 'Tirar a culpa da pessoa e colocar no sistema ("Não por falta de vontade. Por falta de apoio.").', 'Falar em "a gente" quando a VendaMais relata o que vê no campo.', 'Ponto aplicável como gesto pequeno e humano para esta semana (uma pergunta, uma conversa), não como checklist.', 'CTA como convite: "Vamos conversar?", "Quer que o próximo treinamento fique de verdade?".'],
   avoid: ['tom de aula ou de manual ("é fundamental", "é necessário", "deve-se")', 'frases taxativas em sequência sem respiro', 'julgar o leitor ou a equipe', 'motivacional vazio, superlativo, promessa'],
   formats: 'Sequência, passo a passo ou antes/durante/depois: carrossel. Uma ideia forte que cabe numa frase: post único. Evite dois carrosséis na mesma edição; o terceiro post é único quando outro já for carrossel.',
-  carousel: 'Carrossel de 6 a 7 slides: 1 capa (título da tese + apoio empático) > 2 A CENA (o que todo mundo viveu) > 3 E DEPOIS (o que deu errado, sem culpar pessoas) > 4 a 6 ação em etapas (ANTES / DURANTE / NOS 30 DIAS SEGUINTES), cada uma com título curto e texto de até 40 palavras > último: fechamento com a frase-assinatura da edição e CTA convite. Alterne fundos (navy, areia, branco). Kicker curto e em caixa alta por slide.',
+  carousel: 'Use de 3 a 7 slides conforme a ideia: capa concreta que funciona sozinha, desenvolvimento com informação nova em cada slide e fechamento com CTA coerente. Sem sequência obrigatória de cenas ou etapas. Títulos até 10 palavras e corpos até 30 palavras. Se uma arte bastar, prefira post único.',
   image: 'Imagem-base: fotografia editorial de estúdio, vertical 4:5, pessoas brasileiras naturais com expressão coerente com a emoção da cena (reflexiva, cansada, atenta; sorriso só quando a cena é de apoio), luz lateral quente contra sombras em azul-marinho, profundidade rasa, espaço limpo e escuro para o texto na área indicada, sem pose de banco de imagens.',
   examples: [
     { angle: 'training', headline: 'O treinamento acabou. E tudo voltou a ser como antes', hook: 'Você investiu, a equipe gostou e, semanas depois, parece que nada aconteceu. Frustrante, né?', body: 'A gente vê isso toda semana. E quase nunca é culpa do conteúdo ou da equipe. É que aprender é só o começo. Mudar um hábito leva tempo, prática e alguém por perto dizendo "continua, está funcionando".', takeaway: 'Nesta semana, escolha uma coisa que o time aprendeu e pergunte, em cada conversa: "Onde você conseguiu aplicar isso?"' },
@@ -67,6 +68,5 @@ FORMATO: ${v.formats}
 CARROSSEL: ${v.carousel}
 IMAGEM (campo image_prompt): ${v.image}
 EXEMPLOS APROVADOS PELO EDITOR (referência de tom e qualidade, não copie o tema):
-${v.examples.map(e => `- [${e.angle}] Headline: "${e.headline}" | Gancho: "${e.hook}" | Corpo: "${e.body}" | Ponto aplicável: "${e.takeaway}"`).join('\n')}`;
+${v.examples.map(e => `- [${e.angle}] Headline: "${e.headline}" | Gancho: "${e.hook}" | Corpo: "${e.body}" | Ponto aplicável: "${e.takeaway}"`).join('\n')}\n${CLARITY_POLICY}`;
 }
-

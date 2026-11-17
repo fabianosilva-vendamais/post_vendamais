@@ -9,7 +9,7 @@ export async function ensureFonts() { try { await Promise.all(['400', '500', '60
 
 function wrap(ctx, text, maxW) { const words = String(text || '').split(/\s+/).filter(Boolean); const lines = []; let line = ''; for (const w of words) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; } if (line) lines.push(line); return lines; }
 // Ajusta a fonte para caber em maxLines; retorna {size, lines, lineH}
-function fit(ctx, text, maxW, { max = 72, min = 44, weight = 600, maxLines = 5, lh = 1.1 }) { for (let size = max; size >= min; size -= 2) { ctx.font = `${weight} ${size}px ${FONT}, Arial, sans-serif`; const lines = wrap(ctx, text, maxW); if (lines.length <= maxLines) return { size, lines, lineH: Math.round(size * lh) }; } ctx.font = `${weight} ${min}px ${FONT}, Arial, sans-serif`; return { size: min, lines: wrap(ctx, text, maxW).slice(0, maxLines), lineH: Math.round(min * lh) }; }
+function fit(ctx, text, maxW, { max = 72, min = 44, weight = 600, maxLines = 5, lh = 1.1 }) { if (ctx.__vmClarity && weight <= 500) { min = Math.max(min, 42); max = Math.max(max, min); } for (let size = max; size >= min; size -= 2) { ctx.font = `${weight} ${size}px ${FONT}, Arial, sans-serif`; const lines = wrap(ctx, text, maxW); if (lines.length <= maxLines) return { size, lines, lineH: Math.round(size * lh) }; } ctx.__vmTextOverflow = true; ctx.font = `${weight} ${min}px ${FONT}, Arial, sans-serif`; return { size: min, lines: wrap(ctx, text, maxW).slice(0, maxLines), lineH: Math.round(min * lh) }; }
 function drawLines(ctx, lines, x, y, lineH, color) { ctx.fillStyle = color; lines.forEach((l, i) => ctx.fillText(l, x, y + i * lineH)); return y + lines.length * lineH; }
 function label(ctx, text, x, y, color) { if (!text || !String(text).trim()) return; ctx.font = `600 22px ${FONT}, Arial, sans-serif`; ctx.letterSpacing = '2px'; ctx.fillStyle = color; ctx.fillText(String(text || '').toUpperCase(), x, y); ctx.letterSpacing = '0px'; }
 function rrect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
@@ -23,8 +23,8 @@ function hexPath(ctx, cx, cy, r) { ctx.beginPath(); for (let i = 0; i < 6; i++) 
 // spec = { templateId, headline, support, kicker, proofNumber, proofLabel, image(HTMLImage|null), crop, logoPrimary, logoNegative, portrait, partner:{name,role,territory} }
 export function render(canvas, spec) {
   const ctx = canvas.getContext('2d'); canvas.width = W; canvas.height = H; ctx.textBaseline = 'alphabetic';
-  const t = spec.templateId || 'T01'; const inner = W - 2 * M;
-  const meta = { headlineFontPx: 0 };
+  ctx.__vmClarity = !!spec.editorialVersion; const t = spec.templateId || 'T01'; const inner = W - 2 * M;
+  ctx.__vmTextOverflow = false; const meta = { headlineFontPx: 0 }; Object.defineProperty(meta, 'textOverflow', { enumerable: true, get: () => !!ctx.__vmTextOverflow });
   if (t === 'T01') {
     drawCover(ctx, spec.image, 0, 0, W, H, spec.crop); ctx.fillStyle = 'rgba(22,38,58,0.60)'; ctx.fillRect(0, 0, W, H);
     // véu extra na base para leitura
@@ -149,10 +149,10 @@ export function canvasToBlob(canvas) { return new Promise(res => canvas.toBlob(r
 // Capa usa o template do post (T01/T03 com imagem, T02/T04 sem); miolo é tipográfico em navy/areia alternados; fechamento em navy com logo e CTA.
 export function renderSlide(canvas, spec) {
   const ctx = canvas.getContext('2d'); canvas.width = W; canvas.height = H; ctx.textBaseline = 'alphabetic';
-  const s = spec.slide; const inner = W - 2 * M; const page = `${String(s.index + 1).padStart(2, '0')} / ${String(s.total).padStart(2, '0')}`;
+  ctx.__vmClarity = !!spec.editorialVersion; const s = spec.slide; const inner = W - 2 * M; const page = `${String(s.index + 1).padStart(2, '0')} / ${String(s.total).padStart(2, '0')}`;
   const pager = (color) => { ctx.font = `500 26px ${FONT}, Arial, sans-serif`; ctx.fillStyle = color; ctx.textAlign = 'right'; ctx.fillText(page, W - M, H - M + 8); ctx.textAlign = 'left'; };
   const arrow = (color) => { ctx.strokeStyle = color; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(W - M - 40, H - M - 60); ctx.lineTo(W - M, H - M - 60); ctx.moveTo(W - M - 16, H - M - 76); ctx.lineTo(W - M, H - M - 60); ctx.lineTo(W - M - 16, H - M - 44); ctx.stroke(); };
-  let meta = { headlineFontPx: 44 };
+  ctx.__vmTextOverflow = false; let meta = { headlineFontPx: 44 }; Object.defineProperty(meta, 'textOverflow', { enumerable: true, get: () => !!ctx.__vmTextOverflow });
   if (s.role === 'cover') {
     meta = render(canvas, { ...spec, templateId: spec.templateId, headline: s.title, support: s.body || spec.support, kicker: s.kicker ?? spec.kicker, proofNumber: s.proof_number || '', proofLabel: s.proof_label || '' });
     // Na capa, o texto dos templates ocupa a base: paginação e seta vão para o canto superior direito, alinhadas ao logo.

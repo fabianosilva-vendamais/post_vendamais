@@ -7,7 +7,7 @@ function flatText(obj, path = '', out = []) {
   if (obj == null) return out;
   if (typeof obj === 'string') { out.push({ path, text: obj }); return out; }
   if (Array.isArray(obj)) { obj.forEach((v, i) => flatText(v, `${path}[${i}]`, out)); return out; }
-  if (typeof obj === 'object') { for (const k of Object.keys(obj)) { if (['evidence_ids', 'source_claims', 'claims', 'sources_used', 'url', 'image_prompt', 'template_id', 'angle', 'negative_space', 'hashtags'].includes(k)) continue; flatText(obj[k], path ? `${path}.${k}` : k, out); } }
+  if (typeof obj === 'object') { for (const k of Object.keys(obj)) { if (['evidence_ids', 'source_claims', 'claims', 'sources_used', 'url', 'image_prompt', 'template_id', 'angle', 'negative_space', 'hashtags', 'editorial_version', 'editorial'].includes(k)) continue; flatText(obj[k], path ? `${path}.${k}` : k, out); } }
   return out;
 }
 export function collectClaimIds(content) {
@@ -87,8 +87,9 @@ export function combineScore(aiScores = {}, visualScore = 100, blockers = []) {
   return { score: total, ready: total >= R.qa.threshold && blockers.length === 0 };
 }
 // Checagens visuais do render (post): cores fora da paleta, logo oficial, contraste, headline legível.
-export function visualChecks({ templateId, hasImage, logoAssetOk, headline, headlineFontPx, portraitOk, partner }) {
+export function visualChecks({ templateId, hasImage, logoAssetOk, headline, headlineFontPx, portraitOk, partner, textOverflow = false }) {
   const issues = []; let score = 100;
+  if (textOverflow) { issues.push({ code: 'text_overflow', text: 'O texto excede a área legível da arte. Encurte ou reorganize antes de aprovar.' }); score -= 40; }
   if (!logoAssetOk) { issues.push({ code: 'logo', text: 'Logo oficial ausente no Brand Center.' }); score -= 40; }
   if (['T01', 'T02', 'T03'].includes(templateId) && !hasImage) { issues.push({ code: 'image', text: 'Template exige imagem-base.' }); score -= 30; }
   if (templateId === 'T05' && (!portraitOk || !partner)) { issues.push({ code: 'portrait', text: 'T05 exige retrato oficial e sócio assinante.' }); score -= 50; }

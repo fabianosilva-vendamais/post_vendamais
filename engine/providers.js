@@ -1,6 +1,7 @@
 // Adapters de IA. Chaves nunca ficam no navegador: OpenAI/Gemini/Anthropic passam pelas Edge Functions do Supabase.
 // "claude_builtin" usa o assistente embutido da plataforma (sem chave), útil para operar antes do Supabase existir.
 import { db, audit, uid, now } from './store.js?vm202611011656';
+import { CLARITY_POLICY, clarityEnabled, needsClarityReview, reviewGenerated } from './editorial-clarity.js';
 export class ConfigError extends Error { constructor(m, hint) { super(m); this.name = 'ConfigError'; this.hint = hint; } }
 
 export function supabaseConfigured() { return !!(db.settings.supabase_url && db.settings.supabase_anon_key); }
@@ -53,7 +54,7 @@ export function repairJSON(t) {
   return out.replace(/,\s*([}\]])/g, '$1');
 }
 // Geração de texto estruturada. Retorna objeto JSON.
-export async function textJSON({ system, prompt, maxTokens = 8000, purpose = 'text' }) {
+async function rawTextJSON({ system, prompt, maxTokens = 8000, purpose = 'text' }) {
   const p = db.settings.text_provider; const started = Date.now();
   let raw, model;
   if (p === 'claude_builtin') {
@@ -62,12 +63,23 @@ export async function textJSON({ system, prompt, maxTokens = 8000, purpose = 'te
     raw = await window.claude.complete({ model, max_tokens: maxTokens, system, messages: [{ role: 'user', content: prompt }] });
   } else {
     model = db.settings.text_model;
-    const res = await edge('text-generate', { provider: p, model, system, prompt, max_tokens: maxTokens, json: true });
+    const res = await edge('text-generate', { provider: p, model, system, prompt, max_tokens: maxTokens, json: true, purpose, ...(needsClarityReview(purpose) ? { timeout_ms: 240000 } : {}) });
     raw = res.text;
   }
   const out = parseJSON(raw);
   audit('ai.text', purpose, null, { provider: p, model, ms: Date.now() - started, chars_in: (system || '').length + prompt.length, chars_out: (raw || '').length });
   return out;
+}
+// Central gate also covers saved/custom prompts and Spanish adaptations.
+export async function textJSON(args) {
+  const enabled = clarityEnabled() && db.settings.editorial_clarity_enabled !== false;
+  const review = enabled && db.settings.text_provider === 'claude_builtin' && needsClarityReview(args.purpose);
+  const system = [args.system || '', enabled && args.purpose !== 'newsletter.structure' ? CLARITY_POLICY : ''].filter(Boolean).join('\n');
+  const out = await rawTextJSON({ ...args, system });
+  if (!review) return out;
+  const result = await reviewGenerated(out, { call: rawTextJSON, context: args.prompt, purpose: args.purpose });
+  audit('editorial.clarity', args.purpose, null, result.meta);
+  return result.value;
 }
 // Imagem-base: somente fotografia/ilustração, sem texto ou logo. Retorna {dataUrl, provider, model}
 export async function imageGenerate({ prompt, provider = db.settings.image_provider_default, mode = db.settings.image_mode, references = [] }) {

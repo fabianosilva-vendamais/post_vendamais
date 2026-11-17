@@ -31,13 +31,23 @@ export async function schedule(app, p, { networks, dateTime, draft = false, firs
   if (!blogIdFor(lang)) throw new Error(lang === 'es' ? 'Marca VendaMais LATAM não escolhida em Configurações → Publicação.' : 'Marca VendaMais não escolhida em Configurações → Publicação.');
   if (lang === 'es' && !p.content_es) throw new Error('Este post ainda não tem versão em espanhol.');
   if (!dateTime || new Date(dateTime) < new Date()) throw new Error('Escolha data e hora futuras.');
+  const channelCopies = (lang === 'es' ? p.content_es : p.content_json)?.captions;
+  if (networks.length === 1 && channelCopies) {
+    const existing = (db.publications || []).find(x => x.post_id === p.id && (x.lang || 'pt') === lang && x.date_time === dateTime && x.networks?.includes(networks[0]) && x.status !== 'cancelled');
+    if (existing) return existing;
+  }
+  if (networks.length > 1 && channelCopies) {
+    const results = [];
+    for (const network of networks) results.push(await schedule(app, p, { networks: [network], dateTime, draft, firstComment, lang }));
+    return { ...results[0], networks, publications: results };
+  }
   const ed = app.edition(); const base = `ed${String(ed.brief.number).padStart(2, '0')}/${p.angle}/${Date.now()}`;
   const urls = [];
   const up = async (canvas, name) => { const blob = await canvasToBlob(canvas); const dataUrl = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); }); return SB.uploadPublic('renders', `${base}/${name}.png`, dataUrl); };
   const isCar = p.format === 'carousel' && p.carousel?.slides?.length;
   if (isCar) { for (let i = 0; i < p.carousel.slides.length; i++) { const cv = document.createElement('canvas'); await renderCarouselSlide(app, p, i, cv, lang); urls.push(await up(cv, String(i + 1).padStart(2, '0'))); } }
   else { const cv = document.createElement('canvas'); await renderPost(app, p, cv, lang); urls.push(await up(cv, 'post')); }
-  const text = captionText(p, lang);
+  const text = captionText(p, lang, networks.length === 1 ? networks[0] : '');
   const res = await edge({ action: 'schedule', blogId: blogIdFor(lang), text, mediaUrls: urls, networks, dateTime, timezone: db.settings.timezone || 'America/Sao_Paulo', draft, firstComment, altText: p.content_json.headline, linkedinDocumentTitle: isCar && networks.includes('linkedin') ? p.content_json.headline : '', instagramType: 'POST' });
   const rec = { id: uid('pub'), post_id: p.id, edition_id: p.edition_id, provider: 'metricool', lang, networks, date_time: dateTime, timezone: db.settings.timezone || 'America/Sao_Paulo', draft, media_urls: urls, remote: res.result, status: draft ? 'draft' : 'scheduled', created_at: now() };
   db.publications = db.publications || []; db.publications.push(rec); p.publication_id = rec.id; p.status = 'exported'; ed.exports = ed.exports || {}; ed.exports.posts = now();
