@@ -233,10 +233,23 @@ function buildZip(files) {
   const cdSize = central.reduce((s, c) => s + c.length, 0); const end = new Uint8Array([0x50, 0x4b, 0x05, 0x06, ...u16(0), ...u16(0), ...u16(files.length), ...u16(files.length), ...u32(cdSize), ...u32(offset), ...u16(0)]);
   const all = [...parts, ...central, end]; const out = new Uint8Array(all.reduce((s, a) => s + a.length, 0)); let o = 0; for (const a of all) { out.set(a, o); o += a.length; } return out;
 }
+// Finished artwork has its own text embedded in the uploaded file. Only the
+// caption is authored/published by this engine; old template/planning fields
+// must not block its approval. Human copy follows the authored-text QA rules.
+export function postReviewContent(p, lang = 'pt') {
+  const c = contentFor(p, lang) || {};
+  if (!isFinalArtwork(p)) return c;
+  return { angle: p.angle, caption: c.caption, ...(c.captions ? { captions: c.captions } : {}), source_claims: (c.source_claims || []).map(claim => typeof claim === 'string' ? { evidence_id: claim } : claim) };
+}
+export function postChecks(p, evidence = [], lang = 'pt') {
+  const edited = p.meta?.edited || {};
+  const manual = ['caption', 'caption.body', 'caption.pt', ...(lang === 'es' ? ['caption.es'] : [])].some(key => edited[key] === 'human');
+  return deterministicChecks(postReviewContent(p, lang), evidence, 'post', { humanText: isFinalArtwork(p) && manual });
+}
 export async function runQA(app, p) {
-  const evidence = app.evidence(p.edition_id); const R = activeRules(); const det = deterministicChecks(p.content_json, evidence, 'post');
+  const evidence = app.evidence(p.edition_id); const R = activeRules(); const det = postChecks(p, evidence);
   const G = db.editorial_guide || EDITORIAL_GUIDE_V1; const ga = G.angles[p.angle] || MEME_RULES;
-  const pr = fill(prompt('qa_audit'), { channel: `post social 1080x1350 (LinkedIn + Instagram) com legenda de 400 a 1.500 caracteres, ângulo ${ga.label} para ${ga.audience}. LINHA EDITORIAL: reprove (severity bloqueio) se ${G.quality_gate.join('; ')}. Voz: ${G.voice.traits.join('; ')}. CTA nunca: ${G.cta.avoid.join(' / ')}`, piece: JSON.stringify(p.content_json), evidence: evidenceText(evidence) });
+  const pr = (isFinalArtwork(p) ? 'Arte final enviada pelo usuário: avalie apenas o copy fornecido. Não cobre headline, imagem-base, template ou campos de planejamento; o conteúdo da imagem exige revisão humana.\n' : '') + fill(prompt('qa_audit'), { channel: `post social 1080x1350 (LinkedIn + Instagram) com legenda de 400 a 1.500 caracteres, ângulo ${ga.label} para ${ga.audience}. LINHA EDITORIAL: reprove (severity bloqueio) se ${G.quality_gate.join('; ')}. Voz: ${G.voice.traits.join('; ')}. CTA nunca: ${G.cta.avoid.join(' / ')}`, piece: JSON.stringify(postReviewContent(p)), evidence: evidenceText(evidence) });
   const ai = await textJSON({ system: prompt('editor_base'), prompt: pr, purpose: 'post.qa' });
   const canvas = document.createElement('canvas'); const { spec, meta } = await renderPost(app, p, canvas);
   const vis = isFinalArtwork(p) ? { score: artworkIssues(p).length ? 0 : 100, issues: artworkIssues(p), scope: 'file_integrity', note: 'Arquivo validado. Conteúdo e legibilidade da arte exigem revisão humana.' } : visualChecks({ templateId: p.template_id, hasImage: !!spec.image, logoAssetOk: !!(spec.logoPrimary && spec.logoNegative), headline: p.content_json.headline, headlineFontPx: meta.headlineFontPx, textOverflow: meta.textOverflow, portraitOk: !!spec.portrait, partner: spec.partner });
@@ -246,7 +259,7 @@ export async function runQA(app, p) {
   audit('post.qa', 'post', p.id, { score, blockers: blockers.length, ready }); app.save(); return p.qa_json;
 }
 export function approvePost(app, p) {
-  const det = deterministicChecks(p.content_json, app.evidence(p.edition_id), 'post'); const blockers = [...det.blockers, ...artworkIssues(p), ...(p.qa_json?.visual?.issues || []), ...((p.qa_json?.ai?.issues || []).filter(i => i.severity === 'bloqueio'))];
+  const det = postChecks(p, app.evidence(p.edition_id)); const blockers = [...det.blockers, ...artworkIssues(p), ...(p.qa_json?.visual?.issues || []), ...((p.qa_json?.ai?.issues || []).filter(i => i.severity === 'bloqueio'))];
   if (blockers.length) throw new Error(`${blockers.length} bloqueio(s) impedem a aprovação deste post.`);
   p.status = 'approved'; p.approved_at = now(); audit('post.approve', 'post', p.id, { score: p.score }); const ed = app.edition();
   if (postsOf(ed.id).length === 3 && postsOf(ed.id).every(x => x.status === 'approved' || x.status === 'exported')) app.setStatus(ed, 'approved'); app.save();

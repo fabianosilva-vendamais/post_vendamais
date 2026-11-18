@@ -1579,7 +1579,7 @@ class Component extends DCLogic {
     out.templateHint = R.templates.find(t => t.id === p.template_id)?.desc || ''; if (p.template_id === 'T05') out.templateHint += ' Nível B: a peça passa a ser assinada pelo sócio e exige aprovação dele.';
     out.postMeta = `${labels[angle]} · atualizado ${fmtDT(p.updated_at)} · ${Object.values(locks).filter(Boolean).length} campo(s) fixado(s)`;
     out.postClaims = ((c.anchors || []).length ? `Da newsletter: ${c.anchors.join(' · ')}. ` : '') + ((c.source_claims || []).length ? c.source_claims.map(s => `${this.M.qa.humanRefs('[' + s.evidence_id + ']', this.evidence(ed.id)) || s.evidence_id} ${s.text}`).join(' · ') : 'Nenhuma afirmação rastreada. Se o post traz número ou case, isso é bloqueio.');
-    const det = p.qa_json?.deterministic || this.M.qa.deterministicChecks(c, this.evidence(ed.id), 'post'); const ai = p.qa_json?.ai; const vis = p.qa_json?.visual;
+    const det = PF.isFinalArtwork(p) ? PF.postChecks(p, this.evidence(ed.id), lang) : (p.qa_json?.deterministic || PF.postChecks(p, this.evidence(ed.id), lang)); const ai = p.qa_json?.ai; const vis = p.qa_json?.visual;
     const blockers = [...det.blockers, ...PF.artworkIssues(p), ...((vis?.issues || []).map(i => ({ where: 'render', text: i.text }))), ...((ai?.issues || []).filter(i => i.severity === 'bloqueio'))];
     const ready = p.score != null && p.score >= R.qa.threshold && blockers.length === 0;
     const EVp = this.evidence(ed.id); const issue = (kind, where, text, color, bg) => ({ kind, where: this.M.qa.humanPath(where), text: this.M.qa.humanRefs(text, EVp), canApply: false, style: `font-size:12px;line-height:1.5;padding:8px 10px;border-radius:6px;background:${bg};color:${color};display:flex;flex-direction:column;align-items:flex-start` });
