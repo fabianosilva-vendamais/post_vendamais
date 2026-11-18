@@ -1,3 +1,4 @@
+import { openAIJSONOptions } from '../../../engine/json-completion.js';
 import { generateEditorial } from '../../../engine/editorial-server.js';
 // Núcleo compartilhado das rotas de IA. Mesma lógica das Supabase Edge Functions (supabase/functions/*), em Node.
 // Chaves só em process.env (Vercel → Project Settings → Environment Variables). Nunca chegam ao navegador.
@@ -9,22 +10,22 @@ export function err(message, status = 500) { return Response.json({ error: messa
 async function rawTextGenerate(body) {
   const { provider = process.env.TEXT_PROVIDER || 'openai', model, system = '', prompt, max_tokens = 8000 } = body;
   if (!prompt) return err('prompt obrigatório', 400);
-  let text = '';
+  let text = '', finish_reason;
   if (provider === 'openai') {
     const key = process.env.OPENAI_API_KEY; if (!key) return err('OPENAI_API_KEY não configurada', 501);
-    const r = await fetch('https://api.openai.com/v1/chat/completions', { method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model || process.env.TEXT_MODEL || 'gpt-5', messages: [{ role: 'system', content: system }, { role: 'user', content: prompt }], max_completion_tokens: max_tokens, ...(body.purpose === 'clarity.audit' && /^gpt-5(?:$|[.-])/.test(model || process.env.TEXT_MODEL || 'gpt-5') ? { reasoning_effort: 'low' } : {}), response_format: { type: 'json_object' } }) });
-    const d = await r.json(); if (!r.ok) return err(d.error?.message || 'openai error', 502); text = d.choices?.[0]?.message?.content || '';
+    const r = await fetch('https://api.openai.com/v1/chat/completions', { method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model || process.env.TEXT_MODEL || 'gpt-5', messages: [{ role: 'system', content: system }, { role: 'user', content: prompt }], ...openAIJSONOptions(model || process.env.TEXT_MODEL || 'gpt-5', max_tokens), response_format: { type: 'json_object' } }) });
+    const d = await r.json(); if (!r.ok) return err(d.error?.message || 'openai error', 502); text = d.choices?.[0]?.message?.content || ''; finish_reason = d.choices?.[0]?.finish_reason;
   } else if (provider === 'anthropic') {
     const key = process.env.ANTHROPIC_API_KEY; if (!key) return err('ANTHROPIC_API_KEY não configurada', 501);
     const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model || 'claude-sonnet-4-5', max_tokens, system, messages: [{ role: 'user', content: prompt }] }) });
-    const d = await r.json(); if (!r.ok) return err(d.error?.message || 'anthropic error', 502); text = (d.content || []).map(c => c.text || '').join('');
+    const d = await r.json(); if (!r.ok) return err(d.error?.message || 'anthropic error', 502); text = (d.content || []).map(c => c.text || '').join(''); finish_reason = d.stop_reason;
   } else if (provider === 'gemini') {
     const key = process.env.GEMINI_API_KEY; if (!key) return err('GEMINI_API_KEY não configurada', 501);
     const m = model || 'gemini-2.5-pro';
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${key}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: max_tokens, responseMimeType: 'application/json' } }) });
-    const d = await r.json(); if (!r.ok) return err(d.error?.message || 'gemini error', 502); text = (d.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');
+    const d = await r.json(); if (!r.ok) return err(d.error?.message || 'gemini error', 502); text = (d.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join(''); finish_reason = d.candidates?.[0]?.finishReason;
   } else return err(`provider desconhecido: ${provider}`, 400);
-  return ok({ text, provider, model });
+  return ok({ text, provider, model, finish_reason });
 }
 
 export async function textGenerate(body) {

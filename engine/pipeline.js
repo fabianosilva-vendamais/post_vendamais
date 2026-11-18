@@ -2,7 +2,7 @@
 // aprova se não houver bloqueio, escreve os 3 posts + meme com a voz editorial, escolhe formato, gera carrossel quando for o caso,
 // adapta para espanhol e gera as imagens-base. Cada etapa reporta progresso e falhas isoladas não param as seguintes.
 import { db, uid, now, audit, nextEditionNumber } from './store.js?vm202611011656';
-import { deterministicChecks } from './qa.js?vm202611011656';
+import { deterministicChecks, aiBlockers } from './qa.js?vm202611011656';
 import * as NL from './newsletter-flow.js?vm202611011656';
 import * as PF from './posts-flow.js?vm202611011656';
 import * as ES from './posts-es.js?vm202611011656';
@@ -15,37 +15,44 @@ export const STEPS = [
 
 export function nextTuesday(from = new Date()) { const d = new Date(from); d.setHours(12, 0, 0, 0); const day = d.getDay(); const add = ((2 - day + 7) % 7) || 7; d.setDate(d.getDate() + add); return d.toISOString().slice(0, 10); }
 
-export async function run(app, { text, number, date, podcast = {}, ctaUrl, withImages = true, withEs = false, withMeme = false, postsText = '', onStep }) {
+export async function run(app, { text, number, date, podcast = {}, ctaUrl, withImages = true, withEs = false, withMeme = false, postsText = '', resumeEditionId = null, onStep }) {
   const report = []; const step = (id, status, note = '') => { report.push({ id, status, note }); onStep?.(id, status, note, report); };
   const guard = async (id, fn) => { step(id, 'running'); try { const r = await fn(); step(id, 'done', typeof r === 'string' ? r : ''); return r; } catch (e) { console.error('pipeline', id, e); step(id, 'error', e.message); return null; } };
+  const existing = resumeEditionId ? db.editions.find(e => e.id === resumeEditionId) : null;
+  if (resumeEditionId && !existing) throw new Error('A edição a retomar não foi encontrada.');
+  if (existing) text = existing.brief?.ready_text || text;
   const words = (text || '').trim().split(/\s+/).filter(Boolean).length; if (words < 80) throw new Error('Cole o artigo completo (mínimo 80 palavras).');
   const n = Number(number) || nextEditionNumber(); const edDate = date || nextTuesday();
   // 1. edição
   const ed = await guard('edition', async () => {
+    if (existing) { app._editionId = existing.id; app.setState({ editionId: existing.id }); return existing; }
     const firstH1 = (text.match(/^#\s+(?!\**\s*(radar|vendamais))(.+)$/im) || [])[2] || (text.split('\n').map(l => l.trim()).find(l => l.length > 20 && l.length < 140) || `Newsletter ${n}`);
     const theme = firstH1.replace(/\*/g, '').trim();
     const e = { id: uid('ed'), status: 'draft', created_at: now(), updated_at: now(), title: `Newsletter ${n} · ${theme}`, theme, audience: 'Gestor comercial', objective: 'Educar', edition_date: edDate,
       brief: { mode: 'ready', ready_text: text, theme, title: `Newsletter ${n} · ${theme}`, objective: 'Educar', audience: 'Gestor comercial', tone: 'provocativo', length: 'standard', edition_date: edDate, number: n, cta: 'Vamos conversar?', cta_type: 'conversa', cta_url: ctaUrl || db.settings.default_cta_url || '', notes: '', podcast_title: podcast.title || '', podcast_url: podcast.youtube_url || '', agenda_enabled: false } };
     db.editions.unshift(e); db.settings.last_edition_number = Math.max(db.settings.last_edition_number || 0, n); audit('pipeline.edition', 'edition', e.id, { number: n }); app._editionId = e.id; app.setState({ editionId: e.id }); app.save(); return e; });
   if (!ed) return report;
+  ed.pipeline_options = { withImages, withEs, withMeme };
+  app.save();
   // 2. newsletter
-  const v = await guard('newsletter', async () => { const v = await NL.generate(app); if (podcast.title || podcast.youtube_url || podcast.spotify_url) { v.content_json.podcast = { ...(v.content_json.podcast || {}), enabled: true, title: podcast.title || '', description: podcast.description || '', youtube_url: podcast.youtube_url || '', spotify_url: podcast.spotify_url || '' }; } if (ctaUrl) v.content_json.cta = { ...(v.content_json.cta || {}), url: ctaUrl }; app.save(); return v; });
+  const v = await guard('newsletter', async () => { if (existing && NL.current(ed.id)) return NL.current(ed.id); const v = await NL.generate(app); if (podcast.title || podcast.youtube_url || podcast.spotify_url) { v.content_json.podcast = { ...(v.content_json.podcast || {}), enabled: true, title: podcast.title || '', description: podcast.description || '', youtube_url: podcast.youtube_url || '', spotify_url: podcast.spotify_url || '' }; } if (ctaUrl) v.content_json.cta = { ...(v.content_json.cta || {}), url: ctaUrl }; app.save(); return v; });
   if (!v) return report;
   // 3. QA + 4. aprovação
-  let approved = false;
-  await guard('qa', async () => { const q = await NL.runQA(app); const cur = NL.current(ed.id); return `nota ${cur.score}${q.blockers?.length ? `, ${q.blockers.length} bloqueio(s)` : ''}`; });
-  await guard('approve', async () => { const cur = NL.current(ed.id); const det = deterministicChecks(cur.content_json, app.evidence(ed.id), 'newsletter', NL.qaOpts(cur)); if (det.blockers.length) throw new Error(`${det.blockers.length} bloqueio(s): ${det.blockers.map(b => b.text).join(' | ')}. Corrija no Editor da Newsletter e aprove; depois use "Gerar os posts".`); NL.approve(app); approved = true; return 'aprovada'; });
+  let approved = false; let qaSucceeded = false;
+  await guard('qa', async () => { const q = await NL.runQA(app); qaSucceeded = true; const cur = NL.current(ed.id); return `nota ${cur.score}${q.blockers?.length ? `, ${q.blockers.length} bloqueio(s)` : ''}`; });
+  if (!qaSucceeded) { step('approve', 'error', 'A revisão não terminou. Retome as etapas pendentes antes de gerar os posts.'); return report; }
+  await guard('approve', async () => { const cur = NL.current(ed.id); const det = deterministicChecks(cur.content_json, app.evidence(ed.id), 'newsletter', NL.qaOpts(cur)); const blockers = [...det.blockers, ...aiBlockers(cur.content_json, cur.qa_json?.ai)]; if (blockers.length) throw new Error(`${blockers.length} bloqueio(s): ${blockers.map(b => b.text).join(' | ')}. Corrija no Editor da Newsletter e aprove; depois use "Gerar os posts".`); if (!cur.is_approved) NL.approve(app); approved = true; return 'aprovada'; });
   if (!approved) return report;
   // 5-8. posts: colados pelo editor (sem IA) ou escritos pela IA
   const pasted = postsText && postsText.trim() ? parsePostsText(postsText) : null;
-  if (pasted) { for (const a of PF.ANGLES) await guard(`post_${a}`, async () => { const c = pasted[a]; if (!c) throw new Error('não encontrado no texto colado (use o título "## TREINAMENTO", "## CONSULTORIA" ou "## NEGÓCIO")'); applyPasted(app, ed, a, c); return c.headline; }); if (withMeme || pasted.meme) await guard('meme', async () => { const m = PF.createMeme(app, ed.id); if (pasted.meme) applyPasted(app, ed, 'meme', pasted.meme, m); ed.meme_included = true; return m.content_json.headline || 'criado'; }); }
-  else { for (const a of PF.ANGLES) await guard(`post_${a}`, async () => { await PF.deriveOne(app, a); const p = PF.post(ed.id, a); return p?.content_json?.headline || ''; }); if (withMeme) await guard('meme', async () => { const m = PF.createMeme(app, ed.id); if (!m.content_json.headline && PF.deriveMeme) await PF.deriveMeme(app, m); ed.meme_included = true; return m.content_json.headline || 'criado (preencha a frase)'; }); }
+  if (pasted) { for (const a of PF.ANGLES) await guard(`post_${a}`, async () => { if (existing && PF.post(ed.id, a)?.content_json?.headline) return 'conteúdo existente preservado'; const c = pasted[a]; if (!c) throw new Error('não encontrado no texto colado (use o título "## TREINAMENTO", "## CONSULTORIA" ou "## NEGÓCIO")'); applyPasted(app, ed, a, c); return c.headline; }); if (withMeme || pasted.meme) await guard('meme', async () => { const m = PF.createMeme(app, ed.id); if (pasted.meme) applyPasted(app, ed, 'meme', pasted.meme, m); ed.meme_included = true; return m.content_json.headline || 'criado'; }); }
+  else { for (const a of PF.ANGLES) await guard(`post_${a}`, async () => { if (existing && PF.post(ed.id, a)?.content_json?.headline) return 'conteúdo existente preservado'; await PF.deriveOne(app, a); const p = PF.post(ed.id, a); return p?.content_json?.headline || ''; }); if (withMeme) await guard('meme', async () => { const m = PF.createMeme(app, ed.id); if (!m.content_json.headline && PF.deriveMeme) await PF.deriveMeme(app, m); ed.meme_included = true; return m.content_json.headline || 'criado (preencha a frase)'; }); }
   // 9. carrossel: a IA marcou format = 'carousel' em no máximo um post; se nenhum, o de maior sequência (consultoria) fica único.
-  await guard('carousel', async () => { const posts = PF.ANGLES.map(a => PF.post(ed.id, a)).filter(Boolean); let car = posts.filter(p => p.format === 'carousel'); if (car.length > 1) { car.slice(1).forEach(p => { p.format = 'single'; }); car = [car[0]]; } for (const p of car) if (!p.carousel?.slides?.length) await PF.deriveCarousel(app, p); app.save(); return car.length ? `carrossel: ${car[0].angle}` : 'nenhum post pediu carrossel'; });
+  await guard('carousel', async () => { const posts = PF.ANGLES.map(a => PF.post(ed.id, a)).filter(p => p && !['approved', 'exported'].includes(p.status) && !db.publications.some(x => x.post_id === p.id)); let car = posts.filter(p => p.format === 'carousel'); if (car.length > 1) { car.slice(1).forEach(p => { p.format = 'single'; }); car = [car[0]]; } for (const p of car) if (!p.carousel?.slides?.length) await PF.deriveCarousel(app, p); app.save(); return car.length ? `carrossel: ${car[0].angle}` : 'nenhum post pediu carrossel'; });
   // 10. espanhol
-  if (withEs) await guard('es', async () => { const thesis = NL.current(ed.id)?.content_json?.thesis || ''; let k = 0; for (const p of PF.postsOf(ed.id)) { if (!p.content_json?.headline) continue; await ES.adaptToSpanish(app, p, thesis); if (p.format === 'carousel' && p.carousel?.slides?.length) await ES.adaptCarouselToSpanish(app, p); k++; } return `${k} post(s)`; });
+  if (withEs) await guard('es', async () => { const thesis = NL.current(ed.id)?.content_json?.thesis || ''; let k = 0; for (const p of PF.postsOf(ed.id)) { if (!p.content_json?.headline || ['approved', 'exported'].includes(p.status) || db.publications.some(x => x.post_id === p.id)) continue; if (!p.content_es?.headline) await ES.adaptToSpanish(app, p, thesis); if (p.format === 'carousel' && p.carousel?.slides?.length && !p.carousel_es?.slides?.length) await ES.adaptCarouselToSpanish(app, p); k++; } return `${k} post(s)`; });
   // 11. imagens
-  if (withImages) await guard('images', async () => { const st = imageProviderStatus(); if (!st.ok) throw new Error(`geração de imagem não configurada (${st.hint})`); let k = 0, fails = []; for (const p of PF.postsOf(ed.id)) { if (p.angle === 'meme' || !p.content_json?.image_prompt) continue; try { await PF.generateImage(app, p, { prompt: p.content_json.image_prompt, provider: db.settings.image_provider_default, mode: db.settings.image_mode }); k++; } catch (e) { fails.push(`${p.angle}: ${e.message}`); } } return `${k} imagem(ns)${fails.length ? `; falhou: ${fails.join(' | ')}` : ''}`; });
+  if (withImages) await guard('images', async () => { const st = imageProviderStatus(); if (!st.ok) throw new Error(`geração de imagem não configurada (${st.hint})`); let k = 0, fails = []; for (const p of PF.postsOf(ed.id)) { if (p.angle === 'meme' || !p.content_json?.image_prompt || p.image_id || ['approved', 'exported'].includes(p.status) || db.publications.some(x => x.post_id === p.id)) continue; try { await PF.generateImage(app, p, { prompt: p.content_json.image_prompt, provider: db.settings.image_provider_default, mode: db.settings.image_mode }); k++; } catch (e) { fails.push(`${p.angle}: ${e.message}`); } } if (fails.length) throw new Error(`${k} imagem(ns) salva(s); pendentes: ${fails.join(' | ')}`); return `${k} imagem(ns)`; });
   // 12. sync
   await guard('sync', async () => { if (!app.M.supabase?.signedIn()) return 'sem login: dados ficam neste navegador'; await app.M.supabase.pushAll(); return 'sincronizado'; });
   audit('pipeline.run', 'edition', ed.id, { steps: report.filter(r => r.status === 'done').length, errors: report.filter(r => r.status === 'error').map(r => r.id) });

@@ -25,3 +25,12 @@ Postagens de treinamentos usam a mesma regra na etapa 6 de `ops/treinamentos.md`
 - O gate do servidor também aceita `EDITORIAL_CLARITY_ENABLED=false` como desligamento temporário; a interface aceita a mesma desativação por `settings.editorial_clarity_enabled=false`. Não há necessidade de alterar integrações ou dados de publicação para reverter.
 
 O rollout só altera código. Não habilitar, pausar ou executar automações nem realizar envio/publicação como parte destes testes.
+
+
+## Recuperação de respostas incompletas (17/11/2026)
+
+O limite de saída também inclui os tokens de raciocínio do GPT-5. As chamadas de planejamento, que usavam 2.000 tokens com esforço padrão, podiam retornar HTTP 200 com texto vazio. Agora todas as chamadas GPT-5 usam esforço baixo e uma reserva mínima de 4.096 tokens. O servidor valida JSON e finish_reason antes de responder; se vier truncado ou vazio, gera novamente uma única vez com orçamento maior. A validação também cobre a revisão da newsletter e clientes antigos. Não completa frases ou chaves artificialmente.
+
+O fluxo interrompe a liberação da fonte-mãe quando a revisão falha. O botão “Retomar etapas pendentes” reutiliza a edição e a newsletter salvas, preserva os posts existentes e gera apenas o que falta. Não publica nem agenda. Para reverter apenas esta correção, restaure os arquivos do commit 055f099912f020dcc993d20105b96ffa6a8939a9 e republique text-generate/studio-v2 com seus bundles desse commit.
+
+Validação: `node --test tests/json-completion.test.mjs tests/pipeline-recovery.test.mjs tests/editorial-clarity.test.mjs`. Testes reais são isolados, com somente chamadas de geração de texto, sem gravação em produção.
