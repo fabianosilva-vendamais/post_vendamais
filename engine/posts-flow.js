@@ -251,6 +251,23 @@ export function approvePost(app, p) {
   p.status = 'approved'; p.approved_at = now(); audit('post.approve', 'post', p.id, { score: p.score }); const ed = app.edition();
   if (postsOf(ed.id).length === 3 && postsOf(ed.id).every(x => x.status === 'approved' || x.status === 'exported')) app.setStatus(ed, 'approved'); app.save();
 }
+// One paste replaces the common caption atomically, including stale channel variants.
+export function setSharedCaption(app, p, text, lang = 'pt') {
+  ensureDraft(p);
+  if (!['pt', 'es'].includes(lang)) throw new Error('Idioma de copy inválido.');
+  const c = lang === 'es' ? p.content_es : p.content_json;
+  if (!c) throw new Error('Gere a versão em espanhol antes de editar o copy.');
+  if (!String(text || '').trim()) throw new Error('O copy não pode ficar vazio.');
+  p.versions = p.versions || [];
+  p.versions.push({ content_json: structuredClone(p.content_json), ...(p.content_es ? { content_es: structuredClone(p.content_es) } : {}), at: now(), origin: 'copy-manual' });
+  if (p.versions.length > 40) p.versions.shift();
+  c.caption = { hook: '', body: String(text).trim(), practical_takeaway: '', cta: '', hashtags: [] };
+  delete c.captions;
+  p.meta = { ...p.meta, edited: { ...p.meta?.edited, ['caption.' + lang]: 'human' } };
+  if (lang === 'es') p.es_status = 'pending_validation';
+  p.score = null; p.qa_json = null; p.updated_at = now();
+  audit('post.caption.shared', 'post', p.id, { lang }); app.save('Autosave');
+}
 export function captionText(p, lang = 'pt', network = '') { const content = contentFor(p, lang); const c = (network && content.captions?.[network]) || content.caption || {}; return [c.hook, '', c.body, '', c.practical_takeaway, '', c.cta, '', (c.hashtags || []).map(h => h.startsWith('#') ? h : '#' + h).join(' ')].filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n').trim(); }
 export async function exportPost(app, p, { png = true, copy = true, lang = 'pt' } = {}) {
   const ed = app.edition(); const base = `vendamais-radar-${ed.brief.number}-${p.angle}${lang === 'es' ? '-es' : ''}`;

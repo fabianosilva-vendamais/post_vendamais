@@ -1,3 +1,4 @@
+import { isFinalArtwork } from './final-artwork.js';
 import { clearVisualCopy, clearVisualSlides } from './posts-flow.js?vm202611011656';
 import { CLARITY_VERSION } from './editorial-clarity.js';
 // Adaptação dos posts para espanhol (Paraguai e América Latina). Não é tradução literal: parte do sentido do PT aprovado.
@@ -26,11 +27,13 @@ async function fillMissing(es, pt, fields, ctx) {
 }
 export async function adaptToSpanish(app, p, thesis = '') {
   if ((['approved', 'exported'].includes(p.status) && (p.content_es || p.content_json?.editorial_version !== CLARITY_VERSION)) || (db.publications || []).some(x => x.post_id === p.id && x.status !== 'cancelled')) throw new Error('Preserve a peça aprovada. Crie uma nova versão em rascunho.');
+  const before = JSON.stringify([p.content_json, p.content_es, p.status]);
   const c = p.content_json;
   const src = { kicker: c.kicker, headline: c.headline, support_line: c.support_line, proof_number: c.proof_number, proof_label: c.proof_label, thesis: c.thesis, visual_concept: c.visual_concept, caption: c.caption, ...(c.captions ? { captions: c.captions } : {}) };
-  const out = await textJSON({ system: 'Retorne apenas JSON válido; dentro das strings use aspas simples para citações.', prompt: PROMPT.replace('{{thesis}}', thesis).replace('{{post}}', JSON.stringify(src)), purpose: `post.es:${p.angle}` });
+  const out = await textJSON({ system: 'Retorne apenas JSON válido; dentro das strings use aspas simples para citações.', prompt: PROMPT.replace('{{thesis}}', thesis).replace('{{post}}', JSON.stringify(src)) + (!c.captions ? '\nO original usa UM copy compartilhado para Instagram e LinkedIn. Retorne somente caption, sem captions por rede. Preserve os campos vazios de caption; não redistribua frases entre os campos nem acrescente CTA ou hashtags que não existem no original.' : ''), purpose: `post.es:${p.angle}` });
   if (c.captions && (!out.captions?.instagram || !out.captions?.linkedin)) throw new Error('A adaptação não completou os copies dos dois canais. O conteúdo anterior foi preservado.');
   let es = sanitize({ ...c, ...out, angle: p.angle, caption: { ...(c.caption || {}), ...(out.caption || {}), hashtags: (out.caption?.hashtags || []).map(h => String(h).replace(/^#/, '')).slice(0, 5) } });
+  if (!c.captions) { delete es.captions; for (const f of ['hook', 'body', 'practical_takeaway', 'cta']) if (!c.caption?.[f]) es.caption[f] = ''; if (!c.caption?.hashtags?.length) es.caption.hashtags = []; }
   es.headline = String(es.headline || '').replace(/[.]+$/, '');
   // Meme/manchete: restaura marcadores de linha (/) e destaque (*...*) se a IA os perdeu.
   if (/\/|\*/.test(c.headline || '') && !/\/|\*/.test(es.headline)) {
@@ -41,8 +44,10 @@ export async function adaptToSpanish(app, p, thesis = '') {
   }
   await fillMissing(es, c, TEXT_FIELDS, 'post ' + p.angle);
   if (es.proof_number !== c.proof_number) es.proof_number = c.proof_number;
-  if (es.editorial_version === CLARITY_VERSION) es = await clearVisualCopy(es);
+  if (!isFinalArtwork(p) && es.editorial_version === CLARITY_VERSION) es = await clearVisualCopy(es);
+  if (JSON.stringify([p.content_json, p.content_es, p.status]) !== before || (db.publications || []).some(x => x.post_id === p.id && x.status !== 'cancelled')) throw new Error('O post mudou durante a adaptação. A edição atual foi preservada.');
   p.content_es_pt_fp = ptFingerprint(p);
+  p.meta = { ...p.meta, es_pt_fingerprint: p.content_es_pt_fp };
   p.content_es_versions = p.content_es_versions || []; if (p.content_es) p.content_es_versions.push({ content: p.content_es, at: now() });
   p.content_es = es; p.es_status = 'pending_validation'; p.updated_at = now();
   audit('post.es.generate', 'post', p.id, {}); app.save(); return es;
@@ -68,6 +73,6 @@ export async function adaptCarouselToSpanish(app, p) {
 export function editSpanishSlide(app, p, i, field, value) { const s = p.carousel_es?.slides?.[i]; if (!s || JSON.stringify(s[field]) === JSON.stringify(value)) return; s[field] = value; p.updated_at = now(); app.save('Autosave'); }
 
 // Está desatualizada se o PT mudou depois da geração.
-export function esOutdated(p) { if (!p.content_es) return false; if (p.content_es_pt_fp && p.content_es_pt_fp !== ptFingerprint(p)) return true; if (p.format === 'carousel' && p.carousel_es && p.carousel_es.pt_fp && p.carousel_es.pt_fp !== carFingerprint(p)) return true; return false; }
+export function esOutdated(p) { if (!p.content_es) return false; if ((p.content_es_pt_fp || p.meta?.es_pt_fingerprint) && (p.content_es_pt_fp || p.meta?.es_pt_fingerprint) !== ptFingerprint(p)) return true; if (p.format === 'carousel' && p.carousel_es && p.carousel_es.pt_fp && p.carousel_es.pt_fp !== carFingerprint(p)) return true; return false; }
 // Campos ainda em português dentro da versão ES (para o aviso na tela).
 export function esUntranslated(p) { const out = []; if (p.content_es) for (const f of TEXT_FIELDS) { const a = String(gp(p.content_json, f) || '').trim(), b = String(gp(p.content_es, f) || '').trim(); if (a && a === b) out.push(f); } if (p.format === 'carousel' && p.carousel_es?.slides) p.carousel_es.slides.forEach((s, i) => { const o = p.carousel.slides[i] || {}; ['title', 'body', 'cta'].forEach(k => { if (o[k] && o[k] === s[k]) out.push('slide ' + (i + 1) + ' ' + k); }); }); return out; }
