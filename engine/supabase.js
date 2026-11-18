@@ -123,6 +123,14 @@ export async function pushAll() {
 // Traz do Supabase e mescla por id (registro remoto mais novo vence).
 export async function pullAll() {
   if (!signedIn()) throw new Error('Faça login para sincronizar.'); await refreshIfNeeded();
+  // Restore workspace publication targets across browsers and sessions. Keep
+  // local credentials/provider preferences; this is a narrow, non-secret allowlist.
+  const savedSettings = await rest('settings', 'GET', null, `?workspace_id=eq.${encodeURIComponent(WS)}&select=settings_json`);
+  const publicationSettings = savedSettings[0]?.settings_json || {};
+  for (const key of ['metricool_blog_id', 'metricool_brand_name', 'metricool_blog_id_es', 'metricool_brand_name_es', 'timezone']) {
+    const value = publicationSettings[key];
+    if ((typeof value === 'string' || typeof value === 'number') && String(value).trim()) db.settings[key] = String(value);
+  }
   const merge = async (table, key, query = '') => { const rows = await rest(table, 'GET', null, `?select=*${query}`); const local = db[key]; for (const r of rows) { const i = local.findIndex(x => x.id === r.id); if (i < 0) local.push(r); else if ((r.updated_at || r.created_at || '') > (local[i].updated_at || local[i].created_at || '')) local[i] = { ...local[i], ...r }; } };
   await merge('brand_assets', 'brand_assets'); await merge('brand_rules', 'brand_rules'); await merge('editions', 'editions'); await merge('sources', 'sources'); await merge('analyses', 'analyses');
   await merge('newsletter_versions', 'newsletter_versions'); await merge('posts', 'posts'); await merge('generated_images', 'generated_images'); await merge('renders', 'renders'); db.publications = db.publications || []; await merge('publications', 'publications'); await merge('prompt_templates', 'prompt_templates');
