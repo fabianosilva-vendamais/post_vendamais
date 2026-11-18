@@ -1,3 +1,4 @@
+import { isFinalArtwork, artworkFor, artworkData } from './final-artwork.js';
 // Publisher Adapter: agenda publicação dos posts aprovados via Metricool (Edge Function publish-schedule).
 // Regra: só post aprovado entra na fila. Sem publicação sem aprovação humana.
 import { db, uid, now, audit, blobs } from './store.js?vm202611011656';
@@ -44,11 +45,12 @@ export async function schedule(app, p, { networks, dateTime, draft = false, firs
   const ed = app.edition(); const base = `ed${String(ed.brief.number).padStart(2, '0')}/${p.angle}/${Date.now()}`;
   const urls = [];
   const up = async (canvas, name) => { const blob = await canvasToBlob(canvas); const dataUrl = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); }); return SB.uploadPublic('renders', `${base}/${name}.png`, dataUrl); };
-  const isCar = p.format === 'carousel' && p.carousel?.slides?.length;
-  if (isCar) { for (let i = 0; i < p.carousel.slides.length; i++) { const cv = document.createElement('canvas'); await renderCarouselSlide(app, p, i, cv, lang); urls.push(await up(cv, String(i + 1).padStart(2, '0'))); } }
+  const isCar = !isFinalArtwork(p) && p.format === 'carousel' && p.carousel?.slides?.length;
+  if (isFinalArtwork(p)) { const art = await artworkData(p, lang); urls.push(await SB.uploadPublic('renders', `${base}/arte-final-${lang}.${art.extension}`, art.dataUrl)); }
+  else if (isCar) { for (let i = 0; i < p.carousel.slides.length; i++) { const cv = document.createElement('canvas'); await renderCarouselSlide(app, p, i, cv, lang); urls.push(await up(cv, String(i + 1).padStart(2, '0'))); } }
   else { const cv = document.createElement('canvas'); await renderPost(app, p, cv, lang); urls.push(await up(cv, 'post')); }
   const text = captionText(p, lang, networks.length === 1 ? networks[0] : '');
-  const res = await edge({ action: 'schedule', blogId: blogIdFor(lang), text, mediaUrls: urls, networks, dateTime, timezone: db.settings.timezone || 'America/Sao_Paulo', draft, firstComment, altText: p.content_json.headline, linkedinDocumentTitle: isCar && networks.includes('linkedin') ? p.content_json.headline : '', instagramType: 'POST' });
+  const res = await edge({ action: 'schedule', blogId: blogIdFor(lang), text, mediaUrls: urls, networks, dateTime, timezone: db.settings.timezone || 'America/Sao_Paulo', draft, firstComment, altText: (lang === 'es' ? p.content_es : p.content_json)?.headline || '', linkedinDocumentTitle: isCar && networks.includes('linkedin') ? p.content_json.headline : '', instagramType: 'POST' });
   const rec = { id: uid('pub'), post_id: p.id, edition_id: p.edition_id, provider: 'metricool', lang, networks, date_time: dateTime, timezone: db.settings.timezone || 'America/Sao_Paulo', draft, media_urls: urls, remote: res.result, status: draft ? 'draft' : 'scheduled', created_at: now() };
   db.publications = db.publications || []; db.publications.push(rec); p.publication_id = rec.id; p.status = 'exported'; ed.exports = ed.exports || {}; ed.exports.posts = now();
   audit('publish.schedule', 'post', p.id, { networks, dateTime, draft, slides: urls.length }); app.save(); return rec;
@@ -64,7 +66,7 @@ export function defaultAssignment(ed, posts) { const order = ['consulting', 'tra
 export function weekPlan(ed, posts, assignment = defaultAssignment(ed, posts), times = ed.schedule_times || {}) {
   const rows = [];
   for (const slot of SLOTS) { const pid = assignment[slot.id]; if (!pid) continue; const p = posts.find(x => x.id === pid); if (!p) continue; const date = (times[slot.id + '_date']) || slotDate(ed, slot);
-    for (const lang of ['pt', 'es']) { const ready = (p.status === 'approved' || p.status === 'exported') && (lang === 'pt' || !!p.content_es); const already = (db.publications || []).some(x => x.post_id === p.id && (x.lang || 'pt') === lang && x.status !== 'cancelled'); rows.push({ slot: slot.id, slotLabel: slot.label, postId: p.id, angle: p.angle, lang, date, time: times[slot.id + '_' + lang] || (lang === 'pt' ? (slot.id === 'sat' ? '11:00' : '09:00') : (slot.id === 'sat' ? '12:00' : '10:00')), networks: ['linkedin', 'instagram'], ready, already, blocker: !ready ? (p.status !== 'approved' && p.status !== 'exported' ? 'post não aprovado' : 'sem versão ES') : already ? 'já agendado' : '' }); } }
+    for (const lang of ['pt', 'es']) { const ready = (p.status === 'approved' || p.status === 'exported') && (lang === 'pt' || !!p.content_es) && (!isFinalArtwork(p) || !!artworkFor(p, lang)?.image_id); const already = (db.publications || []).some(x => x.post_id === p.id && (x.lang || 'pt') === lang && x.status !== 'cancelled'); rows.push({ slot: slot.id, slotLabel: slot.label, postId: p.id, angle: p.angle, lang, date, time: times[slot.id + '_' + lang] || (lang === 'pt' ? (slot.id === 'sat' ? '11:00' : '09:00') : (slot.id === 'sat' ? '12:00' : '10:00')), networks: ['linkedin', 'instagram'], ready, already, blocker: !ready ? (p.status !== 'approved' && p.status !== 'exported' ? 'post não aprovado' : isFinalArtwork(p) && !artworkFor(p, lang)?.image_id ? 'sem arte final ' + lang.toUpperCase() : 'sem versão ES') : already ? 'já agendado' : '' }); } }
   return rows;
 }
 export async function scheduleWeek(app, rows, { draft = false, onRow } = {}) {

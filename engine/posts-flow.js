@@ -1,3 +1,5 @@
+import { isFinalArtwork, artworkFor, artworkData, artworkIssues, renderArtwork } from './final-artwork.js';
+export { isFinalArtwork, artworkFor, artworkIssues, artworkEditable, uploadArtwork, useStudioArtwork } from './final-artwork.js';
 import { CLARITY_VERSION } from './editorial-clarity.js';
 // Fluxo dos posts derivados: derivação, edição/regeneração local, imagens, QA, aprovação, exportação.
 import { db, uid, now, audit, activeRules, assetByType, blobs } from './store.js?vm202611011656';
@@ -162,7 +164,7 @@ export async function buildSpec(app, p, lang = 'pt') {
   const partner = R.partners.find(x => x.id === p.partner_id) || null;
   return { editorialVersion: c.editorial_version, templateId: p.template_id, memeLayout: p.meme_layout || 'bottom', headline: c.headline, support: c.support_line, kicker: c.kicker === '' ? '' : (c.kicker || R.angles[p.angle]?.kicker || ''), proofNumber: c.proof_number, proofLabel: c.proof_label, image, crop: p.crop, logoPrimary, logoNegative, portrait, partner };
 }
-export async function renderPost(app, p, canvas, lang = 'pt') { await ensureFonts(); const spec = await buildSpec(app, p, lang); const meta = render(canvas, spec); return { spec, meta }; }
+export async function renderPost(app, p, canvas, lang = 'pt') { if (isFinalArtwork(p)) return renderArtwork(p, canvas, lang); await ensureFonts(); const spec = await buildSpec(app, p, lang); const meta = render(canvas, spec); return { spec, meta }; }
 
 // ---- Carrossel ----
 export function setFormat(app, p, format) { p.format = format; p.meta.edited.format = 'human'; p.updated_at = now(); audit('post.format', 'post', p.id, { format }); app.save(); }
@@ -237,14 +239,14 @@ export async function runQA(app, p) {
   const pr = fill(prompt('qa_audit'), { channel: `post social 1080x1350 (LinkedIn + Instagram) com legenda de 400 a 1.500 caracteres, ângulo ${ga.label} para ${ga.audience}. LINHA EDITORIAL: reprove (severity bloqueio) se ${G.quality_gate.join('; ')}. Voz: ${G.voice.traits.join('; ')}. CTA nunca: ${G.cta.avoid.join(' / ')}`, piece: JSON.stringify(p.content_json), evidence: evidenceText(evidence) });
   const ai = await textJSON({ system: prompt('editor_base'), prompt: pr, purpose: 'post.qa' });
   const canvas = document.createElement('canvas'); const { spec, meta } = await renderPost(app, p, canvas);
-  const vis = visualChecks({ templateId: p.template_id, hasImage: !!spec.image, logoAssetOk: !!(spec.logoPrimary && spec.logoNegative), headline: p.content_json.headline, headlineFontPx: meta.headlineFontPx, textOverflow: meta.textOverflow, portraitOk: !!spec.portrait, partner: spec.partner });
+  const vis = isFinalArtwork(p) ? { score: artworkIssues(p).length ? 0 : 100, issues: artworkIssues(p), scope: 'file_integrity', note: 'Arquivo validado. Conteúdo e legibilidade da arte exigem revisão humana.' } : visualChecks({ templateId: p.template_id, hasImage: !!spec.image, logoAssetOk: !!(spec.logoPrimary && spec.logoNegative), headline: p.content_json.headline, headlineFontPx: meta.headlineFontPx, textOverflow: meta.textOverflow, portraitOk: !!spec.portrait, partner: spec.partner });
   const blockers = [...det.blockers, ...vis.issues.map(i => ({ code: i.code, where: 'render', text: i.text })), ...(ai.issues || []).filter(i => i.severity === 'bloqueio').map(i => ({ code: 'ai', where: i.where, text: i.text + (i.fix ? ` Correção: ${i.fix}` : '') }))];
   const { score, ready } = combineScore(ai.scores || {}, vis.score, blockers);
   p.score = score; p.qa_json = { deterministic: det, ai, visual: vis, blockers, ready, threshold: R.qa.threshold, at: now() }; p.updated_at = now();
   audit('post.qa', 'post', p.id, { score, blockers: blockers.length, ready }); app.save(); return p.qa_json;
 }
 export function approvePost(app, p) {
-  const det = deterministicChecks(p.content_json, app.evidence(p.edition_id), 'post'); const blockers = [...det.blockers, ...(p.qa_json?.visual?.issues || []), ...((p.qa_json?.ai?.issues || []).filter(i => i.severity === 'bloqueio'))];
+  const det = deterministicChecks(p.content_json, app.evidence(p.edition_id), 'post'); const blockers = [...det.blockers, ...artworkIssues(p), ...(p.qa_json?.visual?.issues || []), ...((p.qa_json?.ai?.issues || []).filter(i => i.severity === 'bloqueio'))];
   if (blockers.length) throw new Error(`${blockers.length} bloqueio(s) impedem a aprovação deste post.`);
   p.status = 'approved'; p.approved_at = now(); audit('post.approve', 'post', p.id, { score: p.score }); const ed = app.edition();
   if (postsOf(ed.id).length === 3 && postsOf(ed.id).every(x => x.status === 'approved' || x.status === 'exported')) app.setStatus(ed, 'approved'); app.save();
@@ -252,18 +254,24 @@ export function approvePost(app, p) {
 export function captionText(p, lang = 'pt', network = '') { const content = contentFor(p, lang); const c = (network && content.captions?.[network]) || content.caption || {}; return [c.hook, '', c.body, '', c.practical_takeaway, '', c.cta, '', (c.hashtags || []).map(h => h.startsWith('#') ? h : '#' + h).join(' ')].filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n').trim(); }
 export async function exportPost(app, p, { png = true, copy = true, lang = 'pt' } = {}) {
   const ed = app.edition(); const base = `vendamais-radar-${ed.brief.number}-${p.angle}${lang === 'es' ? '-es' : ''}`;
-  if (png) { const canvas = document.createElement('canvas'); await renderPost(app, p, canvas, lang); const blob = await canvasToBlob(canvas); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${base}-1080x1350.png`; a.click(); const rid = uid('render'); db.renders.push({ id: rid, post_id: p.id, template_id: p.template_id, image_id: p.image_id, dimensions: '1080x1350', created_at: now() }); }
+  if (png) {
+    const canvas = document.createElement('canvas'); await renderPost(app, p, canvas, lang);
+    const art = isFinalArtwork(p) ? await artworkData(p, lang) : null;
+    const a = document.createElement('a'); a.href = art ? art.dataUrl : URL.createObjectURL(await canvasToBlob(canvas));
+    a.download = art ? `${base}-arte-final.${art.extension}` : `${base}-1080x1350.png`; a.click();
+    db.renders.push({ id: uid('render'), post_id: p.id, template_id: art ? null : p.template_id, image_id: art?.image_id || p.image_id, dimensions: `${canvas.width}x${canvas.height}`, created_at: now() });
+  }
   if (copy) download(`${base}-legenda.txt`, captionText(p, lang));
   if (p.status === 'approved') p.status = 'exported'; ed.exports = ed.exports || {}; ed.exports.posts = now(); if (postsOf(ed.id).every(x => x.status === 'exported') && ed.exports.newsletter) app.setStatus(ed, 'exported');
   audit('post.export', 'post', p.id, { png, copy }); app.save();
 }
 
 // Imagem "existe" só se o arquivo estiver disponível neste navegador; referência sem arquivo conta como pendente.
-export async function hasImageFile(p) { if (!p.image_id) return false; try { return !!(await blobs.get(p.image_id)); } catch (e) { return false; } }
+export async function hasImageFile(p) { if (isFinalArtwork(p)) { try { await artworkData(p, 'pt'); await artworkData(p, 'es'); return true; } catch { return false; } } if (!p.image_id) return false; try { return !!(await blobs.get(p.image_id)); } catch (e) { return false; } }
 export async function pendingImages(editionId) { const out = []; for (const p of postsOf(editionId)) if (!(await hasImageFile(p))) out.push(p); return out; }
 export async function generateAllImages(app, editionId, opts = {}) {
   const done = [], failed = [];
-  for (const p of postsOf(editionId)) { if (!opts.force && await hasImageFile(p)) continue; if (p.image_id && !(await hasImageFile(p))) { p.image_id = null; } try { await generateImage(app, p, { prompt: p.content_json.image_prompt, provider: opts.provider, mode: opts.mode, references: [] }); done.push(p.angle); } catch (e) { failed.push(`${p.angle}: ${e.message}`); } }
+  for (const p of postsOf(editionId)) { if (isFinalArtwork(p)) { if (!(await hasImageFile(p))) failed.push(`${p.angle}: envie as artes prontas PT e ES no Image Lab`); continue; } if (!opts.force && await hasImageFile(p)) continue; if (p.image_id && !(await hasImageFile(p))) { p.image_id = null; } try { await generateImage(app, p, { prompt: p.content_json.image_prompt, provider: opts.provider, mode: opts.mode, references: [] }); done.push(p.angle); } catch (e) { failed.push(`${p.angle}: ${e.message}`); } }
   return { done, failed };
 }
 

@@ -837,7 +837,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
               <span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#16263A;font-weight:700">Formato</span>
               <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
                 <button data-format="single" onClick="{{ setFormat }}" style="{{ formatBtn.single }}">Peça única</button>
-                <button data-format="carousel" onClick="{{ setFormat }}" style="{{ formatBtn.carousel }}">Carrossel</button>
+                <button data-format="carousel" onClick="{{ setFormat }}" disabled="{{ finalArtworkMode }}" style="{{ formatBtn.carousel }}">Carrossel</button>
                 <sc-if value="{{ isCarousel }}" hint-placeholder-val="{{ false }}">
                   <select value="{{ carouselSlidesWanted }}" onChange="{{ onSlidesWanted }}" style="padding:7px 10px;border:1px solid #E6E2DA;border-radius:4px;background:#fff;font-size:12px"><option value="auto">Automático (pela ideia)</option><option value="3">3 slides</option><option value="4">4 slides</option><option value="5">5 slides</option><option value="6">6 slides</option><option value="7">7 slides</option></select>
                   <button onClick="{{ deriveCarousel }}" disabled="{{ busy }}" style="background:#E2742B;color:#fff;border:0;border-radius:4px;padding:8px 12px;font-size:12px;font-weight:600">{{ deriveCarouselLabel }}</button>
@@ -941,7 +941,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
           </div>
           <div style="position:sticky;top:76px;display:flex;flex-direction:column;gap:10px">
             <div style="background:#EEF1F4;border:1px solid #E6E2DA;border-radius:12px;padding:16px;display:flex;justify-content:center">
-              <canvas ref="{{ postCanvasRef }}" width="1080" height="1350" style="width:100%;max-width:432px;aspect-ratio:4/5;border-radius:4px;box-shadow:0 2px 12px rgba(22,38,58,.15);background:#fff"></canvas>
+              <canvas ref="{{ postCanvasRef }}" width="1080" height="1350" style="width:100%;max-width:432px;height:auto;border-radius:4px;box-shadow:0 2px 12px rgba(22,38,58,.15);background:#fff"></canvas>
             </div>
             <div style="font-size:11px;color:#5E6770;text-align:center">{{ previewCaption }}</div>
             <sc-if value="{{ hasCarousel }}" hint-placeholder-val="{{ false }}">
@@ -996,8 +996,24 @@ button:disabled{opacity:.5;cursor:not-allowed}
       <sc-if value="{{ noPosts }}" hint-placeholder-val="{{ false }}"><div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:32px;color:#5E6770;font-size:14px">{{ postsEmptyMsg }}</div></sc-if>
       <sc-if value="{{ hasPosts }}" hint-placeholder-val="{{ false }}">
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><sc-for list="{{ angleTabs }}" as="t" hint-placeholder-count="0"><button data-angle="{{ t.id }}" onClick="{{ setAngle }}" style="{{ t.style }}">{{ t.label }}</button></sc-for><span style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:#5E6770"><span style="{{ imageProvDot }}"></span>{{ imageProv.label }} · {{ imageProvState }}</span></div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;align-items:start">
-          <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="background:#fff;border:2px solid #16263A;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px">
+          <strong style="font-size:17px;color:#16263A">Enviar artes prontas</strong>
+          <div style="font-size:13px;line-height:1.5;color:#5E6770">Envie a imagem completa, com texto e logo. Ela será usada sem recortes nem elementos por cima. PNG ou JPG até 8 MB. Recomendado: 1080 × 1350 px.</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+            <sc-for list="{{ artworkRows }}" as="art" hint-placeholder-count="0">
+              <div style="border:1px solid #E6E2DA;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px">
+                <strong style="font-size:13px;color:#16263A">{{ art.title }}</strong>
+                <label style="background:#16263A;color:#fff;border-radius:5px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;text-align:center">{{ art.button }}<input type="file" accept="image/png,image/jpeg" data-lang="{{ art.lang }}" onChange="{{ uploadFinalArtwork }}" disabled="{{ artworkUploadDisabled }}" style="display:none"></label>
+                <span style="font-size:12px;color:#5E6770;overflow-wrap:anywhere">{{ art.status }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="font-size:12px;line-height:1.5;color:#5E6770">{{ artworkModeHint }}</div>
+          <sc-if value="{{ finalArtworkMode }}" hint-placeholder-val="{{ false }}"><button onClick="{{ useStudioComposition }}" disabled="{{ artworkUploadDisabled }}" style="align-self:start;background:#fff;border:1px solid #E6E2DA;border-radius:4px;padding:7px 10px;color:#5E6770;font-size:12px">Voltar à composição do Studio</button></sc-if>
+        </div>
+        <div style="{{ imageLabGridStyle }}">
+          <sc-if value="{{ useStudioArtwork }}" hint-placeholder-val="{{ true }}"><div style="display:flex;flex-direction:column;gap:12px">
+            <details open="{{ useStudioArtwork }}" style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:12px"><summary style="cursor:pointer;font-size:13px;font-weight:600;color:#16263A">Compor arte no Studio (opcional)</summary><div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
             <div style="background:#fff;border:1px solid #E6E2DA;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px">
               <span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#16263A;font-weight:700">Briefing visual (imagem-base, sem texto e sem logo)</span>
               <div style="font-size:12px;color:#5E6770;line-height:1.5">Conceito: {{ visualConcept }}</div>
@@ -1036,11 +1052,14 @@ button:disabled{opacity:.5;cursor:not-allowed}
                 <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ refRows }}" as="r" hint-placeholder-count="0"><button data-id="{{ r.id }}" onClick="{{ useAcervo }}" style="border:1px solid #E6E2DA;background:#fff;padding:2px;border-radius:4px"><div style="{{ r.thumb }}"></div></button></sc-for></div>
               </sc-if>
             </div>
-          </div>
+            </div></details>
+          </div></sc-if>
           <div style="position:sticky;top:76px;display:flex;flex-direction:column;gap:10px">
-            <div style="background:#EEF1F4;border:1px solid #E6E2DA;border-radius:12px;padding:16px;display:flex;justify-content:center"><canvas ref="{{ postCanvasRef }}" width="1080" height="1350" style="width:100%;max-width:432px;aspect-ratio:4/5;border-radius:4px;box-shadow:0 2px 12px rgba(22,38,58,.15);background:#fff"></canvas></div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ templateBtns }}" as="t" hint-placeholder-count="0"><button data-id="{{ t.id }}" onClick="{{ setTemplate }}" disabled="{{ t.disabled }}" style="{{ t.style }}">{{ t.id }}</button></sc-for></div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap"><button data-route="posts" onClick="{{ go }}" style="background:#16263A;color:#fff;border:0;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Voltar ao Post Studio</button><button onClick="{{ exportPng }}" style="background:#fff;border:1px solid #16263A;color:#16263A;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Baixar PNG</button></div>
+            <div style="display:flex;align-items:center;gap:6px"><button data-lang="pt" onClick="{{ previewArtworkLang }}" style="{{ langBtn.pt }}">Português</button><button data-lang="es" onClick="{{ previewArtworkLang }}" style="{{ langBtn.es }}">Español</button></div>
+            <span style="font-size:12px;color:#5E6770">{{ artworkPreviewHint }}</span>
+            <div style="background:#EEF1F4;border:1px solid #E6E2DA;border-radius:12px;padding:16px;display:flex;justify-content:center"><canvas ref="{{ postCanvasRef }}" width="1080" height="1350" style="width:100%;max-width:432px;height:auto;border-radius:4px;box-shadow:0 2px 12px rgba(22,38,58,.15);background:#fff"></canvas></div>
+            <sc-if value="{{ useStudioArtwork }}" hint-placeholder-val="{{ true }}"><div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ templateBtns }}" as="t" hint-placeholder-count="0"><button data-id="{{ t.id }}" onClick="{{ setTemplate }}" disabled="{{ t.disabled }}" style="{{ t.style }}">{{ t.id }}</button></sc-for></div></sc-if>
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><button data-route="posts" onClick="{{ go }}" style="background:#16263A;color:#fff;border:0;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Voltar ao Post Studio</button><button onClick="{{ exportPng }}" style="background:#fff;border:1px solid #16263A;color:#16263A;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:600">Baixar arte</button></div>
           </div>
         </div>
       </sc-if>
@@ -1365,7 +1384,7 @@ class Component extends DCLogic {
   postCanvasRef = React.createRef(); _lastSig = ''; imgUrlCache = {};
   PF() { return this.M.posts; }
   activePost() { const ed = this.edition(); if (!ed || !this.M.posts) return null; const a = this.state.activeAngle || 'training'; return this.M.posts.post(ed.id, a) || this.M.posts.postsOf(ed.id)[0] || null; }
-  scheduleRender() { const p = this.activePost(); const cv = this.postCanvasRef.current; if (!p || !cv) return; const lang = this.lang(); const c = this.PF().contentFor(p, lang); const car = this.isCarousel(p); const si = this.slideIndex(p); const esReady = lang !== 'es' || (!!p.content_es && (!car || !!p.carousel_es?.slides?.length)); const sig = JSON.stringify([p.id, lang, esReady, p.template_id, p.meme_layout, (p.carousel?.slides || []).map(x => (x.style || '') + ':' + x.role + ':' + (x.image_id || '')).join(','), lang === 'es' ? JSON.stringify(p.carousel_es?.slides || []) : '', c.headline, c.support_line, c.kicker, c.proof_number, c.proof_label, c.caption?.cta, p.crop, p.image_id, p.partner_id, car, si, car ? p.carousel.slides : null, this.state.route, this.db().brand_assets.map(a => a.id + a.version + a.active).join(',')]); if (sig === this._lastSig && cv.dataset.sig === sig) return; this._lastSig = sig; cv.dataset.sig = sig; clearTimeout(this._rt); this._rt = setTimeout(() => (car && this.state.route === 'posts' ? this.PF().renderCarouselSlide(this, p, si, cv, lang) : this.PF().renderPost(this, p, cv, lang)).catch(err => console.error('render', err)), 60); }
+  scheduleRender() { const p = this.activePost(); const cv = this.postCanvasRef.current; if (!p || !cv) return; const lang = this.lang(); const c = this.PF().contentFor(p, lang); const car = this.isCarousel(p); const si = this.slideIndex(p); const esReady = lang !== 'es' || (!!p.content_es && (!car || !!p.carousel_es?.slides?.length)); const sig = JSON.stringify([p.id, lang, esReady, p.template_id, p.meme_layout, (p.carousel?.slides || []).map(x => (x.style || '') + ':' + x.role + ':' + (x.image_id || '')).join(','), lang === 'es' ? JSON.stringify(p.carousel_es?.slides || []) : '', c.headline, c.support_line, c.kicker, c.proof_number, c.proof_label, c.caption?.cta, p.crop, p.image_id, p.meta?.artwork_mode, p.meta?.final_artworks, p.partner_id, car, si, car ? p.carousel.slides : null, this.state.route, this.db().brand_assets.map(a => a.id + a.version + a.active).join(',')]); if (sig === this._lastSig && cv.dataset.sig === sig) return; this._lastSig = sig; cv.dataset.sig = sig; clearTimeout(this._rt); this._rt = setTimeout(() => (car && this.state.route === 'posts' ? this.PF().renderCarouselSlide(this, p, si, cv, lang) : this.PF().renderPost(this, p, cv, lang)).catch(err => console.error('render', err)), 60); }
   // ---------- Aplicar correção do QA no post ----------
   postFieldFor(where = '') { const w = String(where).toLowerCase(); const map = [[/hashtag/, 'caption.hashtags'], [/gancho|hook/, 'caption.hook'], [/takeaway|prático|pratico|aplic/, 'caption.practical_takeaway'], [/cta|chamada/, 'caption.cta'], [/corpo|body|legenda|caption/, 'caption.body'], [/apoio|support/, 'support_line'], [/kicker|rótulo|rotulo/, 'kicker'], [/prova|proof|número|numero/, 'proof_number'], [/t[íi]tulo|headline|manchete/, 'headline'], [/tese|thesis/, 'thesis']]; for (const [rx, f] of map) if (rx.test(w)) return f; return null; }
   fixTextOf(issue) { const src = (issue.fix || '') + ' ' + (issue.text || ''); const m = src.match(/(?:substituir por|reescrever para|trocar por|acrescentar|adicionar|usar|sugest[ãa]o)\s*:?\s*['"“‘]([^'"”’]{4,})['"”’]/i) || src.match(/['"“‘]([^'"”’]{12,})['"”’]/); return m ? m[1].trim() : null; }
@@ -1445,7 +1464,7 @@ class Component extends DCLogic {
   }
 
   // ---------- Carrossel ----------
-  isCarousel(p) { return p?.format === 'carousel' && p.carousel?.slides?.length > 0; }
+  isCarousel(p) { return !this.PF().isFinalArtwork(p) && p?.format === 'carousel' && p.carousel?.slides?.length > 0; }
   slideIndex(p) { const n = p?.carousel?.slides?.length || 0; return Math.min(Math.max(0, this.state.slideIdx || 0), Math.max(0, n - 1)); }
   setFormat = (e) => { const f = e.currentTarget.dataset.format; this.PF().setFormat(this, this.activePost(), f); if (this.lang() === 'es') this.ensureSpanish(); this.forceUpdate(); };
   onSlidesWanted = (e) => this.setState({ slidesWanted: e.target.value === 'auto' ? 'auto' : Number(e.target.value) });
@@ -1472,7 +1491,7 @@ class Component extends DCLogic {
   onSlideInstruction = (e) => this.setState({ slideInstruction: e.target.value });
   regenSlide = () => this.run('Reescrevendo o slide', async () => { const p = this.activePost(); const i = this.slideIndex(p); await this.PF().rewriteSlide(this, p, i, this.state.slideInstruction || ''); this.setState({ slideInstruction: '', drafts: {} }); this.toast(`Slide ${i + 1} reescrito. Os demais não mudaram.`); this.forceUpdate(); });
   carouselVals(p) {
-    const S = this.state; const car = this.isCarousel(p); const fmt = p.format === 'carousel' ? 'carousel' : 'single';
+    const S = this.state; const car = this.isCarousel(p); const fmt = !this.PF().isFinalArtwork(p) && p.format === 'carousel' ? 'carousel' : 'single';
     const btn = (on) => `background:${on ? '#16263A' : '#fff'};color:${on ? '#fff' : '#16263A'};border:1px solid ${on ? '#16263A' : '#E6E2DA'};border-radius:4px;padding:7px 12px;font-size:12px;font-weight:600`;
     const out = { formatBtn: { single: btn(fmt === 'single'), carousel: btn(fmt === 'carousel') }, isCarousel: fmt === 'carousel', isSingle: fmt !== 'carousel' || !car, hasCarousel: car, carouselSlidesWanted: String(S.slidesWanted || 'auto'), deriveCarouselLabel: car ? 'Regerar slides pela IA' : 'Gerar slides pela IA', formatHint: fmt === 'carousel' ? (car ? 'Cada slide é uma peça 1080 x 1350. A capa herda template, imagem e headline do post; edite os slides abaixo.' : 'A quantidade automática acompanha a ideia. Você também pode escolher quantos slides gerar. A legenda e a imagem-base continuam as mesmas.') : 'Uma arte 1080 x 1350 para LinkedIn e Instagram. Troque para Carrossel quando o conteúdo pedir sequência (passos, lista, prova + ação).', slideRows: [], slideFields: [], slideIssues: [], hasSlideIssues: false, previewCaption: '1080 x 1350 px · mesmo arquivo para LinkedIn e Instagram', slideCounter: '', slideEvidence: '' };
     if (!car) return out;
@@ -1508,14 +1527,27 @@ class Component extends DCLogic {
   setTemplate = (e) => { this.PF().setTemplate(this, this.activePost(), e.currentTarget.dataset.id); this.forceUpdate(); };
   setPartner = (e) => { this.PF().setPartner(this, this.activePost(), e.target.value); this.forceUpdate(); };
   runPostQA = () => this.run('Revisão VendaMais do post', async () => { const q = await this.PF().runQA(this, this.activePost()); this.toast(q.ready ? `Nota ${this.activePost().score}. Post pronto.` : `Nota ${this.activePost().score}. ${q.blockers.length} bloqueio(s).`, q.ready ? 'info' : 'error'); this.forceUpdate(); });
-  approvePost = () => { try { const p = this.activePost(); this.PF().approvePost(this, p); this.forceUpdate(); this.toast('Post aprovado. Gerando a versão em espanhol a partir do texto aprovado.'); if (this.M.supabase?.signedIn() || this.M.providers.textProviderStatus().ok) this.run('Adaptando o post aprovado para espanhol', async () => { const nl = this.currentNL(); await this.M.es.adaptToSpanish(this, p, nl?.content_json?.thesis || ''); if (this.isCarousel(p) && p.carousel?.slides?.length) await this.M.es.adaptCarouselToSpanish(this, p); this._lastSig = ''; this.toast('Versão em espanhol pronta (mesma imagem). Revise na aba Español e valide.'); this.forceUpdate(); }); } catch (e) { this.toast(e.message, 'error'); } };
-  exportPng = () => this.run('Renderizando PNG 1080x1350', async () => { await this.PF().exportPost(this, this.activePost(), { png: true, copy: false, lang: this.lang() }); this.forceUpdate(); });
+  approvePost = () => { try { const p = this.activePost(); this.PF().approvePost(this, p); this.forceUpdate(); if (this.PF().isFinalArtwork(p)) { this.toast('Post aprovado com as artes prontas PT e ES. Copies preservados.'); return; } this.toast('Post aprovado. Gerando a versão em espanhol a partir do texto aprovado.'); if (this.M.supabase?.signedIn() || this.M.providers.textProviderStatus().ok) this.run('Adaptando o post aprovado para espanhol', async () => { const nl = this.currentNL(); await this.M.es.adaptToSpanish(this, p, nl?.content_json?.thesis || ''); if (this.isCarousel(p) && p.carousel?.slides?.length) await this.M.es.adaptCarouselToSpanish(this, p); this._lastSig = ''; this.toast('Versão em espanhol pronta (mesma imagem). Revise na aba Español e valide.'); this.forceUpdate(); }); } catch (e) { this.toast(e.message, 'error'); } };
+  exportPng = () => this.run('Preparando arte para download', async () => { await this.PF().exportPost(this, this.activePost(), { png: true, copy: false, lang: this.lang() }); this.forceUpdate(); });
   exportAll = () => this.run('Exportando PNG + legenda', async () => { await this.PF().exportPost(this, this.activePost(), { png: true, copy: true, lang: this.lang() }); this.forceUpdate(); });
   copyCaption = async () => { await navigator.clipboard.writeText(this.PF().captionText(this.activePost(), this.lang())); this.toast('Legenda copiada.'); };
   onLabProvider = (e) => this.setState({ labProvider: e.target.value });
   onLabMode = (e) => this.setState({ labMode: e.target.value });
   toggleRef = (e) => { const id = e.currentTarget.dataset.id; const refs = new Set(this.state.labRefs || []); refs.has(id) ? refs.delete(id) : refs.add(id); this.setState({ labRefs: [...refs] }); };
   generateImage = () => this.run('Gerando imagem-base', async () => { const p = this.activePost(); const refs = []; for (const id of (this.state.labRefs || [])) { const a = this.db().brand_assets.find(x => x.id === id); if (a) refs.push(this.assetUrl(a)); } const rec = await this.PF().generateImage(this, p, { prompt: p.content_json.image_prompt, provider: this.state.labProvider || this.db().settings.image_provider_default, mode: this.state.labMode || this.db().settings.image_mode, references: refs }); this.toast(`Imagem gerada com ${rec.provider} (${rec.model}) em ${(rec.ms / 1000).toFixed(1)}s.`); this.forceUpdate(); });
+  uploadFinalArtwork = (e) => {
+    const input = e.target, file = input.files?.[0], lang = input.dataset.lang, p = this.activePost();
+    input.value = ''; if (!file || this.state.busy) return;
+    return this.run('Enviando arte pronta', async () => {
+      if (file.size > 8 * 1024 * 1024) throw new Error('A arte deve ter até 8 MB.');
+      const dataUrl = await this.fileToDataUrl(file);
+      await this.PF().uploadArtwork(this, p, { lang, dataUrl, name: file.name });
+      this._lastSig = ''; this.setState({ lang }, () => this.scheduleRender());
+      this.toast(`Arte ${lang.toUpperCase()} enviada. Confira a prévia antes de aprovar.`); this.forceUpdate();
+    });
+  };
+  previewArtworkLang = (e) => { this._lastSig = ''; this.setState({ lang: e.currentTarget.dataset.lang }, () => this.scheduleRender()); };
+  useStudioComposition = () => this.run('Restaurando composição do Studio', async () => { this.PF().useStudioArtwork(this, this.activePost()); this._lastSig = ''; this.forceUpdate(); });
   uploadPostImage = async (e) => { const f = e.target.files[0]; if (!f) return; const dataUrl = await this.fileToDataUrl(f); await this.PF().addImageFromDataUrl(this, this.activePost(), dataUrl, 'upload', f.name); e.target.value = ''; this.toast('Imagem enviada e aplicada ao post.'); this.forceUpdate(); };
   useAcervo = async (e) => { const a = this.db().brand_assets.find(x => x.id === e.currentTarget.dataset.id); if (!a) return; await this.PF().addImageFromDataUrl(this, this.activePost(), this.assetUrl(a), 'acervo', a.label); this.toast('Foto do acervo aplicada.'); this.forceUpdate(); };
   chooseImage = (e) => { this.PF().chooseImage(this, this.activePost(), e.currentTarget.dataset.id); this.forceUpdate(); };
@@ -1548,7 +1580,7 @@ class Component extends DCLogic {
     out.postMeta = `${labels[angle]} · atualizado ${fmtDT(p.updated_at)} · ${Object.values(locks).filter(Boolean).length} campo(s) fixado(s)`;
     out.postClaims = ((c.anchors || []).length ? `Da newsletter: ${c.anchors.join(' · ')}. ` : '') + ((c.source_claims || []).length ? c.source_claims.map(s => `${this.M.qa.humanRefs('[' + s.evidence_id + ']', this.evidence(ed.id)) || s.evidence_id} ${s.text}`).join(' · ') : 'Nenhuma afirmação rastreada. Se o post traz número ou case, isso é bloqueio.');
     const det = p.qa_json?.deterministic || this.M.qa.deterministicChecks(c, this.evidence(ed.id), 'post'); const ai = p.qa_json?.ai; const vis = p.qa_json?.visual;
-    const blockers = [...det.blockers, ...((vis?.issues || []).map(i => ({ where: 'render', text: i.text }))), ...((ai?.issues || []).filter(i => i.severity === 'bloqueio'))];
+    const blockers = [...det.blockers, ...PF.artworkIssues(p), ...((vis?.issues || []).map(i => ({ where: 'render', text: i.text }))), ...((ai?.issues || []).filter(i => i.severity === 'bloqueio'))];
     const ready = p.score != null && p.score >= R.qa.threshold && blockers.length === 0;
     const EVp = this.evidence(ed.id); const issue = (kind, where, text, color, bg) => ({ kind, where: this.M.qa.humanPath(where), text: this.M.qa.humanRefs(text, EVp), canApply: false, style: `font-size:12px;line-height:1.5;padding:8px 10px;border-radius:6px;background:${bg};color:${color};display:flex;flex-direction:column;align-items:flex-start` });
     out.pqa = { scoreLabel: p.score == null ? '–' : p.score, sealLabel: p.score == null ? 'Sem revisão' : ready ? 'Pronta' : blockers.length ? 'Bloqueada' : `Abaixo de ${R.qa.threshold}`, sealStyle: `padding:5px 10px;border-radius:999px;font-size:12px;font-weight:700;background:${p.score == null ? '#E6E2DA' : ready ? '#DCFCE7' : '#FEE2E2'};color:${p.score == null ? '#5E6770' : ready ? '#15803D' : '#B91C1C'}`, panelStyle: `background:#fff;border:1px solid ${blockers.length ? '#FCA5A5' : '#E6E2DA'};border-radius:12px;padding:14px 16px`, approveDisabled: blockers.length > 0 || S.busy || p.status === 'approved',
@@ -1557,9 +1589,16 @@ class Component extends DCLogic {
     out.pqa.hasIssues = out.pqa.issues.length > 0;
     out.postStatusLabel = { draft: 'Rascunho', approved: 'Aprovado', exported: 'Exportado' }[p.status] || p.status; out.postStatusChip = `display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;background:${p.status === 'draft' ? '#E6E2DA' : '#DCFCE7'};color:${p.status === 'draft' ? '#5E6770' : '#15803D'}`;
     out.captionPreview = c.captions ? ['INSTAGRAM', PF.captionText(p, lang, 'instagram'), '', 'LINKEDIN', PF.captionText(p, lang, 'linkedin')].join('\n') : PF.captionText(p, lang); out.captionMeta = `${out.captionPreview.length} caracteres · Instagram 400 a 900 · LinkedIn 900 a 1.500`;
-    const imgs = PF.imagesOf(p.id); this.loadImgUrls([...imgs.map(i => i.id), ...(p.image_id ? [p.image_id] : [])]);
+    const allImgs = PF.imagesOf(p.id); const imgs = allImgs.filter(i => i.cost_meta?.usage !== 'final_artwork'); this.loadImgUrls([...allImgs.map(i => i.id), ...(p.image_id ? [p.image_id] : [])]);
     out.postImages = imgs.map(i => { const on = i.id === p.image_id; return { id: i.id, url: this.imgUrlCache[i.id] || '', meta: `${i.source === 'ai' ? `${i.provider} · ${i.model}` : i.source === 'upload' ? 'envio manual' : 'acervo'} · ${fmtDT(i.created_at)}${i.cost_meta?.cost ? ` · ${i.cost_meta.cost}` : ''}`, style: `border:2px solid ${on ? '#E2742B' : '#E6E2DA'};border-radius:8px;overflow:hidden;background:#fff`, thumbStyle: `width:100%;aspect-ratio:4/5;background-color:#E6E2DA;background-image:url("${this.imgUrlCache[i.id] || ''}");background-size:cover;background-position:center;border-radius:6px 6px 0 0`, btnLabel: on ? 'Em uso' : 'Usar esta', btnStyle: `width:100%;border:0;border-top:1px solid #E6E2DA;background:${on ? '#FDF3EB' : '#fff'};color:${on ? '#B85A1C' : '#16263A'};padding:6px;font-size:11px;font-weight:600` }; });
     const imgMissing = p.image_id && (p.image_id in this.imgUrlCache) && !this.imgUrlCache[p.image_id]; out.noMeme = !out.hasMeme; out.isMeme = angle === 'meme'; out.canDeriveOne = angle !== 'meme'; out.hasAlternatives = (p.alternatives || []).length > 0; out.alternativeRows = (p.alternatives || []).map((alt, idx) => ({ idx, headline: alt.headline, hook: alt.caption?.hook || '', body: (alt.caption?.body || '').slice(0, 260) + ((alt.caption?.body || '').length > 260 ? '…' : '') })); out.planRow = c.plan ? `Cena escolhida: ${c.plan.scene || ''} · Emoção: ${c.plan.emotion || ''} · Frase da newsletter: “${c.plan.stolen_line || ''}”` : ''; out.memeHint = 'Meme da Semana: uma cena, uma frase, legível em 2 segundos. Ri-se do sistema (planilha, CRM, boleto), nunca do leitor. Post único, sábado às 10h. Template indicado: T07. Na headline, use / para quebrar linha onde quiser e *asteriscos* no trecho da punchline: ele sai em laranja e maior.'; out.noPostImages = imgs.length === 0; out.imageStateLabel = imgMissing ? 'imagem referenciada mas ausente neste navegador: gere ou envie de novo' : p.image_id ? 'imagem-base aplicada' : (['T01', 'T02', 'T03'].includes(p.template_id) ? 'sem imagem-base (placeholder cinza)' : 'template sem imagem obrigatória');
+    out.finalArtworkMode = PF.isFinalArtwork(p); out.useStudioArtwork = !out.finalArtworkMode; out.imageLabGridStyle = `display:grid;grid-template-columns:${out.finalArtworkMode ? 'minmax(0,1fr)' : 'repeat(auto-fit,minmax(min(100%,340px),1fr))'};gap:20px;align-items:start`;
+    out.artworkUploadDisabled = S.busy || !PF.artworkEditable(p);
+    out.artworkRows = ['pt', 'es'].map(l => { const art = PF.artworkFor(p, l); return { lang: l, title: l === 'pt' ? 'Português · VendaMais Brasil' : 'Español · VendaMais LATAM', button: art ? `Trocar arte ${l.toUpperCase()}` : `Enviar arte pronta ${l.toUpperCase()}`, status: art ? `${art.name || 'Arte enviada'} · ${art.width} × ${art.height} px` : 'Aguardando arquivo' }; });
+    const art = PF.artworkFor(p, lang);
+    out.artworkModeHint = !PF.artworkEditable(p) ? 'Post aprovado ou agendado: as artes estão protegidas.' : out.finalArtworkMode ? 'Modo arte pronta: envie PT e ES, revise as imagens e os copies e aprove. As imagens-base e os carrosséis anteriores ficam preservados.' : 'O primeiro envio ativa o modo arte pronta para este post. As legendas continuam no Post Studio.';
+    out.artworkPreviewHint = out.finalArtworkMode ? (art ? `Arte ${lang.toUpperCase()} original · ${art.width} × ${art.height} px · sem sobreposição` : `Envie a arte ${lang.toUpperCase()} para visualizar. A imagem do outro idioma não será usada.`) : 'Prévia da composição do Studio';
+    if (out.finalArtworkMode) { out.imageStateLabel = out.artworkPreviewHint; out.previewCaption = out.artworkPreviewHint; out.templateHint = 'Arte pronta: texto e logo vêm no arquivo enviado.'; out.postFieldGroups[0].label = 'Referência editorial (não aparece sobre a arte pronta)'; out.formatHint = 'Uma imagem pronta por idioma. O arquivo original será usado no agendamento.'; out.templateBtns = out.templateBtns.map(t => ({ ...t, disabled: true })); }
     const acervo = db.brand_assets.filter(a => a.type === 'photo' && a.active); const refs = new Set(S.labRefs || []);
     out.hasAcervo = acervo.length > 0; out.refRows = acervo.map(a => ({ id: a.id, url: this.assetUrl(a), thumb: `width:64px;height:80px;border-radius:3px;background-color:#E6E2DA;background-image:url("${this.assetUrl(a)}");background-size:cover;background-position:center`, style: `border:2px solid ${refs.has(a.id) ? '#E2742B' : '#E6E2DA'};background:#fff;padding:2px;border-radius:4px` }));
     out.crop = p.crop || { scale: 1, x: 0.5, y: 0.5 }; out.cropZoomLabel = `${(out.crop.scale || 1).toFixed(2)}x`;
