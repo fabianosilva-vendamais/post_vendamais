@@ -32,3 +32,24 @@ test('plain text retains readable labels and the full destination',()=>{
 test('structured newsletter paragraphs also support explicit Markdown links',()=>{
  const html=renderEmail({headline:'Teste',sections:[{title:'Contato',body:'[Converse](https://vendamais.com.br/contato/)'}]});assert.match(html,/<a href="https:\/\/vendamais.com.br\/contato\/"/);
 });
+
+test('standalone explicit CTAs restore the original button style and own URL',()=>{
+ const html=renderEmail(edition('[Converse com a VendaMais](https://vendamais.com.br/contato/)\n\n[Conhecer o SalesTrain](https://vendamais.com.br/salestrain/)'));
+ for(const url of ['contato','salestrain'])assert.match(html,new RegExp('href="https://vendamais.com.br/'+url+'/" style="display:inline-block;padding:14px 26px;'));
+ assert.equal((html.match(/background:#E2742B;border-radius:4px/g)||[]).length,2);
+});
+test('podcast infers missing fields, restores episode cover and renders each platform once',()=>{
+ const n=edition('Texto');n.podcast={enabled:true,title:'',youtube_url:'',spotify_url:'',cover_url:''};n.free_blocks=[{label:'PODCAST VENDAMAIS',title:'O custo de liderar pela pressão',md:'**Podcast VendaMais #193**\n\nDescrição do episódio.\n\n[Assistir no YouTube](https://www.youtube.com/watch?v=Mu7_jtQsYQ8)\n\n[Ouvir no Spotify](https://open.spotify.com/show/753E2W9Unc8RUedtCPnqmO)'}];
+ const before=JSON.stringify(n),html=renderEmail(n);
+ assert.ok(html.includes('src="https://img.youtube.com/vi/Mu7_jtQsYQ8/hqdefault.jpg"'));
+ assert.equal((html.match(/>Assistir no YouTube<\/a>/g)||[]).length,1);assert.equal((html.match(/>Ouvir no Spotify<\/a>/g)||[]).length,1);
+ assert.ok(html.includes('background:#FF0000'));assert.ok(html.includes('background:#1DB954'));assert.equal(JSON.stringify(n),before);
+});
+test('explicit episode fields and cover retain precedence over links in the article',()=>{
+ const n=edition('');n.podcast={enabled:true,youtube_url:'https://youtu.be/abcdefghijk',cover_url:'https://example.com/episode.jpg'};n.free_blocks=[{label:'PODCAST',title:'Episódio',md:'[YouTube](https://www.youtube.com/watch?v=Mu7_jtQsYQ8)'}];
+ const html=renderEmail(n);assert.ok(html.includes('src="https://example.com/episode.jpg"'));assert.ok(html.includes('href="https://youtu.be/abcdefghijk"'));
+});
+test('links within prose remain inline links rather than buttons',()=>{
+ const html=renderEmail(edition('Para conhecer os detalhes, [converse com a VendaMais](https://vendamais.com.br/contato/) hoje.'));
+ assert.match(html,/href="https:\/\/vendamais.com.br\/contato\/" style="color:#16263A;text-decoration:underline;"/);
+});

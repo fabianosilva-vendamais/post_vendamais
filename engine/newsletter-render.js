@@ -1,4 +1,4 @@
-import { mdToEmail, mdToPlain, mdInlineToEmail } from './markdown-newsletter.js?vm202611011656';
+import { mdToEmail, mdToPlain, mdInlineToEmail, markdownLinks } from './markdown-newsletter.js?vm202611011656';
 // Render determinístico da newsletter: JSON -> HTML de e-mail (tabelas, 600px, inline, sem JS) + plain text.
 // Baseado no piloto Radar VendaMais v2. Fonte Poppins com fallback Arial (Outlook).
 const C = { navy: '#16263A', orange: '#E2742B', white: '#FFFFFF', sand: '#FAF7F2', line: '#E6E2DA', ink: '#1E1E1E', gray: '#5E6770', grayl: '#9FB3C2', bg: '#EEF1F4' };
@@ -24,8 +24,23 @@ export function ctaHref(n, opts = {}) {
   const body = `Olá,\n\nLi a edição "${n.headline || ''}" do ${name} e gostaria de: ${n.cta?.label || ''}.\n\nEmpresa: \nCargo: \nMelhor horário para contato: \n`;
   return `mailto:${mail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
+// Recover the episode links from the authored Markdown for existing editions too.
+// Explicit podcast fields remain authoritative. Never mutate the approved source.
+function withMarkdownPodcast(n) {
+  const pod = { ...(n.podcast || {}) };
+  for (const block of n.free_blocks || []) {
+    if (!/podcast/i.test((block.label || '') + ' ' + (block.title || ''))) continue;
+    for (const link of markdownLinks(block.md)) {
+      if (!link.safe || !/^https?:\/\//i.test(link.url)) continue;
+      const host = new URL(link.url).hostname.toLowerCase();
+      if (!pod.youtube_url && /^(?:www\.|m\.)?(?:youtube\.com|youtu\.be)$/.test(host)) pod.youtube_url = link.url;
+      if (!pod.spotify_url && /^(?:open\.|www\.)?spotify\.com$/.test(host)) pod.spotify_url = link.url;
+    }
+  }
+  return { ...n, podcast: pod };
+}
 export function renderEmail(n, opts = {}) {
-  n = dropIntroDupes({ ...n, podcast: legacyPod(n.podcast) });
+  n = withMarkdownPodcast(dropIntroDupes({ ...n, podcast: legacyPod(n.podcast) }));
   const { logoUrl = '', logoNegUrl = '', editionNumber = 1, editionDate = '', tagline = 'Vendas para quem influencia vendas', name = 'Radar VendaMais', previewOnly = false } = opts;
   const label = (t, color = C.gray) => `<p style="margin:0 0 8px 0;font-family:${F};font-size:11px;line-height:16px;letter-spacing:1px;font-weight:700;color:${color};text-transform:uppercase;">${esc(t)}</p>`;
   const h2 = (t, color = C.navy) => `<h2 style="margin:0 0 14px 0;font-family:${F};font-size:26px;line-height:32px;font-weight:600;color:${color};">${esc(t)}</h2>`;
@@ -62,7 +77,7 @@ export function renderEmail(n, opts = {}) {
 
   // Modo livre (Markdown do autor): blocos na ordem escrita, com o visual do Radar.
   const freeHtml = (n) => { const ctaUrl = ctaHref(n, opts); const pod = n.podcast || {};
-    const button = (lbl) => `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 14px 0;"><tr><td style="background:${C.orange};border-radius:4px;"><a href="${escRaw(ctaUrl)}" style="display:inline-block;padding:14px 26px;font-family:${F};font-size:15px;font-weight:600;color:${C.white};text-decoration:none;">${esc(lbl)}</a></td></tr></table>`;
+    const button = (lbl, destination = ctaUrl) => `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 14px 0;"><tr><td style="background:${C.orange};border-radius:4px;"><a href="${escRaw(destination)}" style="display:inline-block;padding:14px 26px;font-family:${F};font-size:15px;font-weight:600;color:${C.white};text-decoration:none;">${esc(lbl)}</a></td></tr></table>`;
     const podcastButtons = () => { const bs = [pod.spotify_url && ['Ouvir no Spotify', pod.spotify_url, '#1DB954'], pod.youtube_url && ['Assistir no YouTube', pod.youtube_url, '#FF0000']].filter(Boolean); if (!bs.length) return ''; return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 14px 0;"><tr>${bs.map(([l, u, bg]) => `<td style="padding-right:10px;"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:${bg};border-radius:999px;"><a href="${escRaw(u)}" style="display:inline-block;padding:12px 22px;font-family:${F};font-size:14px;font-weight:700;color:#FFFFFF;text-decoration:none;">${l}</a></td></tr></table></td>`).join('')}</tr></table>`; };
     return (n.free_blocks || []).map(b => { const isPodcast = /podcast/i.test(b.label + ' ' + b.title); const caps = b.label && b.label === b.label.toUpperCase();
       const head = (caps ? label(b.label) : (b.label ? h2(b.label) : '')) + (b.title ? h2(b.title) : '');

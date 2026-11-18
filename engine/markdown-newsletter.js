@@ -49,7 +49,8 @@ export function markdownLinks(text = '') {
     const wrapped = target.match(/^<([^<>]+)>(?:\s+"[^"]*")?$/);
     if (wrapped) target = wrapped[1];
     else target = target.replace(/\s+"[^"]*"$/, '');
-    const safe = /^(https?:\/\/|mailto:|tel:)/i.test(target) && !/[\s\u0000-\u001f<>]/.test(target);
+    let safe = /^(https?:\/\/|mailto:|tel:)/i.test(target) && !/[\s\u0000-\u001f<>]/.test(target);
+    if (safe && /^https?:/i.test(target)) { try { new URL(target); } catch { safe = false; } }
     links.push({ start: match.index, end, label: match[1], url: target, safe });
     start.lastIndex = end;
   }
@@ -74,7 +75,7 @@ function plainLinks(text) {
 
 // Markdown do bloco -> HTML de e-mail (inline). esc() já converte **negrito** e *itálico*.
 export function mdToEmail(md, { esc, F, C, button, podcastButtons, isPodcast }) {
-  const out = []; const L = String(md || '').split('\n'); let para = [];
+  const out = []; const L = String(md || '').split('\n'); let para = []; let podcastActionsRendered = false;
   const inline = text => mdInlineToEmail(text, { esc, color: C.navy });
   const P = (inner, extra = '') => `<p style="margin:0 0 14px 0;font-family:${F};font-size:15px;line-height:25px;color:${C.ink};${extra}">${inner}</p>`;
   const flush = () => { if (!para.length) return; const raw = para.join(' ').trim(); para = [];
@@ -83,8 +84,19 @@ export function mdToEmail(md, { esc, F, C, button, podcastButtons, isPodcast }) 
   for (let k = 0; k < L.length; k++) {
     const t = L[k].trim();
     if (!t) { flush(); continue; }
+    // A link on its own line is an authored call to action, not a prose link.
+    const actions = markdownLinks(t); let remainder = t;
+    for (const a of [...actions].reverse()) remainder = remainder.slice(0, a.start) + remainder.slice(a.end);
+    if (actions.length && !remainder.replace(/[\s*|·]/g, '') && actions.every(a => a.safe)) {
+      flush();
+      if (isPodcast && podcastButtons && actions.every(a => /^(?:(?:www\.|m\.)?(?:youtube\.com|youtu\.be)|(?:open\.|www\.)?spotify\.com)$/i.test(new URL(a.url).hostname))) {
+        if (!podcastActionsRendered) out.push(podcastButtons());
+        podcastActionsRendered = true;
+      } else out.push(actions.map(a => button(a.label, a.url)).join(''));
+      continue;
+    }
     const btns = [...t.matchAll(/\[([^\]]+)\](?!\()/g)].map(m => m[1]);
-    if (btns.length && t.replace(/\*|\[[^\]]+\]/g, '').trim() === '') { flush(); out.push(isPodcast && podcastButtons ? podcastButtons() : btns.map(b => button(b)).join('')); continue; }
+    if (btns.length && t.replace(/\*|\[[^\]]+\]/g, '').trim() === '') { flush(); if (isPodcast && podcastButtons) { if (!podcastActionsRendered) out.push(podcastButtons()); podcastActionsRendered = true; } else out.push(btns.map(b => button(b)).join('')); continue; }
     const h3 = t.match(/^###\s+(.+)$/);
     if (h3) { flush(); out.push(`<h3 style="margin:22px 0 10px 0;font-family:${F};font-size:18px;line-height:25px;font-weight:600;color:${C.navy};">${inline(h3[1])}</h3>`); continue; }
     if (/^\|.*\|$/.test(t)) { flush(); const rows = []; while (k < L.length && /^\|.*\|$/.test(L[k].trim())) { const cells = L[k].trim().slice(1, -1).split('|').map(c => c.trim()); if (!cells.every(c => /^:?-{2,}:?$/.test(c))) rows.push(cells); k++; } k--;
