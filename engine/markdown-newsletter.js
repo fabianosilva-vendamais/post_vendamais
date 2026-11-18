@@ -31,26 +31,68 @@ export function parseMarkdownNewsletter(text) {
   return { headline, support_line: support, blocks: blocks.filter(b => b.label || b.title || b.md) };
 }
 
+// Read explicit Markdown destinations before escaping HTML. Balance parentheses so
+// query strings and URLs such as /tema_(vendas) keep their exact destination.
+export function markdownLinks(text = '') {
+  const value = String(text); const links = []; const start = /\[([^\]\n]+)\]\(/g; let match;
+  while ((match = start.exec(value))) {
+    if (match.index > 0 && value[match.index - 1] === '!') continue;
+    let depth = 1, end = start.lastIndex;
+    for (; end < value.length && depth; end++) {
+      if (value[end] === '\n') break;
+      if (value[end] === '\\') { end++; continue; }
+      if (value[end] === '(') depth++;
+      if (value[end] === ')') depth--;
+    }
+    if (depth) continue;
+    let target = value.slice(start.lastIndex, end - 1).trim();
+    const wrapped = target.match(/^<([^<>]+)>(?:\s+"[^"]*")?$/);
+    if (wrapped) target = wrapped[1];
+    else target = target.replace(/\s+"[^"]*"$/, '');
+    const safe = /^(https?:\/\/|mailto:|tel:)/i.test(target) && !/[\s\u0000-\u001f<>]/.test(target);
+    links.push({ start: match.index, end, label: match[1], url: target, safe });
+    start.lastIndex = end;
+  }
+  return links;
+}
+export function mdInlineToEmail(text = '', { esc, color = '#16263A' }) {
+  const value = String(text); let end = 0; const parts = [];
+  for (const link of markdownLinks(value)) {
+    parts.push(esc(value.slice(end, link.start)));
+    const label = esc(link.label);
+    const href = link.url.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    parts.push(link.safe ? `<a href="${href}" style="color:${color};text-decoration:underline;">${label}</a>` : label);
+    end = link.end;
+  }
+  parts.push(esc(value.slice(end))); return parts.join('');
+}
+function plainLinks(text) {
+  const value = String(text); let end = 0; const parts = [];
+  for (const link of markdownLinks(value)) { parts.push(value.slice(end, link.start), link.safe ? `${link.label} (${link.url})` : link.label); end = link.end; }
+  parts.push(value.slice(end)); return parts.join('');
+}
+
 // Markdown do bloco -> HTML de e-mail (inline). esc() já converte **negrito** e *itálico*.
 export function mdToEmail(md, { esc, F, C, button, podcastButtons, isPodcast }) {
   const out = []; const L = String(md || '').split('\n'); let para = [];
+  const inline = text => mdInlineToEmail(text, { esc, color: C.navy });
   const P = (inner, extra = '') => `<p style="margin:0 0 14px 0;font-family:${F};font-size:15px;line-height:25px;color:${C.ink};${extra}">${inner}</p>`;
   const flush = () => { if (!para.length) return; const raw = para.join(' ').trim(); para = [];
-    if (/^\*\*[^*].*\*\*$/.test(raw) && !raw.slice(2, -2).includes('**')) out.push(P(esc(raw.slice(2, -2)), `font-size:17px;line-height:26px;font-weight:600;color:${C.navy};`));
-    else out.push(P(esc(raw))); };
+    if (/^\*\*[^*].*\*\*$/.test(raw) && !raw.slice(2, -2).includes('**')) out.push(P(inline(raw.slice(2, -2)), `font-size:17px;line-height:26px;font-weight:600;color:${C.navy};`));
+    else out.push(P(inline(raw))); };
   for (let k = 0; k < L.length; k++) {
     const t = L[k].trim();
     if (!t) { flush(); continue; }
     const btns = [...t.matchAll(/\[([^\]]+)\](?!\()/g)].map(m => m[1]);
     if (btns.length && t.replace(/\*|\[[^\]]+\]/g, '').trim() === '') { flush(); out.push(isPodcast && podcastButtons ? podcastButtons() : btns.map(b => button(b)).join('')); continue; }
     const h3 = t.match(/^###\s+(.+)$/);
-    if (h3) { flush(); out.push(`<h3 style="margin:22px 0 10px 0;font-family:${F};font-size:18px;line-height:25px;font-weight:600;color:${C.navy};">${esc(h3[1])}</h3>`); continue; }
+    if (h3) { flush(); out.push(`<h3 style="margin:22px 0 10px 0;font-family:${F};font-size:18px;line-height:25px;font-weight:600;color:${C.navy};">${inline(h3[1])}</h3>`); continue; }
     if (/^\|.*\|$/.test(t)) { flush(); const rows = []; while (k < L.length && /^\|.*\|$/.test(L[k].trim())) { const cells = L[k].trim().slice(1, -1).split('|').map(c => c.trim()); if (!cells.every(c => /^:?-{2,}:?$/.test(c))) rows.push(cells); k++; } k--;
-      out.push(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:4px 0 16px 0;">${rows.map((r, ri) => `<tr>${r.map((c, ci) => `<td style="padding:10px 12px;border-bottom:1px solid ${C.line};font-family:${F};font-size:14px;line-height:21px;vertical-align:top;${ri === 0 ? `font-weight:700;color:${C.navy};background:${C.sand};` : ci === 0 ? `font-weight:600;color:${C.navy};` : `color:${C.ink};`}">${esc(c)}</td>`).join('')}</tr>`).join('')}</table>`); continue; }
+      out.push(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:4px 0 16px 0;">${rows.map((r, ri) => `<tr>${r.map((c, ci) => `<td style="padding:10px 12px;border-bottom:1px solid ${C.line};font-family:${F};font-size:14px;line-height:21px;vertical-align:top;${ri === 0 ? `font-weight:700;color:${C.navy};background:${C.sand};` : ci === 0 ? `font-weight:600;color:${C.navy};` : `color:${C.ink};`}">${inline(c)}</td>`).join('')}</tr>`).join('')}</table>`); continue; }
     if (/^[-*•]\s+/.test(t) || /^\d+[.)]\s+/.test(t)) { flush(); const ordered = /^\d+[.)]\s+/.test(t); const items = []; while (k < L.length && (ordered ? /^\d+[.)]\s+/ : /^[-*•]\s+/).test(L[k].trim())) { items.push(L[k].trim().replace(ordered ? /^\d+[.)]\s+/ : /^[-*•]\s+/, '')); k++; } k--;
-      out.push(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 14px 0;">${items.map((it, n) => `<tr><td valign="top" style="width:30px;padding:4px 0;font-family:${F};font-size:15px;line-height:23px;font-weight:600;color:${C.orange};">${ordered ? String(n + 1).padStart(2, '0') : '•'}</td><td style="padding:4px 0;font-family:${F};font-size:15px;line-height:23px;color:${C.ink};">${esc(it)}</td></tr>`).join('')}</table>`); continue; }
+      out.push(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 14px 0;">${items.map((it, n) => `<tr><td valign="top" style="width:30px;padding:4px 0;font-family:${F};font-size:15px;line-height:23px;font-weight:600;color:${C.orange};">${ordered ? String(n + 1).padStart(2, '0') : '•'}</td><td style="padding:4px 0;font-family:${F};font-size:15px;line-height:23px;color:${C.ink};">${inline(it)}</td></tr>`).join('')}</table>`); continue; }
     para.push(t);
   }
   flush(); return out.join('');
 }
-export function mdToPlain(md) { return String(md || '').split('\n').map(l => l.replace(/^###\s+/, '').replace(/^\|(.*)\|$/, (m, a) => /^[\s|:-]+$/.test(a) ? '' : a.split('|').map(c => c.trim()).join(' · ')).replace(/\*\*|\*/g, '').replace(/\[([^\]]+)\]/g, '$1')).join('\n').replace(/\n{3,}/g, '\n\n').trim(); }
+export function mdToPlain(md) { return plainLinks(md || '').split('\n').map(l => l.replace(/^###\s+/, '').replace(/^\|(.*)\|$/, (m, a) => /^[\s|:-]+$/.test(a) ? '' : a.split('|').map(c => c.trim()).join(' · ')).replace(/\*\*|\*/g, '').replace(/\[([^\]]+)\]/g, '$1')).join('\n').replace(/\n{3,}/g, '\n\n').trim(); }

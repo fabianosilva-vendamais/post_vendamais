@@ -1,4 +1,4 @@
-import { mdToEmail, mdToPlain } from './markdown-newsletter.js?vm202611011656';
+import { mdToEmail, mdToPlain, mdInlineToEmail } from './markdown-newsletter.js?vm202611011656';
 // Render determinístico da newsletter: JSON -> HTML de e-mail (tabelas, 600px, inline, sem JS) + plain text.
 // Baseado no piloto Radar VendaMais v2. Fonte Poppins com fallback Arial (Outlook).
 const C = { navy: '#16263A', orange: '#E2742B', white: '#FFFFFF', sand: '#FAF7F2', line: '#E6E2DA', ink: '#1E1E1E', gray: '#5E6770', grayl: '#9FB3C2', bg: '#EEF1F4' };
@@ -9,7 +9,8 @@ const plainMd = (s = '') => String(s).replace(/\*\*/g, '');
 // Remove seções que repetem a abertura (ex.: 'ABERTURA / A abertura' com o mesmo texto do intro)
 const normTxt = (s = '') => String(s).toLowerCase().replace(/\*\*/g, '').replace(/[^a-zà-ÿ0-9]+/g, ' ').trim();
 function dropIntroDupes(n) { const intro = normTxt(n.intro); if (!intro || !Array.isArray(n.sections)) return n; const secs = n.sections.filter(s => { const b = normTxt(s.body); const isOpen = /abertura|introdu/.test(normTxt((s.label || '') + ' ' + (s.title || ''))); if (!b) return !isOpen; const head = b.slice(0, 120); return !(intro.includes(head) || (isOpen && b.split(' ').filter(w => intro.includes(w)).length / b.split(' ').length > 0.7)); }); return { ...n, sections: secs }; }
-const nl = (s = '', pstyle = '') => esc(s).trim().replace(/\n{2,}/g, `</p><p style="${pstyle}">`).replace(/\n/g, '<br>');
+const inline = (s = '', color = C.navy) => mdInlineToEmail(s, { esc, color });
+const nl = (s = '', pstyle = '') => inline(s).trim().replace(/\n{2,}/g, `</p><p style="${pstyle}">`).replace(/\n/g, '<br>');
 const pad = (n) => String(n).padStart(2, '0');
 
 const legacyPod = (pd) => { if (!pd) return pd; if (pd.url && !pd.spotify_url && !pd.youtube_url) return { ...pd, [/youtu/.test(pd.url) ? 'youtube_url' : 'spotify_url']: pd.url }; return pd; };
@@ -29,7 +30,7 @@ export function renderEmail(n, opts = {}) {
   const label = (t, color = C.gray) => `<p style="margin:0 0 8px 0;font-family:${F};font-size:11px;line-height:16px;letter-spacing:1px;font-weight:700;color:${color};text-transform:uppercase;">${esc(t)}</p>`;
   const h2 = (t, color = C.navy) => `<h2 style="margin:0 0 14px 0;font-family:${F};font-size:26px;line-height:32px;font-weight:600;color:${color};">${esc(t)}</h2>`;
   const p = (t, color = C.ink, size = 15) => { const st = `margin:0 0 14px 0;font-family:${F};font-size:${size}px;line-height:${Math.round(size * 1.65)}px;color:${color};`; return `<p style="${st}">${nl(t, st)}</p>`; };
-  const small = (t, color = C.gray) => esc(t).trim().replace(/\n{2,}/g, '\n').split('\n').map(l => l.trim()).filter(Boolean).map(l => `<span style="display:block;margin:0 0 8px 0;">${l}</span>`).join('');
+  const small = (t, color = C.gray) => inline(t, color).trim().replace(/\n{2,}/g, '\n').split('\n').map(l => l.trim()).filter(Boolean).map(l => `<span style="display:block;margin:0 0 8px 0;">${l}</span>`).join('');
   const stripNum = (s = '') => String(s).replace(/^\s*\d+\s*[.)-]\s*/, '');
   const section = (inner, extra = '') => `<tr><td style="padding:32px 36px 0 36px;${extra}">${inner}</td></tr>`;
   const card = (inner, bg = C.sand, border = C.line) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;background:${bg};border:1px solid ${border};border-radius:10px;"><tr><td style="padding:24px;">${inner}</td></tr></table>`;
