@@ -1098,7 +1098,7 @@ class Component extends DCLogic {
     this.M.n21 = await import(new URL('engine/newsletter-21.js?vm202611011656', base).href);
     this.M.es = await import(new URL('engine/posts-es.js?vm202611011656', base).href);
     try { if (this.M.n21.applyNewsletter21(db, { uid: store.uid, now: store.now, audit: store.audit })) { store.save(); console.info('Newsletter 21 aplicada'); } } catch (e) { console.error('migração n21', e); }
-    if (this.M.supabase.signedIn()) this.M.supabase.refreshIfNeeded().then(ok => ok && this.M.supabase.pullAll().then(() => this.forceUpdate()).catch(e => console.warn('pull', e)));
+    if (this.M.supabase.signedIn()) this.M.supabase.refreshIfNeeded().then(ok => ok && this.M.supabase.pullAll().then(() => { this.reconcileSharedCopies(); this.forceUpdate(); }).catch(e => console.warn('pull', e)));
     this.setState({ ready: true, route: saved.route || 'dashboard', editionId: saved.editionId || null, brief: this.emptyBrief(), rulesDraft: JSON.stringify(store.activeRules(), null, 2) }, () => { if (this.state.editionId) this.loadBrief(this.state.editionId); this.refreshBlobUrls(); });
   }
   persistUI = () => { const S = this.state || {}; if (!S.ready || !S.route) return; const v = JSON.stringify({ route: S.route, editionId: S.editionId || null }); if (v !== this._ui) { this._ui = v; localStorage.setItem('vm_ce_ui', v); } };
@@ -1265,7 +1265,8 @@ class Component extends DCLogic {
     if (moved) this.M.store.save(); return moved;
   }
   syncNow = () => this.run('Sincronizando com o Supabase', async () => { const n = await this.sanitizeForSync(); await this.SB().pushAll(); this.toast(n ? `Sincronizado. ${n} imagem(ns) movida(s) para o Storage.` : 'Sincronizado.'); this.forceUpdate(); });
-  pullNow = () => this.run('Trazendo dados do Supabase', async () => { await this.SB().pullAll(); this.toast('Dados atualizados a partir do Supabase.'); this.forceUpdate(); });
+  reconcileSharedCopies() { for (const p of this.db().posts) this.PF().alignSharedCaptions(this, p); }
+  pullNow = () => this.run('Trazendo dados do Supabase', async () => { await this.SB().pullAll(); this.reconcileSharedCopies(); this.toast('Dados atualizados a partir do Supabase.'); this.forceUpdate(); });
   scheduleSync() { if (!this.M.supabase?.signedIn()) return; clearTimeout(this._sync); this._sync = setTimeout(() => this.sanitizeForSync().then(() => this.SB().pushAll()).then(() => this.setState({ saveLabel: `Sincronizado ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` })).catch(err => { console.warn('sync', err); this.toast(`Sincronização falhou: ${err.message}`, 'error'); }), 4000); }
 
   // ---------- Newsletter ----------

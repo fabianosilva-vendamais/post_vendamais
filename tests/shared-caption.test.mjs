@@ -67,3 +67,17 @@ test('both UI entrypoints expose a single full-copy editor', () => {
     const js = html.match(/<script type="text\/x-dc" data-dc-script>([\s\S]*?)<\/script>/)[1]; assert.doesNotThrow(() => new Function('DCLogic', 'React', js));
   }
 });
+
+test('legacy local Spanish channel variants align with a shared PT draft after pull', () => {
+  const { p, app } = fixture(); p.content_es = aiResult(); const body = p.content_es.caption.body;
+  assert.equal(flow.alignSharedCaptions(app, p), true); assert.equal(p.content_es.captions, undefined); assert.equal(p.content_es.caption.body, body);
+  assert.equal(flow.captionText(p, 'es', 'instagram'), flow.captionText(p, 'es', 'linkedin')); assert.equal(flow.alignSharedCaptions(app, p), false);
+});
+
+test('caption alignment never rewrites approved, scheduled or legacy Studio compositions', () => {
+  for (const state of ['approved', 'scheduled', 'studio']) {
+    const { p, app } = fixture(); p.content_es = aiResult();
+    if (state === 'approved') p.status = 'approved'; if (state === 'scheduled') db.publications.push({ post_id: p.id, status: 'scheduled' }); if (state === 'studio') p.meta.artwork_mode = 'studio';
+    const before = JSON.stringify(p); assert.equal(flow.alignSharedCaptions(app, p), false); assert.equal(JSON.stringify(p), before);
+  }
+});

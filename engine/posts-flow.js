@@ -251,6 +251,14 @@ export function approvePost(app, p) {
   p.status = 'approved'; p.approved_at = now(); audit('post.approve', 'post', p.id, { score: p.score }); const ed = app.edition();
   if (postsOf(ed.id).length === 3 && postsOf(ed.id).every(x => x.status === 'approved' || x.status === 'exported')) app.setStatus(ed, 'approved'); app.save();
 }
+// Reconcile local ES drafts produced before shared-caption adaptation was fixed.
+// Run after cloud pull so a newer remote correction wins before normalization.
+export function alignSharedCaptions(app, p) {
+  if (!isFinalArtwork(p) || p.status !== 'draft' || p.content_json?.captions || !p.content_es?.captions || (db.publications || []).some(x => x.post_id === p.id && x.status !== 'cancelled')) return false;
+  delete p.content_es.captions; p.score = null; p.qa_json = null; p.updated_at = now();
+  audit('post.caption.align', 'post', p.id, { lang: 'es' }); app.save(); return true;
+}
+
 // One paste replaces the common caption atomically, including stale channel variants.
 export function setSharedCaption(app, p, text, lang = 'pt') {
   ensureDraft(p);
