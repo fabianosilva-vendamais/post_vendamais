@@ -1,5 +1,5 @@
 {
-  "rewrites": [{ "source": "/", "destination": "/studio/index.html" }],
+  "redirects": [{ "source": "/", "destination": "/studio/", "permanent": false }],
   "headers": [
     { "source": "/(.*)\\.(html|js)", "headers": [ { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" } ] },
     { "source": "/", "headers": [ { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" } ] }
