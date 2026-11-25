@@ -97,23 +97,29 @@ const pick = (o, keys) => Object.fromEntries(keys.map(k => [k, o[k] === undefine
 // Envia o estado local para o Supabase (upsert por id). Binários locais sobem para o Storage.
 export async function pushAll() {
   if (!signedIn()) throw new Error('Faça login para sincronizar.'); await refreshIfNeeded();
+  const legacyEdition = row => !db.editions.some(edition => edition.id === row.edition_id && edition.brief?.radar_workflow);
+  const legacyEditions = db.editions.filter(edition => !edition.brief?.radar_workflow);
+  const legacyImages = db.generated_images.filter(legacyEdition);
+  const legacyNewsletters = db.newsletter_versions.filter(legacyEdition);
+  const legacyPosts = db.posts.filter(legacyEdition);
+  const legacyPublications = (db.publications || []).filter(legacyEdition);
   // Binários nunca vão para o Postgres: blob:/data: sobem para o Storage e a tabela guarda só a URL.
   for (const a of db.brand_assets) {
     if (a.file_url?.startsWith('blob:')) { const data = await blobs.get(a.id); if (data) { const ext = (data.match(/^data:image\/(\w+)/) || [])[1] || 'png'; a.file_url = await upload('brand', `${a.type}/${a.id}.${ext}`, data); } }
     else if (a.file_url?.startsWith('data:')) { const data = a.file_url; await blobs.put(a.id, data); const ext = (data.match(/^data:image\/(\w+)/) || [])[1] || 'png'; a.file_url = await upload('brand', `${a.type}/${a.id}.${ext}`, data); }
   }
-  for (const i of db.generated_images) if (!i.file_url || i.file_url.startsWith('data:')) { const data = i.file_url?.startsWith('data:') ? i.file_url : await blobs.get(i.id); if (data) { await blobs.put(i.id, data); i.file_url = await upload('images', `${i.post_id}/${i.id}.png`, data); } }
+  for (const i of legacyImages) if (!i.file_url || i.file_url.startsWith('data:')) { const data = i.file_url?.startsWith('data:') ? i.file_url : await blobs.get(i.id); if (data) { await blobs.put(i.id, data); i.file_url = await upload('images', `${i.post_id}/${i.id}.png`, data); } }
   const strip = (o) => JSON.parse(JSON.stringify(o, (k, v) => (typeof v === 'string' && v.startsWith('data:') && v.length > 2000) ? '' : v));
   const clean = (rows) => rows.map(strip);
   await rest('brand_assets', 'POST', clean(db.brand_assets.map(a => ({ ...pick(a, ['id', 'type', 'label', 'partner_id', 'file_url', 'version', 'active', 'metadata']), workspace_id: WS }))));
   await rest('brand_rules', 'POST', db.brand_rules.map(r => ({ ...pick(r, ['id', 'version', 'rules_json', 'approved_by', 'approved_at', 'active']), workspace_id: WS })));
-  if (db.editions.length) await rest('editions', 'POST', db.editions.map(e => ({ ...pick(e, ['id', 'title', 'theme', 'audience', 'objective', 'status', 'edition_date', 'brief', 'exports', 'schedule_assignment', 'schedule_times', 'meme_included', 'created_at', 'updated_at']), workspace_id: WS })));
+  if (legacyEditions.length) await rest('editions', 'POST', legacyEditions.map(e => ({ ...pick(e, ['id', 'title', 'theme', 'audience', 'objective', 'status', 'edition_date', 'brief', 'exports', 'schedule_assignment', 'schedule_times', 'meme_included', 'created_at', 'updated_at']), workspace_id: WS })));
   if (db.sources.length) await rest('sources', 'POST', db.sources.map(s => pick(s, ['id', 'edition_id', 'type', 'name', 'url', 'file_name', 'primary', 'extracted_text', 'hash', 'created_at'])));
   if (db.analyses.length) await rest('analyses', 'POST', db.analyses.map(a => pick(a, ['id', 'edition_id', 'summary', 'facts', 'risks', 'angles', 'provider', 'created_at'])));
-  if (db.newsletter_versions.length) await rest('newsletter_versions', 'POST', db.newsletter_versions.map(v => pick(v, ['id', 'edition_id', 'n', 'content_json', 'meta', 'html', 'plain', 'score', 'qa_json', 'is_approved', 'origin', 'note', 'provider', 'approved_at', 'created_at'])));
-  if (db.posts.length) await rest('posts', 'POST', clean(db.posts.map(p => ({ ...pick(p, ['id', 'edition_id', 'angle', 'content_json', 'content_es', 'es_status', 'template_id', 'image_id', 'crop', 'partner_id', 'status', 'score', 'qa_json', 'origin', 'meta', 'approved_at', 'created_at', 'updated_at']), versions: (p.versions || []).slice(-5) }))));
-  if (db.generated_images.length) await rest('generated_images', 'POST', clean(db.generated_images.map(i => pick(i, ['id', 'post_id', 'edition_id', 'source', 'provider', 'model', 'mode', 'prompt', 'file_url', 'cost_meta', 'ms', 'created_at']))));
-  if ((db.publications || []).length) await rest('publications', 'POST', db.publications.map(x => pick(x, ['id', 'post_id', 'edition_id', 'provider', 'lang', 'networks', 'date_time', 'timezone', 'draft', 'media_urls', 'remote', 'status', 'created_at'])));
+  if (legacyNewsletters.length) await rest('newsletter_versions', 'POST', legacyNewsletters.map(v => pick(v, ['id', 'edition_id', 'n', 'content_json', 'meta', 'html', 'plain', 'score', 'qa_json', 'is_approved', 'origin', 'note', 'provider', 'approved_at', 'created_at'])));
+  if (legacyPosts.length) await rest('posts', 'POST', clean(legacyPosts.map(p => ({ ...pick(p, ['id', 'edition_id', 'angle', 'content_json', 'content_es', 'es_status', 'template_id', 'image_id', 'crop', 'partner_id', 'status', 'score', 'qa_json', 'origin', 'meta', 'approved_at', 'created_at', 'updated_at']), versions: (p.versions || []).slice(-5) }))));
+  if (legacyImages.length) await rest('generated_images', 'POST', clean(legacyImages.map(i => pick(i, ['id', 'post_id', 'edition_id', 'source', 'provider', 'model', 'mode', 'prompt', 'file_url', 'cost_meta', 'ms', 'created_at']))));
+  if (legacyPublications.length) await rest('publications', 'POST', legacyPublications.map(x => pick(x, ['id', 'post_id', 'edition_id', 'provider', 'lang', 'networks', 'date_time', 'timezone', 'draft', 'media_urls', 'remote', 'status', 'created_at'])));
   if (db.renders.length) await rest('renders', 'POST', db.renders.map(r => pick(r, ['id', 'post_id', 'template_id', 'image_id', 'image_url', 'render_url', 'dimensions', 'created_at'])));
   await rest('prompt_templates', 'POST', db.prompt_templates.map(p => ({ ...pick(p, ['id', 'name', 'version', 'prompt_text', 'active', 'custom']), workspace_id: WS })));
   if (db.audit_log.length) await rest('audit_log', 'POST', db.audit_log.slice(0, 500).map(l => ({ ...pick(l, ['id', 'user_id', 'user_name', 'action', 'entity', 'entity_id', 'metadata', 'created_at']), workspace_id: WS })));
@@ -131,7 +137,21 @@ export async function pullAll() {
     const value = publicationSettings[key];
     if ((typeof value === 'string' || typeof value === 'number') && String(value).trim()) db.settings[key] = String(value);
   }
-  const merge = async (table, key, query = '') => { const rows = await rest(table, 'GET', null, `?select=*${query}`); const local = db[key]; for (const r of rows) { const i = local.findIndex(x => x.id === r.id); if (i < 0) local.push(r); else if ((r.updated_at || r.created_at || '') > (local[i].updated_at || local[i].created_at || '')) local[i] = { ...local[i], ...r }; } };
+  const managed = new Set();
+  const merge = async (table, key) => {
+    const rows = await rest(table, 'GET', null, '?select=*');
+    for (const row of rows) {
+      if (table === 'editions' && row.brief?.radar_workflow) managed.add(row.id);
+      if (managed.has(row.id) || managed.has(row.edition_id)) continue;
+      const local = db[key];
+      const index = local.findIndex(item => item.id === row.id);
+      if (index < 0) local.push(row);
+      else if ((row.updated_at || row.approved_at || row.created_at || '') >=
+        (local[index].updated_at || local[index].approved_at || local[index].created_at || '')) {
+        local[index] = { ...local[index], ...row };
+      }
+    }
+  };
   await merge('brand_assets', 'brand_assets'); await merge('brand_rules', 'brand_rules'); await merge('editions', 'editions'); await merge('sources', 'sources'); await merge('analyses', 'analyses');
   await merge('newsletter_versions', 'newsletter_versions'); await merge('posts', 'posts'); await merge('generated_images', 'generated_images'); await merge('renders', 'renders'); db.publications = db.publications || []; await merge('publications', 'publications'); await merge('prompt_templates', 'prompt_templates');
   for (const i of db.generated_images) if (i.file_url?.startsWith('storage://') && !(await blobs.get(i.id))) { const u = await signedUrl(i.file_url); if (u) { try { const b = await (await fetch(u)).blob(); const dataUrl = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(b); }); await blobs.put(i.id, dataUrl); } catch (e) { console.warn('pull image', i.id, e); } } }

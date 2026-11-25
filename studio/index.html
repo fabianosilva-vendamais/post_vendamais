@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VM Estúdio | VendaMais</title>
+  <link rel="stylesheet" href="/studio/studio.css">
+  <script src="/config.js"></script>
+  <script type="module" src="/studio/studio.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <div class="masthead-inner">
+      <a class="identity" href="/studio/" aria-label="VM Estúdio, início"><img src="/assets/brand/logo-negativo.png" alt="VendaMais"><span>Estúdio</span></a>
+      <nav aria-label="Outras ferramentas"><a href="/engine/treinamentos/index.html">Treinamentos</a><a href="/index.html">Ferramentas avançadas</a><button id="sign-out" class="link" hidden>Sair</button></nav>
+    </div>
+  </header>
+  <main id="app" class="shell" aria-busy="true"><p>Carregando o Estúdio…</p></main>
+  <div id="live" class="live" role="status" aria-live="polite" hidden></div>
+  <dialog id="dialog"></dialog>
+</body>
+</html>
