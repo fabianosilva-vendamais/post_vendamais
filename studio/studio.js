@@ -110,7 +110,7 @@ function newsletterOutput(newsletter) {
 }
 function previewHtml(newsletter) {
   const html = newsletter.is_approved && newsletter.html ? newsletter.html : newsletterOutput(newsletter).html;
-  return `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: http: data:; style-src 'unsafe-inline'; font-src https:; base-uri 'none'; form-action 'none'"><style>body{margin:0} img{max-width:100%;height:auto} table{max-width:100%} *{overflow-wrap:anywhere}</style>${html}`;
+  return `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: http: data:; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; base-uri 'none'; form-action 'none'"><style>body{margin:0} img{max-width:100%;height:auto} table{max-width:100%} *{overflow-wrap:anywhere}</style>${html}`;
 }
 function newsletterPanel(newsletter) {
   if (!newsletter) return `<section class="panel panel-body">${message('Esta edição ainda não tem uma newsletter.')}</section>`;

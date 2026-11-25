@@ -106,6 +106,13 @@ dialog .actions{justify-content:flex-end}
  .posts-layout{grid-template-columns:1fr}.post-list{grid-template-columns:repeat(3,minmax(0,1fr));border-right:0;border-bottom:1px solid var(--line);padding:7px;gap:4px}
  .post-choice{padding:6px;font-size:12px}.post-choice span{font-size:10px}
  .post-content{grid-template-columns:1fr;gap:10px}.art{width:min(100%,290px);margin:auto}
- .schedule{min-width:535px}
+ .schedule,.schedule tbody{display:block}
+ .schedule thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+ .schedule tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 10px;padding:12px;border-bottom:1px solid var(--line)}
+ .schedule td{border:0;padding:0;overflow-wrap:anywhere}
+ .schedule td:nth-child(2){grid-column:1/-1;grid-row:2}
+ .schedule td:nth-child(3){grid-column:1/-1;grid-row:3}
+ .schedule td:nth-child(4){grid-column:2;grid-row:1;justify-self:end}
+ .schedule td input{width:min(100%,245px)}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important}}
